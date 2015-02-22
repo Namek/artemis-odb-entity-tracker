@@ -21,14 +21,18 @@ import javax.swing.table.TableColumnModel;
 
 import net.namekdev.entity_tracker.connectors.UpdateListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
+import java.awt.Component;
+import java.awt.BorderLayout;
 
 public class EntityTrackerMainWindow implements UpdateListener {
 	private JFrame frame;
-	private JTable table;
+	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane;
-	private EntityTableModel tableModel;
+	private EntityTableModel entitiesTableModel;
+	private EntityObserverTableModel systemsTableModel;
 	private JSplitPane mainSplitPane, tableFiltersSplitPane, systemsDetailsSplitPane;
-	private JPanel filtersPanel, systemsPanel, detailsPanel;
+	private JPanel filtersPanel, systemsManagersPanel, detailsPanel;
+	private JTable systemsTable;
 
 
 	public EntityTrackerMainWindow() {
@@ -47,40 +51,53 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	public void initialize() {
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setBounds(100, 100, 742, 671);
+		frame.setBounds(100, 100, 959, 823);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
 
 
-		table = new JTable();
-		table.setShowVerticalLines(false);
-		table.setFillsViewportHeight(true);
-		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		JTableHeader tableHeader = table.getTableHeader();
+		entitiesTable = new JTable();
+		entitiesTable.setShowVerticalLines(false);
+		entitiesTable.setFillsViewportHeight(true);
+		entitiesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		JTableHeader tableHeader = entitiesTable.getTableHeader();
 		tableHeader.setDefaultRenderer(new VerticalTableHeaderCellRenderer());
-		tableModel = new EntityTableModel();
-		table.setModel(tableModel);
-		table.getColumnModel().getColumn(0).setMaxWidth(40);
+		entitiesTableModel = new EntityTableModel();
+		entitiesTable.setModel(entitiesTableModel);
+		entitiesTable.getColumnModel().getColumn(0).setMinWidth(50);
 
 
 		tableScrollPane = new JScrollPane();
-		tableScrollPane.add(table);
-		tableScrollPane.setViewportView(table);
+		tableScrollPane.setViewportView(entitiesTable);
 
 		filtersPanel = new JPanel();
 		filtersPanel.add(new JLabel("TODO filters here"));
 
 		filtersScrollPane = new JScrollPane(filtersPanel);
 
-		systemsPanel = new JPanel();
-		systemsPanel.add(new JLabel("TODO systems, managers here"));
+		systemsManagersPanel = new JPanel();
+
+		systemsTable = new AdjustableJTable();
+		systemsTable.setFillsViewportHeight(true);
+		systemsTable.setShowVerticalLines(false);
+		systemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		systemsTableModel = new EntityObserverTableModel("system");
+		systemsTable.setModel(systemsTableModel);
+		entitiesTable.getColumnModel().getColumn(0).setMaxWidth(10);
+		systemsManagersPanel.setLayout(new BorderLayout(0, 0));
+		JScrollPane systemsTableScrollPane = new JScrollPane();
+		systemsTableScrollPane.setViewportView(systemsTable);
+
+		systemsManagersPanel.add(systemsTableScrollPane);
 
 		detailsPanel = new JPanel();
 		detailsPanel.add(new JLabel("TODO details here"));
 
-		systemsDetailsSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemsPanel, detailsPanel);
+		systemsDetailsSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemsManagersPanel, detailsPanel);
 
 		tableFiltersSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableScrollPane, filtersScrollPane);
+		tableFiltersSplitPane.setResizeWeight(1.0);
 		mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableFiltersSplitPane, systemsDetailsSplitPane);
+		mainSplitPane.setResizeWeight(0.5);
 		frame.getContentPane().add(mainSplitPane);
 
 		frame.setVisible(true);
@@ -92,10 +109,19 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	}
 
 	@Override
+	public void addedEntitySystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				systemsTableModel.addObserver(name);
+			}
+		});
+	}
+
+	@Override
 	public void added(int entityId, BitSet components) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				tableModel.addEntity(entityId, components);
+				entitiesTableModel.addEntity(entityId, components);
 			}
 		});
 	}
@@ -104,7 +130,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	public void deleted(int entityId) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				tableModel.removeEntity(entityId);
+				entitiesTableModel.removeEntity(entityId);
 			}
 		});
 	}
@@ -113,11 +139,11 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	public void addedComponentType(String name) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				TableColumnModel columns = table.getColumnModel();
+				TableColumnModel columns = entitiesTable.getColumnModel();
 				TableColumn col = new TableColumn(columns.getColumnCount());
 				columns.addColumn(col);
 
-				tableModel.addComponentType(name);
+				entitiesTableModel.addComponentType(name);
 				setupAllColumnHeadersVerticalRenderer();
 			}
 		});
@@ -125,7 +151,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 	private void setupAllColumnHeadersVerticalRenderer() {
 		TableCellRenderer headerRenderer = new VerticalTableHeaderCellRenderer();
-		TableColumnModel columns = table.getColumnModel();
+		TableColumnModel columns = entitiesTable.getColumnModel();
 		Enumeration<TableColumn> columnIter = columns.getColumns();
 		while (columnIter.hasMoreElements()) {
 			TableColumn column = columnIter.nextElement();
@@ -134,7 +160,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	}
 
 	private void setupColumnLook(int columnIndex) {
-		TableColumnModel columns = table.getColumnModel();
+		TableColumnModel columns = entitiesTable.getColumnModel();
 		TableColumn column = columns.getColumn(columnIndex);
 		column.setHeaderRenderer(new VerticalTableHeaderCellRenderer());
 	}

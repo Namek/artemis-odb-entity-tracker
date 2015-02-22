@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.connectors;
 
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,11 +73,17 @@ public class EntityTracker extends Manager {
 				aspectInfo.allTypes = findComponents("allTypes", aspect);
 				aspectInfo.oneTypes = findComponents("oneTypes", aspect);
 				aspectInfo.exclusionTypes = findComponents("exclusionTypes", aspect);
+
+				aspectInfo.allTypesBitset = componentsToAspectBitset(aspectInfo.allTypes.values());
+				aspectInfo.oneTypesBitset = componentsToAspectBitset(aspectInfo.oneTypes.values());
+				aspectInfo.exclusionTypesBitset = componentsToAspectBitset(aspectInfo.exclusionTypes.values());
 			}
 
 			EntitySystemInfo info = new EntitySystemInfo(systemName, system, aspect, aspectInfo, actives, subscription);
 			systemsInfo.add(info);
 			systemsInfoByName.put(systemName, info);
+
+			updateListener.addedEntitySystem(systemName, aspectInfo.allTypesBitset, aspectInfo.oneTypesBitset, aspectInfo.exclusionTypesBitset);
 		}
 	}
 
@@ -93,6 +100,17 @@ public class EntityTracker extends Manager {
 		}
 
 		return namedTypes;
+	}
+
+	private BitSet componentsToAspectBitset(Collection<Class<? extends Component>> componentTypes) {
+		BitSet bitset = new BitSet(allComponentTypes.size());
+
+		for (Class<? extends Component> componentType : componentTypes) {
+			int index = typeFactory.getIndexFor(componentType);;
+			bitset.set(index);
+		}
+
+		return bitset;
 	}
 
 	@Override

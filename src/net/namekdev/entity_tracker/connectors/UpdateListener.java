@@ -10,6 +10,8 @@ public interface UpdateListener {
 
 	int getListeningBitset();
 
+	void addedEntitySystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes);
+
 	void addedComponentType(String name);
 
 	void added(int entityId, BitSet components);
