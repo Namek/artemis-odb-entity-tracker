@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.ui;
 
+import java.awt.BorderLayout;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -21,8 +22,6 @@ import javax.swing.table.TableColumnModel;
 
 import net.namekdev.entity_tracker.connectors.UpdateListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
-import java.awt.Component;
-import java.awt.BorderLayout;
 
 public class EntityTrackerMainWindow implements UpdateListener {
 	private JFrame frame;
@@ -56,6 +55,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 
 		entitiesTable = new JTable();
+		entitiesTable.setAutoCreateRowSorter(true);
 		entitiesTable.setShowVerticalLines(false);
 		entitiesTable.setFillsViewportHeight(true);
 		entitiesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -77,6 +77,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		systemsManagersPanel = new JPanel();
 
 		systemsTable = new AdjustableJTable();
+		systemsTable.setAutoCreateRowSorter(true);
 		systemsTable.setFillsViewportHeight(true);
 		systemsTable.setShowVerticalLines(false);
 		systemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -153,6 +154,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		TableCellRenderer headerRenderer = new VerticalTableHeaderCellRenderer();
 		TableColumnModel columns = entitiesTable.getColumnModel();
 		Enumeration<TableColumn> columnIter = columns.getColumns();
+
 		while (columnIter.hasMoreElements()) {
 			TableColumn column = columnIter.nextElement();
 			column.setHeaderRenderer(headerRenderer);
