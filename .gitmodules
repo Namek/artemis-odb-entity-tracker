@@ -1,0 +1,3 @@
+[submodule "lib/artemis-odb"]
+	path = lib/artemis-odb
+	url = https://github.com/junkdog/artemis-odb.git

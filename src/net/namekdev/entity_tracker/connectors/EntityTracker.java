@@ -11,6 +11,7 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
 import com.artemis.Aspect;
 import com.artemis.AspectSubscriptionManager;
+import com.artemis.BaseSystem;
 import com.artemis.Component;
 import com.artemis.ComponentManager;
 import com.artemis.ComponentType;
@@ -58,14 +59,20 @@ public class EntityTracker extends Manager {
 	private void findAllAspects() {
 		AspectSubscriptionManager am = world.getManager(AspectSubscriptionManager.class);
 
-		ImmutableBag<EntitySystem> systems = world.getSystems();
+		ImmutableBag<BaseSystem> systems = world.getSystems();
 		for (int i = 0, n = systems.size(); i < n; ++i) {
-			EntitySystem system = systems.get(i);
+			BaseSystem system = systems.get(i);
 
-			Class<? extends EntitySystem> systemType = system.getClass();
+			Class<? extends BaseSystem> systemType = system.getClass();
 			String systemName = systemType.getSimpleName();
-			Aspect.Builder aspect = (Aspect.Builder) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "aspectConfiguration", system);
-			IntBag actives = (IntBag) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "actives", system);
+			Aspect.Builder aspect = null;
+			IntBag actives = null;
+
+			if (system instanceof EntitySystem) {
+				aspect = (Aspect.Builder) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "aspectConfiguration", system);
+				actives = (IntBag) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "actives", system);
+			}
+
 			EntitySubscription subscription = aspect != null ? am.get(aspect) : null;
 
 			AspectInfo aspectInfo = new AspectInfo();
