@@ -6,18 +6,17 @@ import java.util.Vector;
 import javax.swing.table.DefaultTableModel;
 
 public class EntityTableModel extends DefaultTableModel {
-	private int componentTypesCount = 0;
-
-
 	public EntityTableModel() {
 		super(new Object[][] {}, new String[] { "  entity id  " });
 	}
 
-	public void addComponentType(String name) {
-		componentTypesCount++;
+	public void setComponentType(int index, String name) {
+		for (int i = getColumnCount(); i <= index; ++i) {
+			addColumn("");
+		}
 
-		// FIXME hack: spaces are to add some padding
-		addColumn("  " + name + "  ");
+		columnIdentifiers.set(index, "  " + name + "  ");
+		fireTableStructureChanged();
 	}
 
 	public void addEntity(int entityId, BitSet components) {

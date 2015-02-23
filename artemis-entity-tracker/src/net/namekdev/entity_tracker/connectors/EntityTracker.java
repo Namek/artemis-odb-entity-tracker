@@ -94,7 +94,7 @@ public class EntityTracker extends Manager {
 			systemsInfo.add(info);
 			systemsInfoByName.put(systemName, info);
 
-			updateListener.addedEntitySystem(systemName, aspectInfo.allTypesBitset, aspectInfo.oneTypesBitset, aspectInfo.exclusionTypesBitset);
+			updateListener.addedSystem(systemName, aspectInfo.allTypesBitset, aspectInfo.oneTypesBitset, aspectInfo.exclusionTypesBitset);
 		}
 
 		ImmutableBag<Manager> managers = world.getManagers();
@@ -131,7 +131,7 @@ public class EntityTracker extends Manager {
 		BitSet bitset = new BitSet(allComponentTypes.size());
 
 		for (Class<? extends Component> componentType : componentTypes) {
-			int index = typeFactory.getIndexFor(componentType);;
+			int index = typeFactory.getIndexFor(componentType);
 			bitset.set(index);
 		}
 
@@ -140,7 +140,7 @@ public class EntityTracker extends Manager {
 
 	@Override
 	public void added(Entity e) {
-		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.ADDED) == 0) {
+		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.ENTITY_ADDED) == 0) {
 			return;
 		}
 
@@ -153,22 +153,22 @@ public class EntityTracker extends Manager {
 		}
 
 		if (componentBitset.size() > _notifiedComponentTypesCount) {
-			inspectNewComponentTypesAndInform();
+			inspectNewComponentTypesAndNotify();
 		}
 
-		updateListener.added(e.id, componentBitset);
+		updateListener.addedEntity(e.id, (BitSet) componentBitset.clone());
 	}
 
 	@Override
 	public void deleted(Entity e) {
-		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.DELETED) == 0) {
+		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.ENTITY_DELETED) == 0) {
 			return;
 		}
 
-		updateListener.deleted(e.id);
+		updateListener.deletedEntity(e.id);
 	}
 
-	private void inspectNewComponentTypesAndInform() {
+	private void inspectNewComponentTypesAndNotify() {
 		int index = _notifiedComponentTypesCount;
 		int n = allComponentTypes.size();
 
@@ -176,7 +176,7 @@ public class EntityTracker extends Manager {
 			Class<Component> type = (Class<Component>) ReflectionUtils.getHiddenFieldValue(ComponentType.class, "type", allComponentTypes.get(i));
 			String componentName = type.getSimpleName();
 
-			updateListener.addedComponentType(componentName);
+			updateListener.addedComponentType(i, componentName);
 			++_notifiedComponentTypesCount;
 		}
 	}

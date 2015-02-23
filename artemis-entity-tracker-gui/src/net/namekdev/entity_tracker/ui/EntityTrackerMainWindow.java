@@ -54,7 +54,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		initialize();
 	}
 
-	public void initialize() {
+	protected void initialize() {
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setBounds(100, 100, 959, 823);
@@ -127,11 +127,11 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 	@Override
 	public int getListeningBitset() {
-		return UpdateListener.ADDED | UpdateListener.DELETED;
+		return UpdateListener.ENTITY_ADDED | UpdateListener.ENTITY_DELETED;
 	}
 
 	@Override
-	public void addedEntitySystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+	public void addedSystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				systemsTableModel.addSystem(name);
@@ -149,7 +149,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	}
 
 	@Override
-	public void added(int entityId, BitSet components) {
+	public void addedEntity(int entityId, BitSet components) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.addEntity(entityId, components);
@@ -158,7 +158,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	}
 
 	@Override
-	public void deleted(int entityId) {
+	public void deletedEntity(int entityId) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.removeEntity(entityId);
@@ -167,14 +167,14 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	}
 
 	@Override
-	public void addedComponentType(String name) {
+	public void addedComponentType(int index, String name) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				TableColumnModel columns = entitiesTable.getColumnModel();
 				TableColumn col = new TableColumn(columns.getColumnCount());
 				columns.addColumn(col);
 
-				entitiesTableModel.addComponentType(name);
+				entitiesTableModel.setComponentType(index, name);
 				setupAllColumnHeadersVerticalRenderer();
 			}
 		});
