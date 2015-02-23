@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.ui;
 
-import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -10,6 +10,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -28,10 +29,11 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane;
 	private EntityTableModel entitiesTableModel;
-	private EntityObserverTableModel systemsTableModel;
+	private EntityObserverTableModel systemsTableModel, managersTableModel;
 	private JSplitPane mainSplitPane, tableFiltersSplitPane, systemsDetailsSplitPane;
 	private JPanel filtersPanel, systemsManagersPanel, detailsPanel;
-	private JTable systemsTable;
+	private JTable systemsTable, managersTable;
+	private JTabbedPane tabbedPane;
 
 
 	public EntityTrackerMainWindow() {
@@ -63,7 +65,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		tableHeader.setDefaultRenderer(new VerticalTableHeaderCellRenderer());
 		entitiesTableModel = new EntityTableModel();
 		entitiesTable.setModel(entitiesTableModel);
-		entitiesTable.getColumnModel().getColumn(0).setMinWidth(50);
+		entitiesTable.getColumnModel().getColumn(0).setMaxWidth(10);
 
 
 		tableScrollPane = new JScrollPane();
@@ -75,20 +77,32 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		filtersScrollPane = new JScrollPane(filtersPanel);
 
 		systemsManagersPanel = new JPanel();
+		systemsManagersPanel.setLayout(new CardLayout(0, 0));
+		systemsTableModel = new EntityObserverTableModel("system");
+		managersTableModel = new EntityObserverTableModel("manager");
+
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		systemsManagersPanel.add(tabbedPane, "name_959362872326203");
 
 		systemsTable = new AdjustableJTable();
 		systemsTable.setAutoCreateRowSorter(true);
 		systemsTable.setFillsViewportHeight(true);
 		systemsTable.setShowVerticalLines(false);
 		systemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		systemsTableModel = new EntityObserverTableModel("system");
 		systemsTable.setModel(systemsTableModel);
-		entitiesTable.getColumnModel().getColumn(0).setMaxWidth(10);
-		systemsManagersPanel.setLayout(new BorderLayout(0, 0));
 		JScrollPane systemsTableScrollPane = new JScrollPane();
 		systemsTableScrollPane.setViewportView(systemsTable);
+		tabbedPane.addTab("Systems", null, systemsTableScrollPane, null);
 
-		systemsManagersPanel.add(systemsTableScrollPane);
+		managersTable.setAutoCreateRowSorter(true);
+		managersTable.setFillsViewportHeight(true);
+		managersTable.setShowVerticalLines(false);
+		managersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		managersTable = new AdjustableJTable();
+		managersTable.setModel(managersTableModel);
+		JScrollPane managersTableScrollPane = new JScrollPane();
+		managersTableScrollPane.setViewportView(managersTable);
+		tabbedPane.addTab("Managers", null, managersTableScrollPane, null);
 
 		detailsPanel = new JPanel();
 		detailsPanel.add(new JLabel("TODO details here"));
@@ -97,6 +111,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 		tableFiltersSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableScrollPane, filtersScrollPane);
 		tableFiltersSplitPane.setResizeWeight(1.0);
+
 		mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableFiltersSplitPane, systemsDetailsSplitPane);
 		mainSplitPane.setResizeWeight(0.5);
 		frame.getContentPane().add(mainSplitPane);
@@ -114,6 +129,15 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				systemsTableModel.addObserver(name);
+			}
+		});
+	}
+
+	@Override
+	public void addedManager(String name) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				managersTableModel.addObserver(name);
 			}
 		});
 	}

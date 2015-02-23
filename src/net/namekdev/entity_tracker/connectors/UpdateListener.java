@@ -12,6 +12,8 @@ public interface UpdateListener {
 
 	void addedEntitySystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes);
 
+	void addedManager(String managerName);
+
 	void addedComponentType(String name);
 
 	void added(int entityId, BitSet components);
@@ -19,4 +21,5 @@ public interface UpdateListener {
 //	void changed(Entity e);
 
 	void deleted(int entityId);
+
 }

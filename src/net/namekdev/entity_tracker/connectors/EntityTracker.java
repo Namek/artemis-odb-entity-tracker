@@ -7,6 +7,7 @@ import java.util.Map;
 
 import net.namekdev.entity_tracker.model.AspectInfo;
 import net.namekdev.entity_tracker.model.EntitySystemInfo;
+import net.namekdev.entity_tracker.model.ManagerInfo;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
 import com.artemis.Aspect;
@@ -30,7 +31,10 @@ public class EntityTracker extends Manager {
 	public UpdateListener updateListener;
 
 	public final Bag<EntitySystemInfo> systemsInfo = new Bag<EntitySystemInfo>();
-	public Map<String, EntitySystemInfo> systemsInfoByName = new HashMap<String, EntitySystemInfo>();
+	public final Map<String, EntitySystemInfo> systemsInfoByName = new HashMap<String, EntitySystemInfo>();
+
+	public final Bag<ManagerInfo> managersInfo = new Bag<ManagerInfo>();
+	public final Map<String, ManagerInfo> managersInfoByName = new HashMap<String, ManagerInfo>();
 
 	protected Method entity_getComponentBits;
 	protected ComponentTypeFactory typeFactory;
@@ -53,10 +57,10 @@ public class EntityTracker extends Manager {
 		typeFactory = (ComponentTypeFactory) ReflectionUtils.getHiddenFieldValue(ComponentManager.class, "typeFactory", world.getComponentManager());
 		allComponentTypes = (Bag<ComponentType>) ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory.class, "types", typeFactory);
 
-		findAllAspects();
+		find42();
 	}
 
-	private void findAllAspects() {
+	private void find42() {
 		AspectSubscriptionManager am = world.getManager(AspectSubscriptionManager.class);
 
 		ImmutableBag<BaseSystem> systems = world.getSystems();
@@ -91,6 +95,20 @@ public class EntityTracker extends Manager {
 			systemsInfoByName.put(systemName, info);
 
 			updateListener.addedEntitySystem(systemName, aspectInfo.allTypesBitset, aspectInfo.oneTypesBitset, aspectInfo.exclusionTypesBitset);
+		}
+
+		ImmutableBag<Manager> managers = world.getManagers();
+		for (int i = 0, n = managers.size(); i < n; ++i) {
+			Manager manager = managers.get(i);
+
+			Class<? extends Manager> managerType = manager.getClass();
+			String managerName = managerType.getSimpleName();
+
+			ManagerInfo info = new ManagerInfo(managerName, manager);
+			managersInfo.add(info);
+			managersInfoByName.put(managerName, info);
+
+			updateListener.addedManager(managerName);
 		}
 	}
 
