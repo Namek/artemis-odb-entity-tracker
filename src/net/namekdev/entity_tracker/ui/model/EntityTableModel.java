@@ -1,4 +1,4 @@
-package net.namekdev.entity_tracker.ui;
+package net.namekdev.entity_tracker.ui.model;
 
 import java.util.BitSet;
 import java.util.Vector;

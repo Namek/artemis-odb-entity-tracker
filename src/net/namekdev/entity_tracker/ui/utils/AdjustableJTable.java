@@ -1,9 +1,7 @@
-package net.namekdev.entity_tracker.ui;
+package net.namekdev.entity_tracker.ui.utils;
 
 import javax.swing.JTable;
 import javax.swing.event.TableModelEvent;
-
-import net.namekdev.entity_tracker.ui.utils.TableColumnAdjuster;
 
 public class AdjustableJTable extends JTable {
 	protected TableColumnAdjuster adjuster;

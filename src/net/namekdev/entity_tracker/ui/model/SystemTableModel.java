@@ -1,11 +1,11 @@
-package net.namekdev.entity_tracker.ui;
+package net.namekdev.entity_tracker.ui.model;
 
 import javax.swing.table.DefaultTableModel;
 
-public class EntityObserverTableModel extends DefaultTableModel {
-	public EntityObserverTableModel(String observerTypeName) {
+public class SystemTableModel extends DefaultTableModel {
+	public SystemTableModel() {
 		addColumn("");
-		addColumn(observerTypeName);
+		addColumn("system");
 		addColumn("actives");
 	}
 
@@ -22,7 +22,7 @@ public class EntityObserverTableModel extends DefaultTableModel {
 		return column == 0;
 	}
 
-	public void addObserver(String name) {
+	public void addSystem(String name) {
 		addRow(new Object[] { true, name, 0 });
 	}
 }

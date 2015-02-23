@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.ui;
 
-import java.awt.CardLayout;
+	import java.awt.CardLayout;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -22,6 +22,10 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 import net.namekdev.entity_tracker.connectors.UpdateListener;
+import net.namekdev.entity_tracker.ui.model.EntityTableModel;
+import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
+import net.namekdev.entity_tracker.ui.model.SystemTableModel;
+import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
 public class EntityTrackerMainWindow implements UpdateListener {
@@ -29,7 +33,8 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane;
 	private EntityTableModel entitiesTableModel;
-	private EntityObserverTableModel systemsTableModel, managersTableModel;
+	private SystemTableModel systemsTableModel;
+	private ManagerTableModel managersTableModel;
 	private JSplitPane mainSplitPane, tableFiltersSplitPane, systemsDetailsSplitPane;
 	private JPanel filtersPanel, systemsManagersPanel, detailsPanel;
 	private JTable systemsTable, managersTable;
@@ -78,8 +83,8 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 		systemsManagersPanel = new JPanel();
 		systemsManagersPanel.setLayout(new CardLayout(0, 0));
-		systemsTableModel = new EntityObserverTableModel("system");
-		managersTableModel = new EntityObserverTableModel("manager");
+		systemsTableModel = new SystemTableModel();
+		managersTableModel = new ManagerTableModel();
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		systemsManagersPanel.add(tabbedPane, "name_959362872326203");
@@ -94,6 +99,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		systemsTableScrollPane.setViewportView(systemsTable);
 		tabbedPane.addTab("Systems", null, systemsTableScrollPane, null);
 
+		managersTable = new JTable();
 		managersTable.setAutoCreateRowSorter(true);
 		managersTable.setFillsViewportHeight(true);
 		managersTable.setShowVerticalLines(false);
@@ -128,7 +134,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	public void addedEntitySystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				systemsTableModel.addObserver(name);
+				systemsTableModel.addSystem(name);
 			}
 		});
 	}
@@ -137,7 +143,7 @@ public class EntityTrackerMainWindow implements UpdateListener {
 	public void addedManager(String name) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				managersTableModel.addObserver(name);
+				managersTableModel.addManager(name);
 			}
 		});
 	}
