@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.ui;
 
-	import java.awt.CardLayout;
+import java.awt.CardLayout;
 import java.util.BitSet;
 import java.util.Enumeration;
 

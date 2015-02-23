@@ -1,15 +1,11 @@
-package net.namekdev.entity_tracker;
+package net.namekdev.entity_tracker.ui;
 
 import java.awt.EventQueue;
 
 import net.namekdev.entity_tracker.connectors.UpdateListener;
-import net.namekdev.entity_tracker.ui.EntityTrackerMainWindow;
 
-public class Main {
+public class StandaloneMain {
 
-	/**
-	 * Launch the application.
-	 */
 	public static void main(String[] args) {
 		init();
 	}
