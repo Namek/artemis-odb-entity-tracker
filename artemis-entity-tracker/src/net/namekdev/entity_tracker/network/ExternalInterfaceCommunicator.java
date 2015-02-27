@@ -5,7 +5,7 @@ import java.util.BitSet;
 import net.namekdev.entity_tracker.connectors.UpdateListener;
 
 /**
- * Communiactor used by UI (client).
+ * Communicator used by UI (client).
  * Direction: client to server = window to entity tracker
  *
  * @author Namek

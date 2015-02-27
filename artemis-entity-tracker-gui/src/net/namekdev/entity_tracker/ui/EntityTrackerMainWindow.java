@@ -42,6 +42,10 @@ public class EntityTrackerMainWindow implements UpdateListener {
 
 
 	public EntityTrackerMainWindow() {
+		this(false);
+	}
+
+	public EntityTrackerMainWindow(boolean exitApplicationOnClose) {
 		try {
 			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 				if ("Nimbus".equals(info.getName())) {
@@ -51,12 +55,12 @@ public class EntityTrackerMainWindow implements UpdateListener {
 			}
 		} catch (Exception exc) { }
 
-		initialize();
+		initialize(exitApplicationOnClose);
 	}
 
-	protected void initialize() {
+	protected void initialize(boolean exitApplicationOnClose) {
 		frame = new JFrame();
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.setDefaultCloseOperation(exitApplicationOnClose ? JFrame.EXIT_ON_CLOSE : JFrame.DISPOSE_ON_CLOSE);
 		frame.setBounds(100, 100, 959, 823);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
 

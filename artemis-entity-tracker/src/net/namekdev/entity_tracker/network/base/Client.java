@@ -96,7 +96,7 @@ public class Client {
 	 * This method can be run manually or called automatically by {@link #startThread()}.
 	 */
 	public void update() {
-		while (_isRunning && !socket.isClosed()) {
+		if (_isRunning && !socket.isClosed()) {
 			int n = 0;
 			try {
 				n = input.available();
