@@ -11,11 +11,11 @@ public class EntityTableModel extends DefaultTableModel {
 	}
 
 	public void setComponentType(int index, String name) {
-		for (int i = getColumnCount(); i <= index; ++i) {
+		for (int i = getColumnCount(); i <= index+1; ++i) {
 			addColumn("");
 		}
 
-		columnIdentifiers.set(index, "  " + name + "  ");
+		columnIdentifiers.set(index+1, "  " + name + "  ");
 		fireTableStructureChanged();
 	}
 
