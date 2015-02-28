@@ -5,6 +5,7 @@ import java.util.BitSet;
 import java.util.Enumeration;
 
 import javax.swing.BoxLayout;
+import javax.swing.DefaultListSelectionModel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -16,29 +17,33 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
-import net.namekdev.entity_tracker.connectors.UpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
 import net.namekdev.entity_tracker.ui.model.SystemTableModel;
+import net.namekdev.entity_tracker.ui.partials.EntityDetailsPanel;
 import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
-public class EntityTrackerMainWindow implements UpdateListener {
+public class EntityTrackerMainWindow implements WorldUpdateListener {
 	private JFrame frame;
 	private JTable entitiesTable;
-	private JScrollPane tableScrollPane, filtersScrollPane;
+	private JScrollPane tableScrollPane, filtersScrollPane, detailsPanelContainer;
 	private EntityTableModel entitiesTableModel;
 	private SystemTableModel systemsTableModel;
 	private ManagerTableModel managersTableModel;
 	private JSplitPane mainSplitPane, tableFiltersSplitPane, systemsDetailsSplitPane;
-	private JPanel filtersPanel, systemsManagersPanel, detailsPanel;
+	private JPanel filtersPanel, systemsManagersPanel;
 	private JTable systemsTable, managersTable;
 	private JTabbedPane tabbedPane;
+	private EntityDetailsPanel entityDetailsPanel;
 
 
 	public EntityTrackerMainWindow() {
@@ -114,10 +119,10 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		managersTableScrollPane.setViewportView(managersTable);
 		tabbedPane.addTab("Managers", null, managersTableScrollPane, null);
 
-		detailsPanel = new JPanel();
-		detailsPanel.add(new JLabel("TODO details here"));
+		detailsPanelContainer = new JScrollPane();
+		detailsPanelContainer.setViewportView(new JLabel("TODO details here"));
 
-		systemsDetailsSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemsManagersPanel, detailsPanel);
+		systemsDetailsSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemsManagersPanel, detailsPanelContainer);
 
 		tableFiltersSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableScrollPane, filtersScrollPane);
 		tableFiltersSplitPane.setResizeWeight(1.0);
@@ -127,11 +132,14 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		frame.getContentPane().add(mainSplitPane);
 
 		frame.setVisible(true);
+
+		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
+		entityDetailsPanel = new EntityDetailsPanel(entitiesTableModel);
 	}
 
 	@Override
 	public int getListeningBitset() {
-		return UpdateListener.ENTITY_ADDED | UpdateListener.ENTITY_DELETED;
+		return WorldUpdateListener.ENTITY_ADDED | WorldUpdateListener.ENTITY_DELETED;
 	}
 
 	@Override
@@ -195,9 +203,31 @@ public class EntityTrackerMainWindow implements UpdateListener {
 		}
 	}
 
-	private void setupColumnLook(int columnIndex) {
-		TableColumnModel columns = entitiesTable.getColumnModel();
-		TableColumn column = columns.getColumn(columnIndex);
-		column.setHeaderRenderer(new VerticalTableHeaderCellRenderer());
+	protected void showEntityDetails(int entityId) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				entityDetailsPanel.setup(entityId);
+				detailsPanelContainer.setViewportView(entityDetailsPanel);
+				detailsPanelContainer.revalidate();
+				detailsPanelContainer.repaint();
+			}
+		});
 	}
+
+	private ListSelectionListener entitySelectionListener = new ListSelectionListener() {
+		@Override
+		public void valueChanged(ListSelectionEvent e) {
+			final DefaultListSelectionModel selection = (DefaultListSelectionModel) e.getSource();
+
+			if (!e.getValueIsAdjusting()) {
+				// we're not interested in unselect event for previous row
+				return;
+			}
+
+			int rowIndex = selection.getAnchorSelectionIndex();
+			int entityId = (int) entitiesTableModel.getValueAt(rowIndex, 0);
+
+			showEntityDetails(entityId);
+		}
+	};
 }

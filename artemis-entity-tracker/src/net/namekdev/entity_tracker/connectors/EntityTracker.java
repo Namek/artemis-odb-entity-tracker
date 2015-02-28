@@ -28,7 +28,7 @@ import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
 
 public class EntityTracker extends Manager {
-	public UpdateListener updateListener;
+	public WorldUpdateListener updateListener;
 
 	public final Bag<EntitySystemInfo> systemsInfo = new Bag<EntitySystemInfo>();
 	public final Map<String, EntitySystemInfo> systemsInfoByName = new HashMap<String, EntitySystemInfo>();
@@ -46,7 +46,7 @@ public class EntityTracker extends Manager {
 	public EntityTracker() {
 	}
 
-	public EntityTracker(UpdateListener listener) {
+	public EntityTracker(WorldUpdateListener listener) {
 		this.updateListener = listener;
 	}
 
@@ -140,7 +140,7 @@ public class EntityTracker extends Manager {
 
 	@Override
 	public void added(Entity e) {
-		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.ENTITY_ADDED) == 0) {
+		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_ADDED) == 0) {
 			return;
 		}
 
@@ -161,7 +161,7 @@ public class EntityTracker extends Manager {
 
 	@Override
 	public void deleted(Entity e) {
-		if (updateListener == null || (updateListener.getListeningBitset() & UpdateListener.ENTITY_DELETED) == 0) {
+		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_DELETED) == 0) {
 			return;
 		}
 

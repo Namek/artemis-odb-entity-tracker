@@ -7,7 +7,7 @@ import java.util.BitSet;
  *
  * @author Namek
  */
-public interface UpdateListener {
+public interface WorldUpdateListener {
 	public static final int ENTITY_ADDED = 1 << 1;
 	public static final int ENTITY_DELETED = 1 << 2;
 //	public static final int CHANGED = 1 << 3;

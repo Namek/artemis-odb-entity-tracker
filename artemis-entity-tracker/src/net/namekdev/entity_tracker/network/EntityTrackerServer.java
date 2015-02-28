@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 
 import com.artemis.utils.Bag;
 
-import net.namekdev.entity_tracker.connectors.UpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
@@ -22,7 +22,7 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple4;
  *
  * @author Namek
  */
-public class EntityTrackerServer extends Server implements UpdateListener {
+public class EntityTrackerServer extends Server implements WorldUpdateListener {
 	private Bag<EntityTrackerCommunicator> _listeners = new Bag<EntityTrackerCommunicator>();
 
 	private Bag<String> _managers = new Bag<String>();

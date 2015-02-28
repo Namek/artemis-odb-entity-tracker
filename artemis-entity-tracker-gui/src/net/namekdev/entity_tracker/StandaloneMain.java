@@ -14,7 +14,7 @@ public class StandaloneMain {
 	}
 
 	public static void init(final String serverName, final int serverPort) {
-		final EntityTrackerMainWindow window = new EntityTrackerMainWindow();
+		final EntityTrackerMainWindow window = new EntityTrackerMainWindow(true);
 		final Client client = new Client(new ExternalInterfaceCommunicator(window));
 
 		client.connect(serverName, serverPort);

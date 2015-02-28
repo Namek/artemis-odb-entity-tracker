@@ -2,7 +2,7 @@ package net.namekdev.entity_tracker.network;
 
 import java.util.BitSet;
 
-import net.namekdev.entity_tracker.connectors.UpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 
 /**
  * Communicator used by UI (client).
@@ -11,10 +11,10 @@ import net.namekdev.entity_tracker.connectors.UpdateListener;
  * @author Namek
  */
 public class ExternalInterfaceCommunicator extends Communicator {
-	private UpdateListener _listener;
+	private WorldUpdateListener _listener;
 
 
-	public ExternalInterfaceCommunicator(UpdateListener listener) {
+	public ExternalInterfaceCommunicator(WorldUpdateListener listener) {
 		_listener = listener;
 	}
 

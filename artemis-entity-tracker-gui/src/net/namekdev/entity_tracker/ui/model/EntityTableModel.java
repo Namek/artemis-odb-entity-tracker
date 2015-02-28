@@ -1,11 +1,15 @@
 package net.namekdev.entity_tracker.ui.model;
 
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.table.DefaultTableModel;
 
 public class EntityTableModel extends DefaultTableModel {
+	private Map<Integer, BitSet> _entitiesComponents = new HashMap<Integer, BitSet>();
+
 	public EntityTableModel() {
 		super(new Object[][] {}, new String[] { "  entity id  " });
 	}
@@ -15,7 +19,7 @@ public class EntityTableModel extends DefaultTableModel {
 			addColumn("");
 		}
 
-		columnIdentifiers.set(index+1, "  " + name + "  ");
+		columnIdentifiers.set(index+1, name);
 		fireTableStructureChanged();
 	}
 
@@ -30,6 +34,7 @@ public class EntityTableModel extends DefaultTableModel {
 		}
 
 		this.addRow(row);
+		_entitiesComponents.put(entityId, components);
 	}
 
 	public void removeEntity(int entityId) {
@@ -41,6 +46,15 @@ public class EntityTableModel extends DefaultTableModel {
 				break;
 			}
 		}
+		_entitiesComponents.remove(entityId);
+	}
+
+	public BitSet getEntityComponents(int entityId) {
+		return _entitiesComponents.get(entityId);
+	}
+
+	public String getComponentName(int index) {
+		return (String) columnIdentifiers.get(index + 1);
 	}
 
 	public Class<?> getColumnClass(int columnIndex) {

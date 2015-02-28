@@ -2,7 +2,7 @@ package net.namekdev.entity_tracker.network;
 
 import java.util.BitSet;
 
-import net.namekdev.entity_tracker.connectors.UpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 
 /**
  * Deserializes data from network and serializes data sent to the network.
@@ -13,7 +13,7 @@ import net.namekdev.entity_tracker.connectors.UpdateListener;
  *
  * @author Namek
  */
-public class EntityTrackerCommunicator extends Communicator implements UpdateListener {
+public class EntityTrackerCommunicator extends Communicator implements WorldUpdateListener {
 	@Override
 	public void disconnected() {
 		// TODO Auto-generated method stub
