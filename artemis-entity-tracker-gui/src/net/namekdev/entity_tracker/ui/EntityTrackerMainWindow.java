@@ -5,7 +5,6 @@ import java.util.BitSet;
 import java.util.Enumeration;
 
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListSelectionModel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -17,7 +16,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
@@ -30,6 +28,7 @@ import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
 import net.namekdev.entity_tracker.ui.model.SystemTableModel;
 import net.namekdev.entity_tracker.ui.partials.EntityDetailsPanel;
 import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
+import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
 public class EntityTrackerMainWindow implements WorldUpdateListener {
@@ -214,19 +213,10 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		});
 	}
 
-	private ListSelectionListener entitySelectionListener = new ListSelectionListener() {
+	private ListSelectionListener entitySelectionListener = new SelectionListener() {
 		@Override
-		public void valueChanged(ListSelectionEvent e) {
-			final DefaultListSelectionModel selection = (DefaultListSelectionModel) e.getSource();
-
-			if (!e.getValueIsAdjusting()) {
-				// we're not interested in unselect event for previous row
-				return;
-			}
-
-			int rowIndex = selection.getAnchorSelectionIndex();
-			int entityId = (int) entitiesTableModel.getValueAt(rowIndex, 0);
-
+		public void rowSelected(int index) {
+			int entityId = (int) entitiesTableModel.getValueAt(index, 0);
 			showEntityDetails(entityId);
 		}
 	};
