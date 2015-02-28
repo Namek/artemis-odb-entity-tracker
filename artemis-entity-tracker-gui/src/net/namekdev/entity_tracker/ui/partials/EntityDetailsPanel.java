@@ -80,15 +80,6 @@ public class EntityDetailsPanel extends JPanel {
 			setBorder(_entityTitledBorder);
 		}
 
-		if (componentIndex >= 0) {
-			String componentName = _componentListModel.get(componentIndex);
-
-			_componentTitledBorder.setTitle(componentName);
-			_componentsPanel.removeAll();
-			_componentsPanel.add(new JLabel("TODO component details"));
-		}
-		_currentComponentIndex = componentIndex;
-
 		if (entityId != _currentEntityId) {
 			BitSet entityComponents = _entityTableModel.getEntityComponents(entityId);
 
@@ -96,10 +87,22 @@ public class EntityDetailsPanel extends JPanel {
 
 			_componentListModel.clear();
 			for (int i = entityComponents.nextSetBit(0); i >= 0; i = entityComponents.nextSetBit(i+1)) {
-				_componentListModel.addElement(_entityTableModel.getComponentName(i));
+				String componentName = _entityTableModel.getComponentName(i);
+
+				_componentListModel.addElement(componentName);
 			}
+
 			_currentEntityId = entityId;
 		}
+
+		if (componentIndex >= 0) {
+			String componentName = _entityTableModel.getComponentName(componentIndex);
+
+			_componentTitledBorder.setTitle(componentName);
+			_componentsPanel.removeAll();
+			_componentsPanel.add(new JLabel("TODO component details"));
+		}
+		_currentComponentIndex = componentIndex;
 
 		revalidate();
 		repaint();

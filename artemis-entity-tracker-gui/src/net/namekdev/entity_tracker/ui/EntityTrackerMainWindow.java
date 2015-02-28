@@ -1,6 +1,9 @@
 package net.namekdev.entity_tracker.ui;
 
 import java.awt.CardLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -133,6 +136,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		frame.setVisible(true);
 
 		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
+		entitiesTable.addMouseListener(rightBtnCellSelectionListener);
 		entityDetailsPanel = new EntityDetailsPanel(entitiesTableModel);
 	}
 
@@ -202,10 +206,10 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		}
 	}
 
-	protected void showEntityDetails(int entityId) {
+	protected void showEntityDetails(int entityId, int componentIndex) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				entityDetailsPanel.setup(entityId);
+				entityDetailsPanel.setup(entityId, componentIndex);
 				detailsPanelContainer.setViewportView(entityDetailsPanel);
 				detailsPanelContainer.revalidate();
 				detailsPanelContainer.repaint();
@@ -217,7 +221,26 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		@Override
 		public void rowSelected(int index) {
 			int entityId = (int) entitiesTableModel.getValueAt(index, 0);
-			showEntityDetails(entityId);
+			showEntityDetails(entityId, -1);
+		}
+	};
+
+	private MouseListener rightBtnCellSelectionListener = new MouseAdapter() {
+		@Override
+		public void mousePressed(MouseEvent evt) {
+			if (!SwingUtilities.isRightMouseButton(evt)) {
+				return;
+			}
+
+			int row = entitiesTable.rowAtPoint(evt.getPoint());
+			int col = entitiesTable.columnAtPoint(evt.getPoint());
+
+			if (row >= 0) {
+				int entityId = (int) entitiesTableModel.getValueAt(row, 0);
+				int componentIndex = col-1;
+
+				showEntityDetails(entityId, componentIndex);
+			}
 		}
 	};
 }
