@@ -1,6 +1,6 @@
 # Entity Tracker
 
-Server and Client that provides online artemis-odb World state.
+Server and Client that provides online tracking of [artemis-odb](https://github.com/junkdog/artemis-odb) World state.
 
 ![screenshot](/screenshot.png?raw=true)
 
