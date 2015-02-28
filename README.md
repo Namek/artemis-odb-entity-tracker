@@ -2,6 +2,8 @@
 
 Server and Client that provides online artemis-odb World state.
 
+![screenshot](/screenshot.png?raw=true)
+
 
 # Simple Usage
 
