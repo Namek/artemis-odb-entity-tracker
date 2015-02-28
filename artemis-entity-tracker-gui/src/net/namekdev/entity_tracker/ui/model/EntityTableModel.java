@@ -8,7 +8,7 @@ import java.util.Vector;
 import javax.swing.table.DefaultTableModel;
 
 public class EntityTableModel extends DefaultTableModel {
-	private Map<Integer, BitSet> _entitiesComponents = new HashMap<Integer, BitSet>();
+	private Map<Integer, BitSet> _entityComponents = new HashMap<Integer, BitSet>();
 
 	public EntityTableModel() {
 		super(new Object[][] {}, new String[] { "  entity id  " });
@@ -34,7 +34,7 @@ public class EntityTableModel extends DefaultTableModel {
 		}
 
 		this.addRow(row);
-		_entitiesComponents.put(entityId, components);
+		_entityComponents.put(entityId, components);
 	}
 
 	public void removeEntity(int entityId) {
@@ -46,11 +46,11 @@ public class EntityTableModel extends DefaultTableModel {
 				break;
 			}
 		}
-		_entitiesComponents.remove(entityId);
+		_entityComponents.remove(entityId);
 	}
 
 	public BitSet getEntityComponents(int entityId) {
-		return _entitiesComponents.get(entityId);
+		return _entityComponents.get(entityId);
 	}
 
 	public String getComponentName(int index) {

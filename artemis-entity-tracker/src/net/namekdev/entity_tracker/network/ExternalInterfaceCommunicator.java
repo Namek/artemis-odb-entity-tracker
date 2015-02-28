@@ -32,11 +32,12 @@ public class ExternalInterfaceCommunicator extends Communicator {
 
 		switch (packetType) {
 			case TYPE_ADDED_ENTITY_SYSTEM: {
+				int index = _deserializer.readInt();
 				String name = _deserializer.readString();
 				BitSet allTypes = _deserializer.readBitSet();
 				BitSet oneTypes = _deserializer.readBitSet();
 				BitSet notTypes = _deserializer.readBitSet();
-				_listener.addedSystem(name, allTypes, oneTypes, notTypes);
+				_listener.addedSystem(index, name, allTypes, oneTypes, notTypes);
 				break;
 			}
 			case TYPE_ADDED_MANAGER: {
@@ -48,6 +49,13 @@ public class ExternalInterfaceCommunicator extends Communicator {
 				int index = _deserializer.readInt();
 				String name = _deserializer.readString();
 				_listener.addedComponentType(index, name);
+				break;
+			}
+			case TYPE_UPDATED_ENTITY_SYSTEM: {
+				int index = _deserializer.readInt();
+				int entitiesCount = _deserializer.readInt();
+				int maxEntitiesCount = _deserializer.readInt();
+				_listener.updatedEntitySystem(index, entitiesCount, maxEntitiesCount);
 				break;
 			}
 			case TYPE_ADDED_ENTITY: {

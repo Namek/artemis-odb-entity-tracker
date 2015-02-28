@@ -142,14 +142,16 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 
 	@Override
 	public int getListeningBitset() {
-		return WorldUpdateListener.ENTITY_ADDED | WorldUpdateListener.ENTITY_DELETED;
+		return ENTITY_ADDED | ENTITY_DELETED | ENTITY_SYSTEM_STATS;
 	}
 
 	@Override
-	public void addedSystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+		boolean hasAspect = allTypes != null || oneTypes != null || notTypes != null;
+
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				systemsTableModel.addSystem(name);
+				systemsTableModel.setSystem(index, name, hasAspect);
 			}
 		});
 	}
@@ -159,6 +161,29 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				managersTableModel.addManager(name);
+			}
+		});
+	}
+
+	@Override
+	public void addedComponentType(int index, String name) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				TableColumnModel columns = entitiesTable.getColumnModel();
+				TableColumn col = new TableColumn(columns.getColumnCount());
+				columns.addColumn(col);
+
+				entitiesTableModel.setComponentType(index, name);
+				setupAllColumnHeadersVerticalRenderer();
+			}
+		});
+	}
+
+	@Override
+	public void updatedEntitySystem(int systemIndex, int entitiesCount, int maxEntitiesCount) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				systemsTableModel.updateSystem(systemIndex, entitiesCount, maxEntitiesCount);
 			}
 		});
 	}
@@ -177,20 +202,6 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.removeEntity(entityId);
-			}
-		});
-	}
-
-	@Override
-	public void addedComponentType(int index, String name) {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				TableColumnModel columns = entitiesTable.getColumnModel();
-				TableColumn col = new TableColumn(columns.getColumnCount());
-				columns.addColumn(col);
-
-				entitiesTableModel.setComponentType(index, name);
-				setupAllColumnHeadersVerticalRenderer();
 			}
 		});
 	}

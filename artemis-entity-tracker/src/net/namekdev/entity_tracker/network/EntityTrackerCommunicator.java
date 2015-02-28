@@ -28,13 +28,14 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 
 	@Override
 	public int getListeningBitset() {
-		return ENTITY_ADDED | ENTITY_DELETED;
+		return ENTITY_ADDED | ENTITY_DELETED | ENTITY_SYSTEM_STATS;
 	}
 
 	@Override
-	public void addedSystem(String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
 		send(
 			beginPacket(TYPE_ADDED_ENTITY_SYSTEM)
+			.addInt(index)
 			.addString(name)
 			.addBitSet(allTypes)
 			.addBitSet(oneTypes)
@@ -56,6 +57,16 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 			beginPacket(TYPE_ADDED_COMPONENT_TYPE)
 			.addInt(index)
 			.addString(name)
+		);
+	}
+
+	@Override
+	public void updatedEntitySystem(int index, int entitiesCount, int maxEntitiesCount) {
+		send(
+			beginPacket(TYPE_UPDATED_ENTITY_SYSTEM)
+			.addInt(index)
+			.addInt(entitiesCount)
+			.addInt(maxEntitiesCount)
 		);
 	}
 

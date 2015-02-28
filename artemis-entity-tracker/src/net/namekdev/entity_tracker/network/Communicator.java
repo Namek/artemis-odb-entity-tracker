@@ -21,8 +21,9 @@ public abstract class Communicator implements RawConnectionCommunicator {
 	protected static final byte TYPE_ADDED_ENTITY_SYSTEM = 60;
 	protected static final byte TYPE_ADDED_MANAGER = 61;
 	protected static final byte TYPE_ADDED_COMPONENT_TYPE = 63;
-	protected static final byte TYPE_ADDED_ENTITY = 65;
-	protected static final byte TYPE_DELETED_ENTITY = 68;
+	protected static final byte TYPE_UPDATED_ENTITY_SYSTEM = 64;
+	protected static final byte TYPE_ADDED_ENTITY = 68;
+	protected static final byte TYPE_DELETED_ENTITY = 73;
 
 
 	@Override

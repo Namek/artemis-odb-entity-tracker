@@ -6,7 +6,8 @@ public class SystemTableModel extends DefaultTableModel {
 	public SystemTableModel() {
 		addColumn("");
 		addColumn("system");
-		addColumn("actives");
+		addColumn("entities");
+		addColumn("max entities");
 	}
 
 	@Override
@@ -22,7 +23,16 @@ public class SystemTableModel extends DefaultTableModel {
 		return column == 0;
 	}
 
-	public void addSystem(String name) {
-		addRow(new Object[] { true, name, 0 });
+	public void setSystem(int index, String name, boolean hasAspect) {
+		for (int i = getRowCount(); i <= index; ++i) {
+			addRow(new Object[] { true, "", hasAspect ? 0 : null });
+		}
+
+		setValueAt(name, index, 1);
+	}
+
+	public void updateSystem(int index, int entitiesCount, int maxEntitiesCount) {
+		setValueAt(entitiesCount, index, 2);
+		setValueAt(maxEntitiesCount, index, 3);
 	}
 }

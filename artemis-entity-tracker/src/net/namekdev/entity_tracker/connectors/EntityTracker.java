@@ -19,6 +19,7 @@ import com.artemis.ComponentType;
 import com.artemis.ComponentTypeFactory;
 import com.artemis.Entity;
 import com.artemis.EntitySubscription;
+import com.artemis.EntitySubscription.SubscriptionListener;
 import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
@@ -57,10 +58,10 @@ public class EntityTracker extends Manager {
 		typeFactory = (ComponentTypeFactory) ReflectionUtils.getHiddenFieldValue(ComponentManager.class, "typeFactory", world.getComponentManager());
 		allComponentTypes = (Bag<ComponentType>) ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory.class, "types", typeFactory);
 
-		find42();
+		find42UnicornManagers();
 	}
 
-	private void find42() {
+	private void find42UnicornManagers() {
 		ImmutableBag<BaseSystem> systems = world.getSystems();
 		for (int i = 0, n = systems.size(); i < n; ++i) {
 			BaseSystem system = systems.get(i);
@@ -81,16 +82,20 @@ public class EntityTracker extends Manager {
 
 			AspectInfo aspectInfo = new AspectInfo();
 			if (aspect != null) {
-				aspectInfo.allTypesBitset = aspect.getAllSet();
-				aspectInfo.oneTypesBitset = aspect.getOneSet();
-				aspectInfo.exclusionTypesBitset = aspect.getExclusionSet();
+				aspectInfo.allTypes = aspect.getAllSet();
+				aspectInfo.oneTypes = aspect.getOneSet();
+				aspectInfo.exclusionTypes = aspect.getExclusionSet();
 			}
 
-			EntitySystemInfo info = new EntitySystemInfo(systemName, system, aspect, aspectInfo, actives, subscription);
+			EntitySystemInfo info = new EntitySystemInfo(i, systemName, system, aspect, aspectInfo, actives, subscription);
 			systemsInfo.add(info);
 			systemsInfoByName.put(systemName, info);
 
-			updateListener.addedSystem(systemName, aspectInfo.allTypesBitset, aspectInfo.oneTypesBitset, aspectInfo.exclusionTypesBitset);
+			if (subscription != null) {
+				listenForEntitySetChanges(info);
+			}
+
+			updateListener.addedSystem(i, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes);
 		}
 
 		ImmutableBag<Manager> managers = world.getManagers();
@@ -106,6 +111,32 @@ public class EntityTracker extends Manager {
 
 			updateListener.addedManager(managerName);
 		}
+	}
+
+	private void listenForEntitySetChanges(final EntitySystemInfo info) {
+		info.subscription.addSubscriptionListener(new SubscriptionListener() {
+			@Override
+			public void removed(ImmutableBag<Entity> entities) {
+				info.entitiesCount -= entities.size();
+
+				if (updateListener != null && (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_SYSTEM_STATS) != 0) {
+					updateListener.updatedEntitySystem(info.systemIndex, info.entitiesCount, info.maxEntitiesCount);
+				}
+			}
+
+			@Override
+			public void inserted(ImmutableBag<Entity> entities) {
+				info.entitiesCount += entities.size();
+
+				if (info.entitiesCount > info.maxEntitiesCount) {
+					info.maxEntitiesCount = info.entitiesCount;
+				}
+
+				if (updateListener != null && (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_SYSTEM_STATS) != 0) {
+					updateListener.updatedEntitySystem(info.systemIndex, info.entitiesCount, info.maxEntitiesCount);
+				}
+			}
+		});
 	}
 
 	private BitSet componentsToAspectBitset(Collection<Class<? extends Component>> componentTypes) {
