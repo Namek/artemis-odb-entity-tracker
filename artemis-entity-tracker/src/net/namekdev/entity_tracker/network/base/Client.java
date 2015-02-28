@@ -21,7 +21,7 @@ public class Client {
 
 	private boolean _isRunning;
 	private final byte[] _buffer = new byte[10240];
-	private int _posLeft = 0, _posRight = 0;
+	private int _incomingSize = -1;
 
 	public RawConnectionCommunicator connectionListener;
 
@@ -97,40 +97,26 @@ public class Client {
 	 */
 	public void update() {
 		if (_isRunning && !socket.isClosed()) {
-			int n = 0;
 			try {
-				n = input.available();
-			}
-			catch (IOException e) {
-				if (_isRunning) {
-					throw new RuntimeException(e);
-				}
-				return;
-			}
+				int n = input.available();
 
-			if (_posRight == _buffer.length || n == 0) {
-				if (_posRight > 0) {
-					int consumed = 0;
-
-					do {
-						int length = _posRight - _posLeft;
-						consumed = connectionListener.bytesReceived(_buffer, _posLeft, length);
-						_posLeft += consumed;
+				do {
+					if (_incomingSize <= 0 && n >= Integer.BYTES) {
+						input.read(_buffer, 0, Integer.BYTES);
+						_incomingSize = readRawInt(_buffer, 0);
+						n -= Integer.BYTES;
+						continue;
 					}
-					while (consumed > 0 && _posLeft < _posRight);
+
+					if (_incomingSize > 0 && n >= _incomingSize) {
+						input.read(_buffer, 0, _incomingSize);
+						connectionListener.bytesReceived(_buffer, 0, _incomingSize);
+						_incomingSize = 0;
+					}
+
+					n = input.available();
 				}
-
-				if (_posRight == _posLeft) {
-					_posLeft = _posRight = 0;
-				}
-
-				return;
-			}
-
-			n = Math.min(n, _buffer.length - _posRight);
-
-			try {
-				input.read(_buffer, _posRight, n);
+				while (n > 0);
 			}
 			catch (IOException e) {
 				if (_isRunning) {
@@ -138,8 +124,6 @@ public class Client {
 				}
 				return;
 			}
-
-			_posRight += n;
 		}
 	}
 
@@ -158,6 +142,18 @@ public class Client {
 			socket.close();
 		}
 		catch (IOException e) { }
+	}
+
+	protected final static int readRawInt(byte[] buffer, int offset) {
+		int value = buffer[offset++] & 0xFF;
+		value <<= 8;
+		value = buffer[offset++] & 0xFF;
+		value <<= 8;
+		value = buffer[offset++] & 0xFF;
+		value <<= 8;
+		value = buffer[offset++] & 0xFF;
+
+		return value;
 	}
 
 	final Runnable threadRunnable = new Runnable() {
@@ -184,7 +180,12 @@ public class Client {
 		@Override
 		public void send(byte[] buffer, int offset, int length) {
 			try {
+				output.write((length >> 24) & 0xFF);
+				output.write((length >> 16) & 0xFF);
+				output.write((length >> 8) & 0xFF);
+				output.write(length & 0xFF);
 				output.write(buffer, offset, length);
+				output.flush();
 			}
 			catch (IOException e) {
 				throw new RuntimeException(e);

@@ -78,14 +78,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 			final int nBits = isLastPart ? allBitsCount % Integer.SIZE : Integer.SIZE;
 
 			for (int j = 0; j < nBits; ++j, ++i) {
-//				if ((value & (1 << j)) != 0) {
-//				 bitset.set(i)
-//				}
-
-//				if (((value >> j) & 1) == 1) {
-//					bitset.set(i);
-//				}
-
 				if ((value & 1) == 1) {
 					bitset.set(i);
 				}

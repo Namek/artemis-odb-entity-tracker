@@ -26,8 +26,7 @@ public class SocketTest {
 					}
 
 					@Override
-					public int bytesReceived(byte[] bytes, int offset, int length) {
-						return length;
+					public void bytesReceived(byte[] bytes, int offset, int length) {
 					}
 				};
 			}
@@ -46,11 +45,10 @@ public class SocketTest {
 			}
 
 			@Override
-			public int bytesReceived(byte[] bytes, int offset, int length) {
-				return length;
+			public void bytesReceived(byte[] bytes, int offset, int length) {
 			}
 		});
-//		client.connect("localhost", Server.DEFAULT_PORT);
-//		client.startThread();
+		client.connect("localhost", Server.DEFAULT_PORT);
+		client.startThread();
 	}
 }

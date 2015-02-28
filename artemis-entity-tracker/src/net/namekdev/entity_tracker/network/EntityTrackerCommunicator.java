@@ -21,9 +21,8 @@ public class EntityTrackerCommunicator extends Communicator implements UpdateLis
 	}
 
 	@Override
-	public int bytesReceived(byte[] bytes, int offset, int length) {
+	public void bytesReceived(byte[] bytes, int offset, int length) {
 		// TODO deserialize data
-		return length;
 	}
 
 
