@@ -61,33 +61,29 @@ public class EntityTracker extends Manager {
 	}
 
 	private void find42() {
-		AspectSubscriptionManager am = world.getManager(AspectSubscriptionManager.class);
-
 		ImmutableBag<BaseSystem> systems = world.getSystems();
 		for (int i = 0, n = systems.size(); i < n; ++i) {
 			BaseSystem system = systems.get(i);
 
 			Class<? extends BaseSystem> systemType = system.getClass();
 			String systemName = systemType.getSimpleName();
-			Aspect.Builder aspect = null;
-			IntBag actives = null;
+			Aspect aspect = null;
+			BitSet actives = null;
+			EntitySubscription subscription = null;
 
 			if (system instanceof EntitySystem) {
-				aspect = (Aspect.Builder) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "aspectConfiguration", system);
-				actives = (IntBag) ReflectionUtils.getHiddenFieldValue(EntitySystem.class, "actives", system);
-			}
+				EntitySystem entitySystem = (EntitySystem) system;
 
-			EntitySubscription subscription = aspect != null ? am.get(aspect) : null;
+				subscription = entitySystem.getSubscription();
+				aspect = subscription.getAspect();
+				actives = subscription.getActiveEntityIds();
+			}
 
 			AspectInfo aspectInfo = new AspectInfo();
 			if (aspect != null) {
-				aspectInfo.allTypes = findComponents("allTypes", aspect);
-				aspectInfo.oneTypes = findComponents("oneTypes", aspect);
-				aspectInfo.exclusionTypes = findComponents("exclusionTypes", aspect);
-
-				aspectInfo.allTypesBitset = componentsToAspectBitset(aspectInfo.allTypes.values());
-				aspectInfo.oneTypesBitset = componentsToAspectBitset(aspectInfo.oneTypes.values());
-				aspectInfo.exclusionTypesBitset = componentsToAspectBitset(aspectInfo.exclusionTypes.values());
+				aspectInfo.allTypesBitset = aspect.getAllSet();
+				aspectInfo.oneTypesBitset = aspect.getOneSet();
+				aspectInfo.exclusionTypesBitset = aspect.getExclusionSet();
 			}
 
 			EntitySystemInfo info = new EntitySystemInfo(systemName, system, aspect, aspectInfo, actives, subscription);
@@ -110,21 +106,6 @@ public class EntityTracker extends Manager {
 
 			updateListener.addedManager(managerName);
 		}
-	}
-
-	private Map<String, Class<? extends Component>> findComponents(String fieldName, Aspect.Builder aspect) {
-		@SuppressWarnings("unchecked")
-		Bag<Class<? extends Component>> types = (Bag<Class<? extends Component>>) ReflectionUtils.getHiddenFieldValue(Aspect.Builder.class, fieldName, aspect);
-		Map<String, Class<? extends Component>> namedTypes = new HashMap<String, Class<? extends Component>>();
-
-		for (int i = 0, n = types.size(); i < n; ++i) {
-			Class<? extends Component> type = types.get(i);
-			String name = type.getSimpleName();
-
-			namedTypes.put(name, type);
-		}
-
-		return namedTypes;
 	}
 
 	private BitSet componentsToAspectBitset(Collection<Class<? extends Component>> componentTypes) {

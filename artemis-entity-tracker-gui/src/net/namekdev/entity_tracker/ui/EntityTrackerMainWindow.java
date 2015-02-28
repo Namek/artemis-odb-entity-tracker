@@ -66,7 +66,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	protected void initialize(boolean exitApplicationOnClose) {
-		frame = new JFrame();
+		frame = new JFrame("Artemis Entity Tracker");
 		frame.setDefaultCloseOperation(exitApplicationOnClose ? JFrame.EXIT_ON_CLOSE : JFrame.DISPOSE_ON_CLOSE);
 		frame.setBounds(100, 100, 959, 823);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
