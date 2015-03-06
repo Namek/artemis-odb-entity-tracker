@@ -1,21 +1,29 @@
-package net.namekdev.entity_tracker.network;
+package net.namekdev.entity_tracker.network.communicator;
 
+import java.net.SocketAddress;
 import java.util.BitSet;
 
+import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
 
 /**
  * Communicator used by UI (client).
- * Direction: client to server = window to entity tracker
  *
  * @author Namek
  */
-public class ExternalInterfaceCommunicator extends Communicator {
+public class ExternalInterfaceCommunicator extends Communicator implements WorldController {
 	private WorldUpdateListener _listener;
 
 
 	public ExternalInterfaceCommunicator(WorldUpdateListener listener) {
 		_listener = listener;
+	}
+
+	@Override
+	public void connected(SocketAddress remoteAddress, RawConnectionOutputListener output) {
+		super.connected(remoteAddress, output);
+		_listener.injectWorldController(this);
 	}
 
 	@Override
@@ -72,5 +80,14 @@ public class ExternalInterfaceCommunicator extends Communicator {
 
 			default: throw new RuntimeException("Unknown packet type: " + (int)packetType);
 		}
+	}
+
+	@Override
+	public void setSystemState(String name, boolean isOn) {
+		send(
+			beginPacket(TYPE_SET_SYSTEM_STATE)
+			.addString(name)
+			.addBoolean(isOn)
+		);
 	}
 }

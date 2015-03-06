@@ -81,6 +81,11 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
+	public NetworkSerializer addBoolean(boolean value) {
+		_buffer[_pos++] = TYPE_BOOLEAN;
+		return addRawByte((byte) (value ? 1 : 0));
+	}
+
 	public NetworkSerializer addBitSet(BitSet bitset) {
 		if (tryAddNullable(bitset)) {
 			return this;

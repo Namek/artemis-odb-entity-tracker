@@ -1,7 +1,8 @@
-package net.namekdev.entity_tracker.network;
+package net.namekdev.entity_tracker.network.communicator;
 
 import java.util.BitSet;
 
+import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 
 /**
@@ -9,11 +10,13 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
  * Manages between logic events and pure network bytes.
  *
  * Communicator used by EntityTracker manager (server).
- * Direction: server to client = entity tracker to window
  *
  * @author Namek
  */
 public class EntityTrackerCommunicator extends Communicator implements WorldUpdateListener {
+	private WorldController _worldController;
+
+
 	@Override
 	public void disconnected() {
 		// TODO Auto-generated method stub
@@ -22,7 +25,25 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 
 	@Override
 	public void bytesReceived(byte[] bytes, int offset, int length) {
-		// TODO deserialize data
+		_deserializer.setSource(bytes, offset, length);
+
+		byte packetType = _deserializer.readRawByte();
+
+		switch (packetType) {
+			case TYPE_SET_SYSTEM_STATE: {
+				String systemName = _deserializer.readString();
+				boolean isSystemOn = _deserializer.readBoolean();
+				_worldController.setSystemState(systemName, isSystemOn);
+				break;
+			}
+
+			default: throw new RuntimeException("Unknown packet type: " + (int)packetType);
+		}
+	}
+
+	@Override
+	public void injectWorldController(WorldController controller) {
+		_worldController = controller;
 	}
 
 

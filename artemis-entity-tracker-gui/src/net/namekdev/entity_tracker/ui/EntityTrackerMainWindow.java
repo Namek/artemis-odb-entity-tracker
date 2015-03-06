@@ -20,11 +20,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
@@ -35,6 +38,7 @@ import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
 public class EntityTrackerMainWindow implements WorldUpdateListener {
+	private WorldController worldController;
 	private JFrame frame;
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane, detailsPanelContainer;
@@ -138,6 +142,12 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
 		entitiesTable.addMouseListener(rightBtnCellSelectionListener);
 		entityDetailsPanel = new EntityDetailsPanel(entitiesTableModel);
+
+		systemsTableModel.addTableModelListener(systemsModelListener);
+	}
+
+	public void injectWorldController(WorldController worldController) {
+		this.worldController = worldController;
 	}
 
 	@Override
@@ -252,6 +262,21 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 
 				showEntityDetails(entityId, componentIndex);
 			}
+		}
+	};
+
+	private TableModelListener systemsModelListener = new TableModelListener() {
+		@Override
+		public void tableChanged(TableModelEvent e) {
+			if (e.getColumn() != 0) {
+				return;
+			}
+
+			int rowIndex = e.getFirstRow();
+			String systemName = systemsTableModel.getSystemName(rowIndex);
+			boolean desiredSystemState = systemsTableModel.getSystemState(rowIndex);
+
+			worldController.setSystemState(systemName, desiredSystemState);
 		}
 	};
 }

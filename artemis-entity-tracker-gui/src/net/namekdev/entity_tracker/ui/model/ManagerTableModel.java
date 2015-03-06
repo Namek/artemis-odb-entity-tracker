@@ -24,4 +24,12 @@ public class ManagerTableModel extends DefaultTableModel {
 	public void addManager(String name) {
 		addRow(new Object[] { true, name });
 	}
+
+	public String getManagerName(int index) {
+		return (String) getValueAt(index, 1);
+	}
+
+	public boolean getManagerState(int index) {
+		return (boolean) getValueAt(index, 0);
+	}
 }

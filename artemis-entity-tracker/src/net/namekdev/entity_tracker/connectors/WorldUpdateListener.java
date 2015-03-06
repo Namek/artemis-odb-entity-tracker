@@ -13,6 +13,8 @@ public interface WorldUpdateListener {
 	public static final int ENTITY_SYSTEM_STATS = 1 << 4;
 
 
+	void injectWorldController(WorldController controller);
+
 	int getListeningBitset();
 
 	void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes);

@@ -6,17 +6,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.artemis.utils.Bag;
-
+import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
 import net.namekdev.entity_tracker.network.base.Server;
-import net.namekdev.entity_tracker.utils.tuple.Tuple2;
+import net.namekdev.entity_tracker.network.communicator.EntityTrackerCommunicator;
 import net.namekdev.entity_tracker.utils.tuple.Tuple3;
-import net.namekdev.entity_tracker.utils.tuple.Tuple4;
+
+import com.artemis.utils.Bag;
 
 /**
  * Server listening to new clients, useful to pass into Entity Tracker itself.
@@ -25,6 +25,7 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple4;
  * @author Namek
  */
 public class EntityTrackerServer extends Server implements WorldUpdateListener {
+	private WorldController _worldController;
 	private Bag<EntityTrackerCommunicator> _listeners = new Bag<EntityTrackerCommunicator>();
 
 	private Bag<String> _managers = new Bag<String>();
@@ -40,6 +41,10 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 		super.clientListenerProvider = _communicatorProvider;
 	}
 
+	@Override
+	public void injectWorldController(WorldController controller) {
+		_worldController = controller;
+	}
 
 	@Override
 	public int getListeningBitset() {
@@ -112,10 +117,11 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 			// Server requests communicator for given remote.
 
 			EntityTrackerCommunicator newCommunicator = new EntityTrackerCommunicator() {
-
 				@Override
 				public void connected(SocketAddress remoteAddress, RawConnectionOutputListener output) {
 					super.connected(remoteAddress, output);
+					injectWorldController(_worldController);
+
 
 					for (int i = 0, n = _systems.size(); i < n; ++i) {
 						final Tuple3<Integer, String, AspectInfo> system = _systems.get(i);
@@ -143,7 +149,6 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 						addedEntity(entity.getKey(), entity.getValue());
 					}
 				}
-
 			};
 			_listeners.add(newCommunicator);
 

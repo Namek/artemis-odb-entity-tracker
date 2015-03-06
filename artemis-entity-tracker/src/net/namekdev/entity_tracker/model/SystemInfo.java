@@ -6,7 +6,7 @@ import com.artemis.Aspect;
 import com.artemis.BaseSystem;
 import com.artemis.EntitySubscription;
 
-public class EntitySystemInfo {
+public class SystemInfo {
 	public int systemIndex;
 	public String systemName;
 	public BaseSystem system;
@@ -18,7 +18,7 @@ public class EntitySystemInfo {
 	public int maxEntitiesCount = 0;
 
 
-	public EntitySystemInfo(int systemIndex, String systemName, BaseSystem system, Aspect aspect, AspectInfo aspectInfo, BitSet actives, EntitySubscription subscription) {
+	public SystemInfo(int systemIndex, String systemName, BaseSystem system, Aspect aspect, AspectInfo aspectInfo, BitSet actives, EntitySubscription subscription) {
 		this.systemIndex = systemIndex;
 		this.systemName = systemName;
 		this.system = system;

@@ -1,17 +1,18 @@
-package net.namekdev.entity_tracker.connectors;
+package net.namekdev.entity_tracker;
 
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.namekdev.entity_tracker.connectors.WorldController;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
-import net.namekdev.entity_tracker.model.EntitySystemInfo;
+import net.namekdev.entity_tracker.model.SystemInfo;
 import net.namekdev.entity_tracker.model.ManagerInfo;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
 import com.artemis.Aspect;
-import com.artemis.AspectSubscriptionManager;
 import com.artemis.BaseSystem;
 import com.artemis.Component;
 import com.artemis.ComponentManager;
@@ -24,15 +25,14 @@ import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
-import com.artemis.utils.IntBag;
 import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
 
-public class EntityTracker extends Manager {
-	public WorldUpdateListener updateListener;
+public class EntityTracker extends Manager implements WorldController {
+	private WorldUpdateListener updateListener;
 
-	public final Bag<EntitySystemInfo> systemsInfo = new Bag<EntitySystemInfo>();
-	public final Map<String, EntitySystemInfo> systemsInfoByName = new HashMap<String, EntitySystemInfo>();
+	public final Bag<SystemInfo> systemsInfo = new Bag<SystemInfo>();
+	public final Map<String, SystemInfo> systemsInfoByName = new HashMap<String, SystemInfo>();
 
 	public final Bag<ManagerInfo> managersInfo = new Bag<ManagerInfo>();
 	public final Map<String, ManagerInfo> managersInfoByName = new HashMap<String, ManagerInfo>();
@@ -48,7 +48,12 @@ public class EntityTracker extends Manager {
 	}
 
 	public EntityTracker(WorldUpdateListener listener) {
+		setUpdateListener(listener);
+	}
+
+	public void setUpdateListener(WorldUpdateListener listener) {
 		this.updateListener = listener;
+		listener.injectWorldController(this);
 	}
 
 
@@ -87,7 +92,7 @@ public class EntityTracker extends Manager {
 				aspectInfo.exclusionTypes = aspect.getExclusionSet();
 			}
 
-			EntitySystemInfo info = new EntitySystemInfo(i, systemName, system, aspect, aspectInfo, actives, subscription);
+			SystemInfo info = new SystemInfo(i, systemName, system, aspect, aspectInfo, actives, subscription);
 			systemsInfo.add(info);
 			systemsInfoByName.put(systemName, info);
 
@@ -113,7 +118,7 @@ public class EntityTracker extends Manager {
 		}
 	}
 
-	private void listenForEntitySetChanges(final EntitySystemInfo info) {
+	private void listenForEntitySetChanges(final SystemInfo info) {
 		info.subscription.addSubscriptionListener(new SubscriptionListener() {
 			@Override
 			public void removed(ImmutableBag<Entity> entities) {
@@ -191,5 +196,11 @@ public class EntityTracker extends Manager {
 			updateListener.addedComponentType(i, componentName);
 			++_notifiedComponentTypesCount;
 		}
+	}
+
+	@Override
+	public void setSystemState(String name, boolean isOn) {
+		SystemInfo info = systemsInfoByName.get(name);
+		info.system.setEnabled(isOn);
 	}
 }

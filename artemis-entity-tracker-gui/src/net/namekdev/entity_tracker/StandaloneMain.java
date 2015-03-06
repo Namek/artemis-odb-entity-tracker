@@ -1,8 +1,8 @@
 package net.namekdev.entity_tracker;
 
-import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator;
 import net.namekdev.entity_tracker.network.base.Client;
 import net.namekdev.entity_tracker.network.base.Server;
+import net.namekdev.entity_tracker.network.communicator.ExternalInterfaceCommunicator;
 import net.namekdev.entity_tracker.ui.EntityTrackerMainWindow;
 
 public class StandaloneMain {

@@ -35,4 +35,12 @@ public class SystemTableModel extends DefaultTableModel {
 		setValueAt(entitiesCount, index, 2);
 		setValueAt(maxEntitiesCount, index, 3);
 	}
+
+	public String getSystemName(int index) {
+		return (String) getValueAt(index, 1);
+	}
+
+	public boolean getSystemState(int index) {
+		return (boolean) getValueAt(index, 0);
+	}
 }

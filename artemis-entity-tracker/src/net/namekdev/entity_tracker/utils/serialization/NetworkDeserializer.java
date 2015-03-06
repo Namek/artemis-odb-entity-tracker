@@ -60,6 +60,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return sb.toString();
 	}
 
+	public boolean readBoolean() {
+		checkType(TYPE_BOOLEAN);
+
+		byte value = readRawByte();
+		return value != 0;
+	}
+
 	public BitSet readBitSet() {
 		if (checkNull()) {
 			return null;

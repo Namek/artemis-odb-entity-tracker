@@ -9,7 +9,8 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_INT = 12;
 	public final static byte TYPE_LONG = 13;
 	public final static byte TYPE_STRING = 14;
-	public final static byte TYPE_BITSET = 17;
+	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
+	public final static byte TYPE_BITSET = 17;//takes minimum 4 bytes
 
 
 	public static NetworkSerializer createSerializer() {

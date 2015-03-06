@@ -1,4 +1,4 @@
-package net.namekdev.entity_tracker.network;
+package net.namekdev.entity_tracker.network.communicator;
 
 import java.net.SocketAddress;
 
@@ -24,6 +24,8 @@ public abstract class Communicator implements RawConnectionCommunicator {
 	protected static final byte TYPE_UPDATED_ENTITY_SYSTEM = 64;
 	protected static final byte TYPE_ADDED_ENTITY = 68;
 	protected static final byte TYPE_DELETED_ENTITY = 73;
+
+	protected static final byte TYPE_SET_SYSTEM_STATE = 90;
 
 
 	@Override
