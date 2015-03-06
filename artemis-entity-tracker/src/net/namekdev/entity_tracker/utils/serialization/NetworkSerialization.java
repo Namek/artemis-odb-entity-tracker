@@ -1,6 +1,9 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
+import java.util.BitSet;
+
 public abstract class NetworkSerialization {
+	protected final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
 	protected final static byte TYPE_ARRAY = 6;
 
@@ -23,5 +26,33 @@ public abstract class NetworkSerialization {
 
 	public static NetworkDeserializer createDeserializer() {
 		return new NetworkDeserializer();
+	}
+
+	public static int determineNetworkType(Class<?> type) {
+		int netType = TYPE_UNKNOWN;
+
+		if (type.equals(byte.class)) {
+			netType = TYPE_BYTE;
+		}
+		else if (type.equals(short.class)) {
+			netType = TYPE_SHORT;
+		}
+		else if (type.equals(int.class)) {
+			netType = TYPE_INT;
+		}
+		else if (type.equals(long.class)) {
+			netType = TYPE_LONG;
+		}
+		else if (type.equals(String.class)) {
+			netType = TYPE_STRING;
+		}
+		else if (type.equals(boolean.class)) {
+			netType = TYPE_BOOLEAN;
+		}
+		else if (type.equals(BitSet.class)) {
+			netType = TYPE_BITSET;
+		}
+
+		return netType;
 	}
 }

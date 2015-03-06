@@ -5,6 +5,8 @@ import java.util.BitSet;
 
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
 
 /**
@@ -56,7 +58,23 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			case TYPE_ADDED_COMPONENT_TYPE: {
 				int index = _deserializer.readInt();
 				String name = _deserializer.readString();
-				_listener.addedComponentType(index, name);
+				int size = _deserializer.beginArray();
+
+				ComponentTypeInfo info = new ComponentTypeInfo(name);
+				info.fields.ensureCapacity(size);
+
+				for (int i = 0; i < size; ++i) {
+					FieldInfo field = new FieldInfo();
+					field.isAccessible = _deserializer.readBoolean();
+					field.fieldName = _deserializer.readString();
+					field.classType = _deserializer.readString();
+					field.isArray = _deserializer.readBoolean();
+					field.valueType = _deserializer.readInt();
+
+					info.fields.insertElementAt(field, i);
+				}
+
+				_listener.addedComponentType(index, info);
 				break;
 			}
 			case TYPE_UPDATED_ENTITY_SYSTEM: {

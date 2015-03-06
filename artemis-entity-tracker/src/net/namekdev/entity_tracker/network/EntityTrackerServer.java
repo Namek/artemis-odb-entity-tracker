@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator;
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
@@ -30,7 +31,7 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 
 	private Bag<String> _managers = new Bag<String>();
 	private Bag<Tuple3<Integer, String, AspectInfo>> _systems = new Bag<Tuple3<Integer, String, AspectInfo>>();
-	private Bag<String> _componentTypes = new Bag<String>();
+	private Bag<ComponentTypeInfo> _componentTypes = new Bag<ComponentTypeInfo>();
 	private Map<Integer, BitSet> _entities = new HashMap<Integer,BitSet>();
 	private Bag<Integer> _entitySystemsEntitiesCount = new Bag<Integer>();
 	private Bag<Integer> _entitySystemsMaxEntitiesCount = new Bag<Integer>();
@@ -73,12 +74,12 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedComponentType(int index, String name) {
+	public void addedComponentType(int index, ComponentTypeInfo info) {
 		for (int i = 0, n = _listeners.size(); i < n; ++i) {
 			EntityTrackerCommunicator communicator = _listeners.get(i);
-			communicator.addedComponentType(index, name);
+			communicator.addedComponentType(index, info);
 		}
-		_componentTypes.set(index, name);
+		_componentTypes.set(index, info);
 	}
 
 	@Override

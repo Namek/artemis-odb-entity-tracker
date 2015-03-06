@@ -20,6 +20,16 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return _sourcePos - _sourceBeginPos;
 	}
 
+	public int beginArray(byte elementType) {
+		checkType(TYPE_ARRAY);
+		checkType(elementType);
+		return readRawInt();
+	}
+
+	public int beginArray() {
+		return beginArray(TYPE_UNKNOWN);
+	}
+
 	public byte readByte() {
 		checkType(TYPE_BYTE);
 		return readRawByte();
@@ -50,11 +60,11 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 
 		checkType(TYPE_STRING);
-		short length = readRawShort();
+		int length = readRawInt();
 
 		StringBuilder sb = new StringBuilder(length);
 		for (int i = 0; i < length; ++i) {
-			sb.append((char) _source[_sourcePos++]);
+			sb.append((char) (_source[_sourcePos++] & 0xFF));
 		}
 
 		return sb.toString();

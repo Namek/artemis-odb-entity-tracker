@@ -29,6 +29,7 @@ import javax.swing.table.TableColumnModel;
 
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
 import net.namekdev.entity_tracker.ui.model.SystemTableModel;
@@ -176,14 +177,14 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedComponentType(int index, String name) {
+	public void addedComponentType(int index, ComponentTypeInfo info) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				TableColumnModel columns = entitiesTable.getColumnModel();
 				TableColumn col = new TableColumn(columns.getColumnCount());
 				columns.addColumn(col);
 
-				entitiesTableModel.setComponentType(index, name);
+				entitiesTableModel.setComponentType(index, info);
 				setupAllColumnHeadersVerticalRenderer();
 			}
 		});

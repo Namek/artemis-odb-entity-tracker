@@ -2,6 +2,8 @@ package net.namekdev.entity_tracker.connectors;
 
 import java.util.BitSet;
 
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+
 /**
  *
  * @author Namek
@@ -21,7 +23,7 @@ public interface WorldUpdateListener {
 
 	void addedManager(String name);
 
-	void addedComponentType(int index, String name);
+	void addedComponentType(int index, ComponentTypeInfo info);
 
 	void updatedEntitySystem(int index, int entitiesCount, int maxEntitiesCount);
 

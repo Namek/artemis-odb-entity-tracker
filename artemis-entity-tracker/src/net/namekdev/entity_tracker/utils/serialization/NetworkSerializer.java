@@ -29,6 +29,18 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
+	public NetworkSerializer beginArray(byte elementType, int length) {
+		_buffer[_pos++] = TYPE_ARRAY;
+		_buffer[_pos++] = elementType;
+		addRawInt(length);
+
+		return this;
+	}
+
+	public NetworkSerializer beginArray(int length) {
+		return beginArray(TYPE_UNKNOWN, length);
+	}
+
 	public NetworkSerializer addByte(byte value) {
 		_buffer[_pos++] = TYPE_BYTE;
 		_buffer[_pos++] = value;
@@ -71,11 +83,11 @@ public class NetworkSerializer extends NetworkSerialization {
 
 		_buffer[_pos++] = TYPE_STRING;
 
-		short n = (short) value.length();
-		addRawShort(n);
+		int n = value.length();
+		addRawInt(n);
 
-		for (short i = 0; i < n; ++i) {
-			_buffer[_pos++] = (byte) value.charAt(i);
+		for (int i = 0; i < n; ++i) {
+			_buffer[_pos++] = (byte) (value.charAt(i) & 0xFF);
 		}
 
 		return this;

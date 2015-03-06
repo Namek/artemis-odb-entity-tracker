@@ -7,19 +7,26 @@ import java.util.Vector;
 
 import javax.swing.table.DefaultTableModel;
 
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+
 public class EntityTableModel extends DefaultTableModel {
 	private Map<Integer, BitSet> _entityComponents = new HashMap<Integer, BitSet>();
+	private Vector<ComponentTypeInfo> _componentTypes = new Vector<ComponentTypeInfo>(50);
+
 
 	public EntityTableModel() {
 		super(new Object[][] {}, new String[] { "  entity id  " });
 	}
 
-	public void setComponentType(int index, String name) {
+	public void setComponentType(int index, ComponentTypeInfo info) {
+		_componentTypes.ensureCapacity(index*2);
+		_componentTypes.insertElementAt(info, index);
+
 		for (int i = getColumnCount(); i <= index+1; ++i) {
 			addColumn("");
 		}
 
-		columnIdentifiers.set(index+1, name);
+		columnIdentifiers.set(index+1, info.name);
 		fireTableStructureChanged();
 	}
 

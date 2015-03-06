@@ -147,11 +147,11 @@ public class Client {
 	protected final static int readRawInt(byte[] buffer, int offset) {
 		int value = buffer[offset++] & 0xFF;
 		value <<= 8;
-		value = buffer[offset++] & 0xFF;
+		value |= buffer[offset++] & 0xFF;
 		value <<= 8;
-		value = buffer[offset++] & 0xFF;
+		value |= buffer[offset++] & 0xFF;
 		value <<= 8;
-		value = buffer[offset++] & 0xFF;
+		value |= buffer[offset] & 0xFF;
 
 		return value;
 	}

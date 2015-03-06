@@ -4,6 +4,9 @@ import java.util.BitSet;
 
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.model.FieldInfo;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
 
 /**
  * Deserializes data from network and serializes data sent to the network.
@@ -73,12 +76,24 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 	}
 
 	@Override
-	public void addedComponentType(int index, String name) {
-		send(
+	public void addedComponentType(int index, ComponentTypeInfo info) {
+		NetworkSerializer p =
 			beginPacket(TYPE_ADDED_COMPONENT_TYPE)
 			.addInt(index)
-			.addString(name)
-		);
+			.addString(info.name)
+			.beginArray(info.fields.size());
+
+		FieldInfo field;
+		for (int i = 0, n = info.fields.size(); i < n; ++i) {
+			field = info.fields.get(i);
+			p.addBoolean(field.isAccessible);
+			p.addString(field.fieldName);
+			p.addString(field.classType);
+			p.addBoolean(field.isArray);
+			p.addInt(field.valueType);
+		}
+
+		send(p);
 	}
 
 	@Override

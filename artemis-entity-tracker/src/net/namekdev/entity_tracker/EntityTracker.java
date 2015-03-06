@@ -8,6 +8,8 @@ import java.util.Map;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.model.SystemInfo;
 import net.namekdev.entity_tracker.model.ManagerInfo;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
@@ -25,6 +27,8 @@ import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
+import com.artemis.utils.reflect.ClassReflection;
+import com.artemis.utils.reflect.Field;
 import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
 
@@ -36,6 +40,7 @@ public class EntityTracker extends Manager implements WorldController {
 
 	public final Bag<ManagerInfo> managersInfo = new Bag<ManagerInfo>();
 	public final Map<String, ManagerInfo> managersInfoByName = new HashMap<String, ManagerInfo>();
+	public final Map<Class<Component>, ComponentTypeInfo> allComponentTypesInfo = new HashMap<Class<Component>, ComponentTypeInfo>();
 
 	protected Method entity_getComponentBits;
 	protected ComponentTypeFactory typeFactory;
@@ -191,11 +196,25 @@ public class EntityTracker extends Manager implements WorldController {
 
 		for (int i = index; i < n; ++i) {
 			Class<Component> type = (Class<Component>) ReflectionUtils.getHiddenFieldValue(ComponentType.class, "type", allComponentTypes.get(i));
-			String componentName = type.getSimpleName();
 
-			updateListener.addedComponentType(i, componentName);
+			ComponentTypeInfo info = inspectComponentType(type);
+			allComponentTypesInfo.put(type, info);
+
+			updateListener.addedComponentType(i, info);
 			++_notifiedComponentTypesCount;
 		}
+	}
+
+	private ComponentTypeInfo inspectComponentType(Class<Component> type) {
+		Field[] fields = ClassReflection.getDeclaredFields(type);
+
+		ComponentTypeInfo info = new ComponentTypeInfo(type.getSimpleName());
+
+		for (Field field : fields) {
+			info.fields.add(FieldInfo.reflectField(field));
+		}
+
+		return info;
 	}
 
 	@Override
