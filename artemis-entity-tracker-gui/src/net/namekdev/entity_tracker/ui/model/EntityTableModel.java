@@ -8,10 +8,11 @@ import java.util.Vector;
 import javax.swing.table.DefaultTableModel;
 
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.utils.Array;
 
 public class EntityTableModel extends DefaultTableModel {
 	private Map<Integer, BitSet> _entityComponents = new HashMap<Integer, BitSet>();
-	private Vector<ComponentTypeInfo> _componentTypes = new Vector<ComponentTypeInfo>(50);
+	private Array<ComponentTypeInfo> _componentTypes = new Array<ComponentTypeInfo>(50);
 
 
 	public EntityTableModel() {
@@ -19,8 +20,7 @@ public class EntityTableModel extends DefaultTableModel {
 	}
 
 	public void setComponentType(int index, ComponentTypeInfo info) {
-		_componentTypes.ensureCapacity(index*2);
-		_componentTypes.insertElementAt(info, index);
+		_componentTypes.set(index, info);
 
 		for (int i = getColumnCount(); i <= index+1; ++i) {
 			addColumn("");
@@ -60,8 +60,8 @@ public class EntityTableModel extends DefaultTableModel {
 		return _entityComponents.get(entityId);
 	}
 
-	public String getComponentName(int index) {
-		return (String) columnIdentifiers.get(index + 1);
+	public ComponentTypeInfo getComponentTypeInfo(int index) {
+		return _componentTypes.get(index);
 	}
 
 	public Class<?> getColumnClass(int columnIndex) {
