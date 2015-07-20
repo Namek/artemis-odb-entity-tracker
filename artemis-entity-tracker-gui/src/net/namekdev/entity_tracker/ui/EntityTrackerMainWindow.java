@@ -58,6 +58,10 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	public EntityTrackerMainWindow(boolean exitApplicationOnClose) {
+		this(true, false);
+	}
+
+	public EntityTrackerMainWindow(boolean showWindowOnStart, boolean exitApplicationOnClose) {
 		try {
 			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 				if ("Nimbus".equals(info.getName())) {
@@ -67,10 +71,10 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 			}
 		} catch (Exception exc) { }
 
-		initialize(exitApplicationOnClose);
+		initialize(showWindowOnStart, exitApplicationOnClose);
 	}
 
-	protected void initialize(boolean exitApplicationOnClose) {
+	protected void initialize(boolean showWindowOnStart, boolean exitApplicationOnClose) {
 		frame = new JFrame("Artemis Entity Tracker");
 		frame.setDefaultCloseOperation(exitApplicationOnClose ? JFrame.EXIT_ON_CLOSE : JFrame.DISPOSE_ON_CLOSE);
 		frame.setBounds(100, 100, 959, 823);
@@ -138,13 +142,21 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		mainSplitPane.setResizeWeight(0.5);
 		frame.getContentPane().add(mainSplitPane);
 
-		frame.setVisible(true);
+		frame.setVisible(showWindowOnStart);
 
 		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
 		entitiesTable.addMouseListener(rightBtnCellSelectionListener);
 		entityDetailsPanel = new EntityDetailsPanel(entitiesTableModel);
 
 		systemsTableModel.addTableModelListener(systemsModelListener);
+	}
+
+	public void setVisible(boolean visible) {
+		frame.setVisible(visible);
+	}
+
+	public boolean isVisible() {
+		return frame.isVisible();
 	}
 
 	public void injectWorldController(WorldController worldController) {
