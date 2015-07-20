@@ -39,8 +39,8 @@ import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
 public class EntityTrackerMainWindow implements WorldUpdateListener {
-	private WorldController worldController;
-	private JFrame frame;
+	protected WorldController worldController;
+	protected JFrame frame;
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane, detailsPanelContainer;
 	private EntityTableModel entitiesTableModel;
