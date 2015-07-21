@@ -2,6 +2,7 @@ package net.namekdev.entity_tracker.ui.partials;
 
 import java.awt.GridLayout;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -9,6 +10,7 @@ import javax.swing.JTextField;
 
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
 
 
 public class ComponentDataPanel extends JPanel {
@@ -28,7 +30,8 @@ public class ComponentDataPanel extends JPanel {
 			FieldInfo field = _info.fields.get(i);
 
 			JLabel label = new JLabel(field.fieldName);
-			JComponent value = new JTextField("");
+			JComponent value = field.valueType == NetworkSerialization.TYPE_BOOLEAN
+				? new JCheckBox() : new JTextField();
 
 			add(label);
 			add(value);
