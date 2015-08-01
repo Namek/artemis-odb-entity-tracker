@@ -169,8 +169,8 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
-		boolean hasAspect = allTypes != null || oneTypes != null || notTypes != null;
+	public void addedSystem(final int index, final String name, final BitSet allTypes, final BitSet oneTypes, final BitSet notTypes) {
+		final boolean hasAspect = allTypes != null || oneTypes != null || notTypes != null;
 
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -180,7 +180,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedManager(String name) {
+	public void addedManager(final String name) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				managersTableModel.addManager(name);
@@ -189,7 +189,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedComponentType(int index, ComponentTypeInfo info) {
+	public void addedComponentType(final int index, final ComponentTypeInfo info) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				TableColumnModel columns = entitiesTable.getColumnModel();
@@ -203,7 +203,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void updatedEntitySystem(int systemIndex, int entitiesCount, int maxEntitiesCount) {
+	public void updatedEntitySystem(final int systemIndex, final int entitiesCount, final int maxEntitiesCount) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				systemsTableModel.updateSystem(systemIndex, entitiesCount, maxEntitiesCount);
@@ -212,7 +212,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedEntity(int entityId, BitSet components) {
+	public void addedEntity(final int entityId, final BitSet components) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.addEntity(entityId, components);
@@ -221,7 +221,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	@Override
-	public void deletedEntity(int entityId) {
+	public void deletedEntity(final int entityId) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.removeEntity(entityId);
@@ -245,7 +245,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		}
 	}
 
-	protected void showEntityDetails(int entityId, int componentIndex) {
+	protected void showEntityDetails(final int entityId, final int componentIndex) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entityDetailsPanel.setup(entityId, componentIndex);
