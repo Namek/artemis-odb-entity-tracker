@@ -18,6 +18,7 @@ import com.artemis.Aspect;
 import com.artemis.BaseSystem;
 import com.artemis.Component;
 import com.artemis.ComponentManager;
+import com.artemis.ComponentMapper;
 import com.artemis.ComponentType;
 import com.artemis.ComponentTypeFactory;
 import com.artemis.Entity;
@@ -32,6 +33,11 @@ import com.artemis.utils.reflect.Field;
 import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
 
+/**
+ * @todo IDEA: annotation for systems/managers safe enough to be turned off/on
+ * @author Namek
+ *
+ */
 public class EntityTracker extends Manager implements WorldController {
 	private WorldUpdateListener updateListener;
 
@@ -40,7 +46,10 @@ public class EntityTracker extends Manager implements WorldController {
 
 	public final Bag<ManagerInfo> managersInfo = new Bag<ManagerInfo>();
 	public final Map<String, ManagerInfo> managersInfoByName = new HashMap<String, ManagerInfo>();
-	public final Map<Class<Component>, ComponentTypeInfo> allComponentTypesInfo = new HashMap<Class<Component>, ComponentTypeInfo>();
+	public final Map<Class<Component>, ComponentTypeInfo> allComponentTypesInfoByClass = new HashMap<Class<Component>, ComponentTypeInfo>();
+	public final Bag<ComponentTypeInfo> allComponentTypesInfo = new Bag<ComponentTypeInfo>();
+	public final Bag<ComponentMapper<? extends Component>> allComponentMappers = new Bag<ComponentMapper<? extends Component>>();
+
 
 	protected Method entity_getComponentBits;
 	protected ComponentTypeFactory typeFactory;
@@ -198,7 +207,11 @@ public class EntityTracker extends Manager implements WorldController {
 			Class<Component> type = (Class<Component>) ReflectionUtils.getHiddenFieldValue(ComponentType.class, "type", allComponentTypes.get(i));
 
 			ComponentTypeInfo info = inspectComponentType(type);
-			allComponentTypesInfo.put(type, info);
+			info.index = i;
+
+			allComponentTypesInfoByClass.put(type, info);
+			allComponentTypesInfo.set(i, info);
+			allComponentMappers.set(i, ComponentMapper.getFor(type, world));
 
 			updateListener.addedComponentType(i, info);
 			++_notifiedComponentTypesCount;
@@ -208,7 +221,7 @@ public class EntityTracker extends Manager implements WorldController {
 	private ComponentTypeInfo inspectComponentType(Class<Component> type) {
 		Field[] fields = ClassReflection.getDeclaredFields(type);
 
-		ComponentTypeInfo info = new ComponentTypeInfo(type.getSimpleName());
+		ComponentTypeInfo info = new ComponentTypeInfo(type);
 
 		for (Field field : fields) {
 			info.fields.add(FieldInfo.reflectField(field));
@@ -217,9 +230,42 @@ public class EntityTracker extends Manager implements WorldController {
 		return info;
 	}
 
+
+	//////////////////////////////////////
+	// World Controller interface
+
 	@Override
 	public void setSystemState(String name, boolean isOn) {
 		SystemInfo info = systemsInfoByName.get(name);
 		info.system.setEnabled(isOn);
+	}
+
+	@Override
+	public void requestComponentState(int entityId, int componentIndex) {
+		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
+		final int size = info.fields.size();
+		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
+
+		Object component = mapper.get(entityId);
+		Object[] values = new Object[size]; //TODO array pool per array size?
+
+		for (int i = 0; i < size; ++i) {
+			FieldInfo fieldInfo = info.fields.get(i);
+
+			// TODO no support for arrays, yet
+			if (fieldInfo.isArray) {
+				values[i] = null;
+			}
+			else {
+				values[i] = ReflectionUtils.getFieldValue(fieldInfo.field, component);
+			}
+		}
+		updateListener.updatedComponentState(entityId, componentIndex, values);
+	}
+
+	@Override
+	public void setComponentValue(int entityId, int componentIndex, Object value) {
+		// TODO Auto-generated method stub
+
 	}
 }

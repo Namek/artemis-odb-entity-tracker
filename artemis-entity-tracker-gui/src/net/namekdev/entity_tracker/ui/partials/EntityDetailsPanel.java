@@ -14,12 +14,16 @@ import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionListener;
 
+import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.ui.Context;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.utils.Array;
 
 public class EntityDetailsPanel extends JPanel {
+	private Context _appContext;
+
 	private EntityTableModel _entityTableModel;
 	private int _currentEntityId = -1;
 	private int _currentComponentIndex = -1;
@@ -33,7 +37,8 @@ public class EntityDetailsPanel extends JPanel {
 	private DefaultListModel<String> _componentListModel;
 
 
-	public EntityDetailsPanel(EntityTableModel entityTableModel) {
+	public EntityDetailsPanel(Context appContext, EntityTableModel entityTableModel) {
+		_appContext = appContext;
 		_entityTableModel = entityTableModel;
 
 		initialize();
@@ -106,7 +111,7 @@ public class EntityDetailsPanel extends JPanel {
 
 			_componentTitledBorder.setTitle(info.name);
 			_componentsPanelContainer.removeAll();
-			_componentsPanelContainer.add(new ComponentDataPanel(info), BorderLayout.PAGE_START);
+			_componentsPanelContainer.add(new ComponentDataPanel(_appContext, info, entityId), BorderLayout.PAGE_START);
 		}
 		_currentComponentIndex = componentTypeIndex;
 
@@ -123,7 +128,10 @@ public class EntityDetailsPanel extends JPanel {
 		@Override
 		public void rowSelected(int index) {
 			if (index >= 0) {
-				setup(_currentEntityId, getComponentTypeIndex(index));
+				int componentIndex = getComponentTypeIndex(index);
+
+				setup(_currentEntityId, componentIndex);
+				_appContext.worldController.requestComponentState(_currentEntityId, componentIndex);
 			}
 		}
 	};

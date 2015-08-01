@@ -3,7 +3,7 @@ package net.namekdev.entity_tracker.utils.serialization;
 import java.util.BitSet;
 
 public abstract class NetworkSerialization {
-	protected final static byte TYPE_UNKNOWN = 1;
+	public final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
 	protected final static byte TYPE_ARRAY = 6;
 
@@ -13,7 +13,9 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_LONG = 13;
 	public final static byte TYPE_STRING = 14;
 	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
-	public final static byte TYPE_BITSET = 17;//takes minimum 4 bytes
+	public final static byte TYPE_FLOAT = 16;
+	public final static byte TYPE_DOUBLE = 17;
+	public final static byte TYPE_BITSET = 20;//takes minimum 4 bytes
 
 
 	public static NetworkSerializer createSerializer() {
@@ -48,6 +50,12 @@ public abstract class NetworkSerialization {
 		}
 		else if (type.equals(boolean.class)) {
 			netType = TYPE_BOOLEAN;
+		}
+		else if (type.equals(float.class)) {
+			netType = TYPE_FLOAT;
+		}
+		else if (type.equals(float.class)) {
+			netType = TYPE_DOUBLE;
 		}
 		else if (type.equals(BitSet.class)) {
 			netType = TYPE_BITSET;

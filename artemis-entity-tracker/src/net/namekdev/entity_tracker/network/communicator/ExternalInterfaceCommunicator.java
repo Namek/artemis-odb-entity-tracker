@@ -61,6 +61,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 				int size = _deserializer.beginArray();
 
 				ComponentTypeInfo info = new ComponentTypeInfo(name);
+				info.index = index;
 				info.fields.ensureCapacity(size);
 
 				for (int i = 0; i < size; ++i) {
@@ -95,6 +96,21 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 				_listener.deletedEntity(entityId);
 				break;
 			}
+			case TYPE_UPDATED_COMPONENT_STATE: {
+				int entityId = _deserializer.readInt();
+				int index = _deserializer.readInt();
+				int size = _deserializer.beginArray();
+
+				Object[] values = new Object[size];
+
+				for (int i = 0; i < size; ++i) {
+					values[i] = _deserializer.readSomething(true);
+				}
+
+				_listener.updatedComponentState(entityId, index, values);
+
+				break;
+			}
 
 			default: throw new RuntimeException("Unknown packet type: " + (int)packetType);
 		}
@@ -107,5 +123,20 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			.addString(name)
 			.addBoolean(isOn)
 		);
+	}
+
+	@Override
+	public void requestComponentState(int entityId, int componentIndex) {
+		send(
+			beginPacket(TYPE_REQUEST_COMPONENT_STATE)
+			.addInt(entityId)
+			.addInt(componentIndex)
+		);
+	}
+
+	@Override
+	public void setComponentValue(int entityId, int componentIndex, Object value) {
+		// TODO Auto-generated method stub
+
 	}
 }

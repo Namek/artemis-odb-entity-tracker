@@ -47,6 +47,10 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	public long readLong() {
 		checkType(TYPE_LONG);
+		return readRawLong();
+	}
+
+	public long readRawLong() {
 		long value = readRawInt();
 		value <<= 32;
 		value |= readRawInt();
@@ -75,6 +79,24 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 		byte value = readRawByte();
 		return value != 0;
+	}
+
+	public float readFloat() {
+		checkType(TYPE_FLOAT);
+		return readRawFloat();
+	}
+
+	public float readRawFloat() {
+		return Float.intBitsToFloat(readRawInt());
+	}
+
+	public double readDouble() {
+		checkType(TYPE_DOUBLE);
+		return readRawDouble();
+	}
+
+	public double readRawDouble() {
+		return Double.longBitsToDouble(readRawLong());
 	}
 
 	public BitSet readBitSet() {
@@ -115,6 +137,53 @@ public class NetworkDeserializer extends NetworkSerialization {
 		value |= _source[_sourcePos++] & 0xFF;
 
 		return value;
+	}
+
+	public Object readSomething() {
+		return readSomething(false);
+	}
+
+	public Object readSomething(boolean allowUnknown) {
+		byte type = _source[_sourcePos];
+
+		if (type == TYPE_NULL) {
+			_sourcePos++;
+			return null;
+		}
+		else if (type == TYPE_BYTE) {
+			return readByte();
+		}
+		else if (type == TYPE_SHORT) {
+			return readShort();
+		}
+		else if (type == TYPE_INT) {
+			return readInt();
+		}
+		else if (type == TYPE_LONG) {
+			return readLong();
+		}
+		else if (type == TYPE_STRING) {
+			return readString();
+		}
+		else if (type == TYPE_BOOLEAN) {
+			return readBoolean();
+		}
+		else if (type == TYPE_FLOAT) {
+			return readFloat();
+		}
+		else if (type == TYPE_DOUBLE) {
+			return readDouble();
+		}
+		else if (type == TYPE_BITSET) {
+			return readBitSet();
+		}
+		else if (allowUnknown) {
+			_sourcePos++;
+			return TYPE_UNKNOWN;
+		}
+		else {
+			throw new IllegalArgumentException("Can't serialize type: " + type);
+		}
 	}
 
 	protected int readRawInt() {

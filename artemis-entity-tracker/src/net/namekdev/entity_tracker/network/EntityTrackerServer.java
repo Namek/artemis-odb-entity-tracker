@@ -110,6 +110,14 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 		_entities.remove(entityId);
 	}
 
+	@Override
+	public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
+		for (int i = 0, n = _listeners.size(); i < n; ++i) {
+			EntityTrackerCommunicator communicator = _listeners.get(i);
+			communicator.updatedComponentState(entityId, componentIndex, values);
+		}
+	}
+
 	// TODO handle disconnection!
 
 	private RawConnectionCommunicatorProvider _communicatorProvider = new RawConnectionCommunicatorProvider() {

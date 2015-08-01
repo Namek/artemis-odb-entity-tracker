@@ -39,7 +39,7 @@ import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
 public class EntityTrackerMainWindow implements WorldUpdateListener {
-	protected WorldController worldController;
+	protected final Context context = new Context();
 	protected JFrame frame;
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane, detailsPanelContainer;
@@ -146,7 +146,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 
 		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
 		entitiesTable.addMouseListener(rightBtnCellSelectionListener);
-		entityDetailsPanel = new EntityDetailsPanel(entitiesTableModel);
+		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
 		systemsTableModel.addTableModelListener(systemsModelListener);
 	}
@@ -160,7 +160,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	public void injectWorldController(WorldController worldController) {
-		this.worldController = worldController;
+		context.worldController = worldController;
 	}
 
 	@Override
@@ -229,6 +229,11 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		});
 	}
 
+	@Override
+	public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
+		context.eventBus.updatedComponentState(entityId, componentIndex, values);
+	}
+
 	private void setupAllColumnHeadersVerticalRenderer() {
 		TableCellRenderer headerRenderer = new VerticalTableHeaderCellRenderer();
 		TableColumnModel columns = entitiesTable.getColumnModel();
@@ -289,7 +294,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 			String systemName = systemsTableModel.getSystemName(rowIndex);
 			boolean desiredSystemState = systemsTableModel.getSystemState(rowIndex);
 
-			worldController.setSystemState(systemName, desiredSystemState);
+			context.worldController.setSystemState(systemName, desiredSystemState);
 		}
 	};
 }

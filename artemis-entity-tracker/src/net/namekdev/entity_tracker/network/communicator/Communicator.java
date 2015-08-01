@@ -18,14 +18,18 @@ public abstract class Communicator implements RawConnectionCommunicator {
 	protected final NetworkSerializer _serializer = NetworkSerialization.createSerializer();
 	protected final NetworkDeserializer _deserializer = NetworkSerialization.createDeserializer();
 
+	// tracker events
 	protected static final byte TYPE_ADDED_ENTITY_SYSTEM = 60;
 	protected static final byte TYPE_ADDED_MANAGER = 61;
 	protected static final byte TYPE_ADDED_COMPONENT_TYPE = 63;
 	protected static final byte TYPE_UPDATED_ENTITY_SYSTEM = 64;
 	protected static final byte TYPE_ADDED_ENTITY = 68;
 	protected static final byte TYPE_DELETED_ENTITY = 73;
+	protected static final byte TYPE_UPDATED_COMPONENT_STATE = 104;
 
+	// UI requests
 	protected static final byte TYPE_SET_SYSTEM_STATE = 90;
+	protected static final byte TYPE_REQUEST_COMPONENT_STATE = 103;
 
 
 	@Override
