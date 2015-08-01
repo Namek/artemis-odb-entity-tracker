@@ -35,3 +35,14 @@ client.startThread();
 Generally speaking, `EntityTracker` expects `WorldUpdateListener` interface implementation, e.g. it may be some window listener.
 
 To achieve network version one can just mimic implementation of `ExternalInterfaceCommunicator` by implementing `Communicator` interface and passing it to `Client`.
+
+
+# Build
+
+Build libraries with sources:
+
+`mvn clean package`
+
+Build GUI client app as external executable:
+
+`mvn clean package -P app` and you'll find `artemis-entity-tracker-gui/target/artemis-entity-tracker-gui-{version}-app.jar`
