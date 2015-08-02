@@ -9,7 +9,7 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.Seriali
 import org.junit.Before;
 import org.junit.Test;
 
-public class NetworkSerializationTests {
+public class NetworkSerializationTest {
 	NetworkSerializer serializer;
 	NetworkDeserializer deserializer;
 
