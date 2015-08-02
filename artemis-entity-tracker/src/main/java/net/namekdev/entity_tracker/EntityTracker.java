@@ -12,6 +12,7 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.model.SystemInfo;
 import net.namekdev.entity_tracker.model.ManagerInfo;
+import net.namekdev.entity_tracker.utils.ArrayPool;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
 import com.artemis.Aspect;
@@ -56,6 +57,7 @@ public class EntityTracker extends Manager implements WorldController {
 	protected Bag<ComponentType> allComponentTypes;
 
 	private int _notifiedComponentTypesCount = 0;
+	private final ArrayPool<Object> _objectArrPool = new ArrayPool<>(Object.class);
 
 
 	public EntityTracker() {
@@ -247,7 +249,7 @@ public class EntityTracker extends Manager implements WorldController {
 		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
-		Object[] values = new Object[size]; //TODO array pool per array size?
+		Object[] values = _objectArrPool.obtain(size, true);
 
 		for (int i = 0; i < size; ++i) {
 			FieldInfo fieldInfo = info.fields.get(i);
@@ -260,7 +262,9 @@ public class EntityTracker extends Manager implements WorldController {
 				values[i] = ReflectionUtils.getFieldValue(fieldInfo.field, component);
 			}
 		}
+
 		updateListener.updatedComponentState(entityId, componentIndex, values);
+		_objectArrPool.free(values, true);
 	}
 
 	@Override

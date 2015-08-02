@@ -8,6 +8,7 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
+import net.namekdev.entity_tracker.utils.ArrayPool;
 
 /**
  * Communicator used by UI (client).
@@ -16,6 +17,7 @@ import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
  */
 public class ExternalInterfaceCommunicator extends Communicator implements WorldController {
 	private WorldUpdateListener _listener;
+	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
 
 
 	public ExternalInterfaceCommunicator(WorldUpdateListener listener) {
@@ -101,13 +103,14 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 				int index = _deserializer.readInt();
 				int size = _deserializer.beginArray();
 
-				Object[] values = new Object[size];
+				Object[] values = _objectArrayPool.obtain(size, true);
 
 				for (int i = 0; i < size; ++i) {
 					values[i] = _deserializer.readSomething(true);
 				}
 
 				_listener.updatedComponentState(entityId, index, values);
+				_objectArrayPool.free(values, true);
 
 				break;
 			}
