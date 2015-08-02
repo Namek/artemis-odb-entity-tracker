@@ -16,6 +16,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import net.miginfocom.swing.MigLayout;
 import net.namekdev.entity_tracker.connectors.DummyWorldUpdateListener;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
@@ -39,7 +40,7 @@ public class ComponentDataPanel extends JPanel {
 	}
 
 	protected void initialize() {
-		GridLayout layout = new GridLayout(0, 2);
+		MigLayout layout = new MigLayout("wrap", "[right][0:pref,grow]", "");
 		setLayout(layout);
 
 		int size = _info.fields.size();
@@ -68,14 +69,11 @@ public class ComponentDataPanel extends JPanel {
 			_components.add(value);
 
 			add(label);
-			add(value);
+			add(value, "width min:50, grow");
 		}
 
 		// register listener for component data
 		_appContext.eventBus.registerListener(worldListener);
-
-		revalidate();
-		repaint();
 	}
 
 	private void setupCheckBoxListener(final JCheckBox checkbox, final int fieldIndex) {

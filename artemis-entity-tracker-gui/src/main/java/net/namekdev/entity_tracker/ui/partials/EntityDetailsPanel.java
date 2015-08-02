@@ -116,7 +116,7 @@ public class EntityDetailsPanel extends JPanel {
 		_currentComponentIndex = componentTypeIndex;
 
 		revalidate();
-		repaint();
+		repaint(50);
 	}
 
 	/** Gets global component type index. */
