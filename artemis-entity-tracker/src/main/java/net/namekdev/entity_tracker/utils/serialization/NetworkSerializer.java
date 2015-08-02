@@ -171,11 +171,11 @@ public class NetworkSerializer extends NetworkSerialization {
 		return false;
 	}
 
-	public void addSomething(Object object) {
-		addSomething(object, false);
+	public NetworkSerializer addSomething(Object object) {
+		return addSomething(object, false);
 	}
 
-	public void addSomething(Object object, boolean allowUnknown) {
+	public NetworkSerializer addSomething(Object object, boolean allowUnknown) {
 		if (object == null) {
 			tryAddNullable(object);
 		}
@@ -212,6 +212,8 @@ public class NetworkSerializer extends NetworkSerialization {
 		else {
 			throw new IllegalArgumentException("Can't serialize type: " + object.getClass());
 		}
+
+		return this;
 	}
 
 	public SerializeResult getResult() {

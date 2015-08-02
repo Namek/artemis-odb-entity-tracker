@@ -45,6 +45,14 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 				_worldController.requestComponentState(entityId, componentIndex);
 				break;
 			}
+			case TYPE_SET_COMPONENT_FIELD_VALUE: {
+				int entityId = _deserializer.readInt();
+				int componentIndex = _deserializer.readInt();
+				int fieldIndex = _deserializer.readInt();
+				Object value = _deserializer.readSomething(true);
+				_worldController.setComponentFieldValue(entityId, componentIndex, fieldIndex, value);
+				break;
+			}
 
 			default: throw new RuntimeException("Unknown packet type: " + (int)packetType);
 		}

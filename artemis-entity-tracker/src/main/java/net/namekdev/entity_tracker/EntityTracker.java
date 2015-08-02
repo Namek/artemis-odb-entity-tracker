@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker;
 
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
+
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import net.namekdev.entity_tracker.model.SystemInfo;
 import net.namekdev.entity_tracker.model.ManagerInfo;
 import net.namekdev.entity_tracker.utils.ArrayPool;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
 
 import com.artemis.Aspect;
 import com.artemis.BaseSystem;
@@ -245,10 +248,11 @@ public class EntityTracker extends Manager implements WorldController {
 	@Override
 	public void requestComponentState(int entityId, int componentIndex) {
 		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
-		final int size = info.fields.size();
 		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
+
+		int size = info.fields.size();
 		Object[] values = _objectArrPool.obtain(size, true);
 
 		for (int i = 0; i < size; ++i) {
@@ -268,8 +272,23 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	@Override
-	public void setComponentValue(int entityId, int componentIndex, Object value) {
-		// TODO Auto-generated method stub
+	public void setComponentFieldValue(int entityId, int componentIndex, int fieldIndex, Object value) {
+		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
+		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
 
+		Object component = mapper.get(entityId);
+		FieldInfo fieldInfo = info.fields.get(fieldIndex);
+
+		// TODO we should receive appropriate type here. Convert Strings on GUI side.
+		if (value instanceof String) {
+			value = NetworkSerialization.convertStringToTypedValue((String) value, fieldInfo.valueType);
+		}
+
+		try {
+			fieldInfo.field.set(component, value);
+		}
+		catch (ReflectionException e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -4,6 +4,10 @@ import static net.namekdev.entity_tracker.utils.serialization.NetworkSerializati
 
 import java.awt.Component;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
@@ -48,13 +52,17 @@ public class ComponentDataPanel extends JPanel {
 			JComponent value = null;
 
 			if (field.valueType == TYPE_BOOLEAN) {
-				value = new JCheckBox();
+				JCheckBox checkbox = new JCheckBox();
+				value = checkbox;
+				setupCheckBoxListener(checkbox, i);
 			}
 			else if (field.valueType == TYPE_UNKNOWN) {
 				value = new JLabel("<reference>");
 			}
 			else {
-				value = new JTextField();
+				final JTextField textField = new JTextField();
+				value = textField;
+				setupTextFieldListener(textField, i);
 			}
 
 			_components.add(value);
@@ -68,6 +76,41 @@ public class ComponentDataPanel extends JPanel {
 
 		revalidate();
 		repaint();
+	}
+
+	private void setupCheckBoxListener(final JCheckBox checkbox, final int fieldIndex) {
+		checkbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				boolean value = checkbox.isSelected();
+				_appContext.worldController.setComponentFieldValue(_entityId, _info.index, fieldIndex, value);
+			}
+		});
+	}
+
+	private void setupTextFieldListener(final JTextField textField, final int fieldIndex) {
+		textField.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				// on enter
+				if (e.getKeyCode() == 10) {
+					String text = textField.getText();
+
+					// TODO convert string to appropriate field's type
+					_appContext.worldController.setComponentFieldValue(_entityId, _info.index, fieldIndex, text);
+				}
+			}
+		});
 	}
 
 	@Override

@@ -63,4 +63,20 @@ public abstract class NetworkSerialization {
 
 		return netType;
 	}
+
+	public static Object convertStringToTypedValue(String value, int valueType) {
+		switch (valueType) {
+			case TYPE_BYTE: return Byte.valueOf(value);
+			case TYPE_SHORT: return Short.valueOf(value);
+			case TYPE_INT: return Integer.valueOf(value);
+			case TYPE_LONG: return Long.valueOf(value);
+			case TYPE_STRING: return value;
+			case TYPE_BOOLEAN: return Boolean.valueOf(value);
+			case TYPE_FLOAT: return Float.valueOf(value);
+			case TYPE_DOUBLE: return Double.valueOf(value);
+			case TYPE_BITSET: return new BitSet(Integer.valueOf(value));
+			case TYPE_ARRAY: throw new UnsupportedOperationException("arrays are not supported (yet?)");
+			default: return null;
+		}
+	}
 }

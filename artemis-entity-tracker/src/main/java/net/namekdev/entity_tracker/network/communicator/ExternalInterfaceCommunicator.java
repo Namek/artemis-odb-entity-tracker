@@ -138,8 +138,13 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 	}
 
 	@Override
-	public void setComponentValue(int entityId, int componentIndex, Object value) {
-		// TODO Auto-generated method stub
-
+	public void setComponentFieldValue(int entityId, int componentIndex, int fieldIndex, Object value) {
+		send(
+			beginPacket(TYPE_SET_COMPONENT_FIELD_VALUE)
+			.addInt(entityId)
+			.addInt(componentIndex)
+			.addInt(fieldIndex)
+			.addSomething(value)
+		);
 	}
 }
