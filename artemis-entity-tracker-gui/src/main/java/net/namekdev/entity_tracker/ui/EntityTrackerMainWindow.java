@@ -58,7 +58,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	}
 
 	public EntityTrackerMainWindow(boolean exitApplicationOnClose) {
-		this(true, false);
+		this(true, exitApplicationOnClose);
 	}
 
 	public EntityTrackerMainWindow(boolean showWindowOnStart, boolean exitApplicationOnClose) {
