@@ -13,6 +13,7 @@ import java.net.UnknownHostException;
 public class Client {
 	protected String remoteName;
 	protected int serverPort = Server.DEFAULT_PORT;
+	private static int IntegerBYTES = Integer.SIZE / 8;
 
 	protected Socket socket;
 	protected Thread thread;
@@ -101,10 +102,10 @@ public class Client {
 				int n = input.available();
 
 				do {
-					if (_incomingSize <= 0 && n >= Integer.BYTES) {
-						input.read(_buffer, 0, Integer.BYTES);
+					if (_incomingSize <= 0 && n >= IntegerBYTES) {
+						input.read(_buffer, 0, IntegerBYTES);
 						_incomingSize = readRawInt(_buffer, 0);
-						n -= Integer.BYTES;
+						n -= IntegerBYTES;
 						continue;
 					}
 
