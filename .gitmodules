@@ -1,3 +1,0 @@
-[submodule "artemis-entity-tracker/lib/artemis-odb"]
-	path = artemis-entity-tracker/lib/artemis-odb
-	url = https://github.com/junkdog/artemis-odb.git
