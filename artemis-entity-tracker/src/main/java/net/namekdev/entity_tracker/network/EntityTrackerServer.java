@@ -38,8 +38,13 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 
 
 	public EntityTrackerServer() {
+		this(DEFAULT_PORT);
+	}
+
+	public EntityTrackerServer(int listeningPort) {
 		super();
 		super.clientListenerProvider = _communicatorProvider;
+		super.listeningPort = listeningPort;
 	}
 
 	@Override
