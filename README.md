@@ -1,4 +1,5 @@
 # Entity Tracker
+[![Build Status](https://travis-ci.org/Namek/artemis-odb-entity-tracker.svg?branch=master)](https://travis-ci.org/Namek/artemis-odb-entity-tracker)
 
 Server and Client that provides online tracking of [artemis-odb](https://github.com/junkdog/artemis-odb) World state.
 
