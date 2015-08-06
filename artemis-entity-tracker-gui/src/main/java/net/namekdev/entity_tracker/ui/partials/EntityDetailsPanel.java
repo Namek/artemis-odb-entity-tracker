@@ -20,6 +20,7 @@ import net.namekdev.entity_tracker.ui.Context;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.utils.Array;
+import net.namekdev.entity_tracker.utils.IndexBiMap;
 
 public class EntityDetailsPanel extends JPanel {
 	private Context _appContext;
@@ -27,7 +28,7 @@ public class EntityDetailsPanel extends JPanel {
 	private EntityTableModel _entityTableModel;
 	private int _currentEntityId = -1;
 	private int _currentComponentIndex = -1;
-	private final Array<Integer> _componentIndices = new Array<Integer>();
+	private final IndexBiMap _componentIndices = new IndexBiMap();
 
 	private JSplitPane _splitPane;
 	private JPanel _entityPanel, _componentsPanelContainer;
@@ -69,12 +70,12 @@ public class EntityDetailsPanel extends JPanel {
 		_splitPane.setOpaque(false);
 	}
 
-	public void setup(int entityId) {
+	private void setup(int entityId) {
 		setup(entityId, -1);
 	}
 
-	public void setup(int entityId, int componentTypeIndex) {
-		if (componentTypeIndex >= 0 && _currentComponentIndex < 0) {
+	private void setup(int entityId, int componentTypeIndex) {
+		if (componentTypeIndex >= 0) {
 			// show component details
 			removeAll();
 			add(_splitPane);
@@ -112,26 +113,29 @@ public class EntityDetailsPanel extends JPanel {
 			_componentTitledBorder.setTitle(info.name);
 			_componentsPanelContainer.removeAll();
 			_componentsPanelContainer.add(new ComponentDataPanel(_appContext, info, entityId), BorderLayout.PAGE_START);
+
+			_appContext.worldController.requestComponentState(_currentEntityId, componentTypeIndex);
 		}
 		_currentComponentIndex = componentTypeIndex;
 
 		revalidate();
 		repaint(50);
+
 	}
 
-	/** Gets global component type index. */
-	public int getComponentTypeIndex(int localIndex) {
-		return _componentIndices.get(localIndex);
+	public void selectComponent(int entityId, int componentIndex) {
+		setup(entityId, componentIndex);
+		int rowIndex = _componentIndices.getLocalIndex(componentIndex);
+		_componentList.setSelectedIndex(rowIndex);
 	}
 
 	private ListSelectionListener _componentSelectionListener = new SelectionListener() {
 		@Override
-		public void rowSelected(int index) {
-			if (index >= 0) {
-				int componentIndex = getComponentTypeIndex(index);
+		public void rowSelected(int rowIndex) {
+			if (rowIndex >= 0) {
+				int componentIndex = _componentIndices.getGlobalIndex(rowIndex);
 
 				setup(_currentEntityId, componentIndex);
-				_appContext.worldController.requestComponentState(_currentEntityId, componentIndex);
 			}
 		}
 	};

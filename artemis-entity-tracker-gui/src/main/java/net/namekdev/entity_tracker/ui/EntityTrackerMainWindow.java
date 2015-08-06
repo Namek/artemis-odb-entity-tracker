@@ -131,7 +131,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		tabbedPane.addTab("Managers", null, managersTableScrollPane, null);
 
 		detailsPanelContainer = new JScrollPane();
-		detailsPanelContainer.setViewportView(new JLabel("TODO details here"));
+		detailsPanelContainer.setViewportView(new JLabel("Select entity from the table to inspect entity components."));
 
 		systemsDetailsSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemsManagersPanel, detailsPanelContainer);
 
@@ -144,8 +144,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 
 		frame.setVisible(showWindowOnStart);
 
-		entitiesTable.getSelectionModel().addListSelectionListener(entitySelectionListener);
-		entitiesTable.addMouseListener(rightBtnCellSelectionListener);
+		entitiesTable.addMouseListener(entityRowCellSelectionListener);
 		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
 		systemsTableModel.addTableModelListener(systemsModelListener);
@@ -248,29 +247,20 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	protected void showEntityDetails(final int entityId, final int componentIndex) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				entityDetailsPanel.setup(entityId, componentIndex);
-				detailsPanelContainer.setViewportView(entityDetailsPanel);
-				detailsPanelContainer.revalidate();
-				detailsPanelContainer.repaint();
+				entityDetailsPanel.selectComponent(entityId, componentIndex);
+
+				if (detailsPanelContainer.getViewport().getView() != entityDetailsPanel) {
+					detailsPanelContainer.setViewportView(entityDetailsPanel);
+					detailsPanelContainer.revalidate();
+					detailsPanelContainer.repaint();
+				}
 			}
 		});
 	}
 
-	private ListSelectionListener entitySelectionListener = new SelectionListener() {
-		@Override
-		public void rowSelected(int index) {
-			int entityId = (int) entitiesTableModel.getValueAt(index, 0);
-			showEntityDetails(entityId, -1);
-		}
-	};
-
-	private MouseListener rightBtnCellSelectionListener = new MouseAdapter() {
+	private MouseListener entityRowCellSelectionListener = new MouseAdapter() {
 		@Override
 		public void mousePressed(MouseEvent evt) {
-			if (!SwingUtilities.isRightMouseButton(evt)) {
-				return;
-			}
-
 			int row = entitiesTable.rowAtPoint(evt.getPoint());
 			int col = entitiesTable.columnAtPoint(evt.getPoint());
 
@@ -278,7 +268,10 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 				int entityId = (int) entitiesTableModel.getValueAt(row, 0);
 				int componentIndex = col-1;
 
-				showEntityDetails(entityId, componentIndex);
+				BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
+				if (entityComponents.get(componentIndex)) {
+					showEntityDetails(entityId, componentIndex);
+				}
 			}
 		}
 	};

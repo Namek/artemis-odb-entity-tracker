@@ -3,7 +3,7 @@ package net.namekdev.entity_tracker.utils;
 import java.util.ArrayList;
 
 public class Array<T> {
-	private final ArrayList<T> _array;
+	protected final ArrayList<T> _array;
 
 
 	public Array() {
