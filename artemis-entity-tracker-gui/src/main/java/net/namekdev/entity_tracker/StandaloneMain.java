@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker;
 
 import net.namekdev.entity_tracker.network.base.Client;
+import net.namekdev.entity_tracker.network.base.PersistentClient;
 import net.namekdev.entity_tracker.network.base.Server;
 import net.namekdev.entity_tracker.network.communicator.ExternalInterfaceCommunicator;
 import net.namekdev.entity_tracker.ui.EntityTrackerMainWindow;
@@ -15,9 +16,8 @@ public class StandaloneMain {
 
 	public static void init(final String serverName, final int serverPort) {
 		final EntityTrackerMainWindow window = new EntityTrackerMainWindow(true);
-		final Client client = new Client(new ExternalInterfaceCommunicator(window));
+		final Client client = new PersistentClient(new ExternalInterfaceCommunicator(window));
 
 		client.connect(serverName, serverPort);
-		client.startThread();
 	}
 }

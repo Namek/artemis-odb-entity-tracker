@@ -43,4 +43,8 @@ public class SystemTableModel extends DefaultTableModel {
 	public boolean getSystemState(int index) {
 		return (boolean) getValueAt(index, 0);
 	}
+
+	public void clear() {
+		setRowCount(0);
+	}
 }

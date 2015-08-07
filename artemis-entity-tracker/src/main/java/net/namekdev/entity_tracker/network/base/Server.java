@@ -12,7 +12,7 @@ import com.artemis.utils.Bag;
  * @author Namek
  */
 public class Server implements Runnable {
-	public static final int DEFAULT_PORT = 87;
+	public static final int DEFAULT_PORT = 1087;
 
 	protected int listeningPort = DEFAULT_PORT;
 	protected ServerSocket socket;

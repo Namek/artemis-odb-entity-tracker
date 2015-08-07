@@ -71,4 +71,13 @@ public class EntityTableModel extends DefaultTableModel {
 	public boolean isCellEditable(int row, int column) {
 		return false;
 	}
+
+	public void clear() {
+		_componentTypes.clear();
+		_entityComponents.clear();
+		setRowCount(0);
+
+		columnIdentifiers.setSize(1);
+		fireTableStructureChanged();
+	}
 }

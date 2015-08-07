@@ -25,10 +25,9 @@ artemisWorld.setManager(new EntityTracker(entityTrackerServer));
 For GUI run [StandaloneMain.java](artemis-entity-tracker-gui/src/net/namekdev/entity_tracker/StandaloneMain.java) file or:
 ```java
 final EntityTrackerMainWindow window = new EntityTrackerMainWindow();
-final Client client = new Client(new ExternalInterfaceCommunicator(window));
+final Client client = new PersistentClient(new ExternalInterfaceCommunicator(window));
 
 client.connect(serverName, serverPort);
-client.startThread();
 ```
 
 # Custom Local/Networked Listener

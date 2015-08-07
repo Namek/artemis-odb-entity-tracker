@@ -49,6 +49,5 @@ public class SocketTest {
 			}
 		});
 		client.connect("localhost", Server.DEFAULT_PORT);
-		client.startThread();
 	}
 }

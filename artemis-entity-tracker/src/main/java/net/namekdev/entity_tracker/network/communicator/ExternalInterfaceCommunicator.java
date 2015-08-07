@@ -4,7 +4,7 @@ import java.net.SocketAddress;
 import java.util.BitSet;
 
 import net.namekdev.entity_tracker.connectors.WorldController;
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
@@ -16,11 +16,11 @@ import net.namekdev.entity_tracker.utils.ArrayPool;
  * @author Namek
  */
 public class ExternalInterfaceCommunicator extends Communicator implements WorldController {
-	private WorldUpdateListener _listener;
+	private WorldUpdateInterfaceListener _listener;
 	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
 
 
-	public ExternalInterfaceCommunicator(WorldUpdateListener listener) {
+	public ExternalInterfaceCommunicator(WorldUpdateInterfaceListener listener) {
 		_listener = listener;
 	}
 
@@ -32,8 +32,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 
 	@Override
 	public void disconnected() {
-		// TODO Auto-generated method stub
-
+		_listener.disconnected();
 	}
 
 	@Override

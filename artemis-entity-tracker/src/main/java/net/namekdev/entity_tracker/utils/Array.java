@@ -31,4 +31,8 @@ public class Array<T> {
 			_array.add(null);
 		}
 	}
+
+	public void clear() {
+		_array.clear();
+	}
 }

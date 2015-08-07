@@ -19,7 +19,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.JTableHeader;
@@ -28,17 +27,16 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 import net.namekdev.entity_tracker.connectors.WorldController;
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
 import net.namekdev.entity_tracker.ui.model.SystemTableModel;
 import net.namekdev.entity_tracker.ui.partials.EntityDetailsPanel;
 import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
-import net.namekdev.entity_tracker.ui.utils.SelectionListener;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
-public class EntityTrackerMainWindow implements WorldUpdateListener {
+public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	protected final Context context = new Context();
 	protected JFrame frame;
 	private JTable entitiesTable;
@@ -97,7 +95,7 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 		tableScrollPane.setViewportView(entitiesTable);
 
 		filtersPanel = new JPanel();
-		filtersPanel.add(new JLabel("TODO filters here"));
+//		filtersPanel.add(new JLabel("TODO filters here"));
 
 		filtersScrollPane = new JScrollPane(filtersPanel);
 
@@ -231,6 +229,14 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 	@Override
 	public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
 		context.eventBus.updatedComponentState(entityId, componentIndex, values);
+	}
+
+	@Override
+	public void disconnected() {
+		entitiesTableModel.clear();
+		systemsTableModel.clear();
+		managersTableModel.clear();
+		detailsPanelContainer.setViewportView(null);
 	}
 
 	private void setupAllColumnHeadersVerticalRenderer() {

@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 /**
  *
@@ -20,11 +22,24 @@ public class Client {
 	protected InputStream input;
 	protected OutputStream output;
 
-	private boolean _isRunning;
+	protected boolean _isRunning;
 	private final byte[] _buffer = new byte[10240];
 	private int _incomingSize = -1;
 
+	private static final byte[] heartbeat;
+	private long _lastHeartbeatTime = System.currentTimeMillis();
+
+	static {
+		heartbeat = new byte[IntegerBYTES];
+		Arrays.fill(heartbeat, (byte) 0);
+	}
+
 	public RawConnectionCommunicator connectionListener;
+
+	/**
+	 * Time between heartbeats, specified in milliseconds.
+	 */
+	public int heartbeatDelay = 1000;
 
 
 	public Client() {
@@ -48,7 +63,7 @@ public class Client {
 	 * @param serverPort
 	 */
 	public Client connect(String serverName, int serverPort) {
-		if (socket != null && !socket.isClosed()) {
+		if (isConnected()) {
 			throw new IllegalStateException("Cannot connect twice in the same time.");
 		}
 
@@ -93,15 +108,26 @@ public class Client {
 	}
 
 	/**
-	 * Checks for new bytes in network buffer.
-	 * This method can be run manually or called automatically by {@link #startThread()}.
+	 * Checks for new bytes in network buffer. Also sends hearbeats.
+	 *
+	 * <p>This method can be run manually or used through {@link #startThread()}.</p>
 	 */
-	public void update() {
-		if (_isRunning && !socket.isClosed()) {
+	public boolean update() {
+		if (_isRunning && isConnected()) {
 			try {
 				int n = input.available();
 
-				do {
+				if (n == 0) {
+					long currentTime = System.currentTimeMillis();
+
+					if (currentTime - _lastHeartbeatTime > heartbeatDelay) {
+						_lastHeartbeatTime = currentTime;
+
+						output.write(heartbeat, 0, heartbeat.length);
+						output.flush();
+					}
+				}
+				else do {
 					if (_incomingSize <= 0 && n >= IntegerBYTES) {
 						input.read(_buffer, 0, IntegerBYTES);
 						_incomingSize = readRawInt(_buffer, 0);
@@ -119,13 +145,16 @@ public class Client {
 				}
 				while (n > 0);
 			}
-			catch (IOException e) {
-				if (_isRunning) {
-					throw new RuntimeException(e);
-				}
-				return;
+			catch (Exception e) {
+				_isRunning = false;
 			}
 		}
+
+		return _isRunning;
+	}
+
+	public boolean isConnected() {
+		return _isRunning && socket != null && !socket.isClosed() && !socket.isOutputShutdown();
 	}
 
 	public void stop() {
@@ -145,6 +174,10 @@ public class Client {
 		catch (IOException e) { }
 	}
 
+	public void send(byte[] buffer, int offset, int length) {
+		outputListener.send(buffer, offset, length);
+	}
+
 	protected final static int readRawInt(byte[] buffer, int offset) {
 		int value = buffer[offset++] & 0xFF;
 		value <<= 8;
@@ -161,7 +194,9 @@ public class Client {
 		@Override
 		public void run() {
 			while (_isRunning && !socket.isClosed()) {
-				update();
+				if (!update()) {
+					connectionListener.disconnected();
+				}
 
 				try {
 					Thread.sleep(100);
@@ -174,6 +209,7 @@ public class Client {
 					return;
 				}
 			}
+			_isRunning = false;
 		}
 	};
 

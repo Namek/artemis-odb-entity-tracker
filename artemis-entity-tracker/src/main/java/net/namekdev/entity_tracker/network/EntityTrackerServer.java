@@ -123,8 +123,6 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 		}
 	}
 
-	// TODO handle disconnection!
-
 	private RawConnectionCommunicatorProvider _communicatorProvider = new RawConnectionCommunicatorProvider() {
 		@Override
 		public RawConnectionCommunicator getListener(String remoteName) {

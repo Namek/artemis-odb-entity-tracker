@@ -32,4 +32,8 @@ public class ManagerTableModel extends DefaultTableModel {
 	public boolean getManagerState(int index) {
 		return (boolean) getValueAt(index, 0);
 	}
+
+	public void clear() {
+		setRowCount(0);
+	}
 }
