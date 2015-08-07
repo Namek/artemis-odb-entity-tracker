@@ -269,7 +269,8 @@ public class EntityTrackerMainWindow implements WorldUpdateListener {
 				int componentIndex = col-1;
 
 				BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
-				if (entityComponents.get(componentIndex)) {
+
+				if (componentIndex < 0 || entityComponents.get(componentIndex)) {
 					showEntityDetails(entityId, componentIndex);
 				}
 			}
