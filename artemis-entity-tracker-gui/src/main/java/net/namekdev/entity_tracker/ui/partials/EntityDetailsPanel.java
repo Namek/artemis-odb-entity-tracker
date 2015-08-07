@@ -123,6 +123,10 @@ public class EntityDetailsPanel extends JPanel {
 
 	}
 
+	public int getEntityId() {
+		return _currentEntityId;
+	}
+
 	public void selectComponent(int entityId, int componentIndex) {
 		setup(entityId, componentIndex);
 		int rowIndex = _componentIndices.getLocalIndex(componentIndex);

@@ -1,9 +1,14 @@
 package net.namekdev.entity_tracker.ui;
 
 import java.awt.CardLayout;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyVetoException;
+import java.beans.VetoableChangeListener;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -19,6 +24,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.JTableHeader;
@@ -49,6 +56,8 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	private JTable systemsTable, managersTable;
 	private JTabbedPane tabbedPane;
 	private EntityDetailsPanel entityDetailsPanel;
+
+	private int _lastSelectedCol;
 
 
 	public EntityTrackerMainWindow() {
@@ -143,6 +152,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		frame.setVisible(showWindowOnStart);
 
 		entitiesTable.addMouseListener(entityRowCellSelectionListener);
+		entitiesTable.addKeyListener(entityTableKeyListener);
 		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
 		systemsTableModel.addTableModelListener(systemsModelListener);
@@ -154,6 +164,22 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 
 	public boolean isVisible() {
 		return frame.isVisible();
+	}
+
+	private void selectEntity(int row, int col) {
+		if (row >= 0) {
+			int entityId = (int) entitiesTableModel.getValueAt(row, 0);
+			int componentIndex = col-1;
+
+			BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
+
+			if (componentIndex >= 0 && !entityComponents.get(componentIndex)) {
+				componentIndex = -1;
+			}
+
+			showEntityDetails(entityId, componentIndex);
+			_lastSelectedCol = col;
+		}
 	}
 
 	public void injectWorldController(WorldController worldController) {
@@ -269,17 +295,43 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		public void mousePressed(MouseEvent evt) {
 			int row = entitiesTable.rowAtPoint(evt.getPoint());
 			int col = entitiesTable.columnAtPoint(evt.getPoint());
+			selectEntity(row, col);
+		}
+	};
 
-			if (row >= 0) {
-				int entityId = (int) entitiesTableModel.getValueAt(row, 0);
-				int componentIndex = col-1;
+	private KeyListener entityTableKeyListener = new KeyListener() {
+		@Override
+		public void keyTyped(KeyEvent e) {
+		}
 
-				BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
+		@Override
+		public void keyPressed(KeyEvent e) {
+			int key = e.getKeyCode();
 
-				if (componentIndex < 0 || entityComponents.get(componentIndex)) {
-					showEntityDetails(entityId, componentIndex);
-				}
+			switch (key) {
+				case KeyEvent.VK_UP:
+				case KeyEvent.VK_DOWN:
+					ListSelectionModel selection = entitiesTable.getSelectionModel();
+					int currentIndex = selection.getMinSelectionIndex();
+
+					if (key == KeyEvent.VK_UP && currentIndex > 0) {
+						currentIndex -= 1;
+					}
+					else if (key == KeyEvent.VK_DOWN && currentIndex < entitiesTable.getRowCount() - 1) {
+						currentIndex += 1;
+					}
+
+					selection.setSelectionInterval(currentIndex, currentIndex);
+					selectEntity(currentIndex, _lastSelectedCol);
+
+					break;
 			}
+
+			e.consume();
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
 		}
 	};
 
