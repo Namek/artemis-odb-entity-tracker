@@ -38,6 +38,10 @@ public abstract class Communicator implements RawConnectionCommunicator {
 		_output = output;
 	}
 
+	@Override
+	public void disconnected() {
+	}
+
 	protected void send(NetworkSerializer serializer) {
 		NetworkSerializer.SerializeResult data = serializer.getResult();
 		_output.send(data.buffer, 0, data.size);

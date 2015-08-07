@@ -12,19 +12,13 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
  * Deserializes data from network and serializes data sent to the network.
  * Manages between logic events and pure network bytes.
  *
- * Communicator used by EntityTracker manager (server).
+ * Communicator used by EntityTracker manager (server), one such communicator per client.
  *
  * @author Namek
  */
 public class EntityTrackerCommunicator extends Communicator implements WorldUpdateListener {
 	private WorldController _worldController;
 
-
-	@Override
-	public void disconnected() {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public void bytesReceived(byte[] bytes, int offset, int length) {

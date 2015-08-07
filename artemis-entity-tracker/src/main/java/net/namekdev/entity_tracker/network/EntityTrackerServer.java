@@ -161,6 +161,11 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 						addedEntity(entity.getKey(), entity.getValue());
 					}
 				}
+
+				@Override
+				public void disconnected() {
+					_listeners.remove(this);
+				}
 			};
 			_listeners.add(newCommunicator);
 
