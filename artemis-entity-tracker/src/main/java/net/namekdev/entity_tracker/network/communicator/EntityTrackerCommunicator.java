@@ -97,7 +97,11 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 			p.addString(field.fieldName);
 			p.addString(field.classType);
 			p.addBoolean(field.isArray);
-			p.addInt(field.valueType);
+			p.addByte(field.valueType);
+
+			if (field.treeDesc != null) {
+				// TODO serialize it
+			}
 		}
 
 		send(p);

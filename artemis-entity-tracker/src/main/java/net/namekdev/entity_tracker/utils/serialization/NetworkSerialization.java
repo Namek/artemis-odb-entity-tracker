@@ -5,7 +5,9 @@ import com.artemis.utils.BitVector;
 public abstract class NetworkSerialization {
 	public final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
-	protected final static byte TYPE_ARRAY = 6;
+	public final static byte TYPE_ARRAY = 6;
+	public final static byte TYPE_TREE_DESCR = 7;
+	public final static byte TYPE_TREE = 9;
 
 	public final static byte TYPE_BYTE = 10;
 	public final static byte TYPE_SHORT = 11;
@@ -15,7 +17,7 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
 	public final static byte TYPE_FLOAT = 16;
 	public final static byte TYPE_DOUBLE = 17;
-	public final static byte Type_BITVECTOR = 20;//takes minimum 4 bytes
+	public final static byte TYPE_BITVECTOR = 20;//takes minimum 4 bytes
 
 
 	public static NetworkSerializer createSerializer() {
@@ -30,8 +32,8 @@ public abstract class NetworkSerialization {
 		return new NetworkDeserializer();
 	}
 
-	public static int determineNetworkType(Class<?> type) {
-		int netType = TYPE_UNKNOWN;
+	public static byte determineSimpleType(Class<?> type) {
+		byte netType = TYPE_UNKNOWN;
 
 		if (type.equals(byte.class)) {
 			netType = TYPE_BYTE;
@@ -58,13 +60,13 @@ public abstract class NetworkSerialization {
 			netType = TYPE_DOUBLE;
 		}
 		else if (type.equals(BitVector.class)) {
-			netType = Type_BITVECTOR;
+			netType = TYPE_BITVECTOR;
 		}
 
 		return netType;
 	}
 
-	public static Object convertStringToTypedValue(String value, int valueType) {
+	public static Object convertStringToTypedValue(String value, byte valueType) {
 		switch (valueType) {
 			case TYPE_BYTE: return Byte.valueOf(value);
 			case TYPE_SHORT: return Short.valueOf(value);
@@ -74,9 +76,24 @@ public abstract class NetworkSerialization {
 			case TYPE_BOOLEAN: return Boolean.valueOf(value);
 			case TYPE_FLOAT: return Float.valueOf(value);
 			case TYPE_DOUBLE: return Double.valueOf(value);
-			case Type_BITVECTOR: return new BitVector(Integer.valueOf(value));
+			case TYPE_BITVECTOR: return new BitVector(Integer.valueOf(value));
 			case TYPE_ARRAY: throw new UnsupportedOperationException("arrays are not supported (yet?)");
 			default: return null;
+		}
+	}
+
+	public static boolean isSimpleType(byte valueType) {
+		switch (valueType) {
+			case TYPE_BYTE: return true;
+			case TYPE_SHORT: return true;
+			case TYPE_INT: return true;
+			case TYPE_LONG: return true;
+			case TYPE_STRING: return true;
+			case TYPE_BOOLEAN: return true;
+			case TYPE_FLOAT: return true;
+			case TYPE_DOUBLE: return true;
+			case TYPE_BITVECTOR: return true;
+			default: return false;
 		}
 	}
 }

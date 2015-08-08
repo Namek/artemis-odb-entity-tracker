@@ -71,7 +71,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 					field.fieldName = _deserializer.readString();
 					field.classType = _deserializer.readString();
 					field.isArray = _deserializer.readBoolean();
-					field.valueType = _deserializer.readInt();
+					field.valueType = _deserializer.readByte();
 
 					info.fields.insertElementAt(field, i);
 				}
