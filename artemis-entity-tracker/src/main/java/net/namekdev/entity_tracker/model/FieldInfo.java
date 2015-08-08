@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.model;
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
 
 import com.artemis.utils.reflect.Field;
 
@@ -12,7 +13,10 @@ public class FieldInfo {
 	public String fieldName;
 	public String classType;
 	public boolean isArray;
-	public int valueType;
+	public byte valueType;
+
+	/** Available when type of field is not a simple type or array. */
+	public ObjectModelNode treeDesc;
 
 
 	public static FieldInfo reflectField(Field field) {
@@ -24,7 +28,7 @@ public class FieldInfo {
 		info.fieldName = field.getName();
 		info.classType = type.getSimpleName();
 		info.isArray = type.isArray();
-		info.valueType = NetworkSerialization.determineNetworkType(type);
+		info.valueType = NetworkSerialization.determineSimpleType(type);
 
 		return info;
 	}

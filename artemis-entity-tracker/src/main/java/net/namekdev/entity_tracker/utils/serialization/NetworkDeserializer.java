@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
 import java.util.BitSet;
+import java.util.Vector;
 
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
@@ -76,7 +77,10 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	public boolean readBoolean() {
 		checkType(TYPE_BOOLEAN);
+		return readRawBoolean();
+	}
 
+	public boolean readRawBoolean() {
 		byte value = readRawByte();
 		return value != 0;
 	}
@@ -183,6 +187,114 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else {
 			throw new IllegalArgumentException("Can't serialize type: " + type);
+		}
+	}
+
+	public Object readRawByType(byte valueType) {
+		switch (valueType) {
+			case TYPE_BYTE: return readRawByte();
+			case TYPE_SHORT: return readRawShort();
+			case TYPE_INT: return readRawInt();
+			case TYPE_LONG: return readRawLong();
+			case TYPE_STRING: return readString();
+			case TYPE_BOOLEAN: return readRawBoolean();
+			case TYPE_FLOAT: return readRawFloat();
+			case TYPE_DOUBLE: return readRawDouble();
+			case TYPE_BITSET: return readBitSet();
+
+			default: throw new RuntimeException("type not supported" + valueType);
+		}
+	}
+
+	public ObjectModelNode readObjectDescription() {
+		checkType(TYPE_TREE_DESCR);
+		int modelId = readRawInt();
+		ObjectModelNode root = readRawObjectDescription();
+		root.rootId = modelId;
+
+		return root;
+	}
+
+	private ObjectModelNode readRawObjectDescription() {
+		ObjectModelNode node = new ObjectModelNode();
+		node.name = readString();
+		byte nodeType = readRawByte();
+		node.networkType = nodeType;
+
+		if (nodeType == TYPE_TREE || nodeType == TYPE_ARRAY) {
+			if (nodeType == TYPE_ARRAY) {
+				node.isArray = true;
+				node.arrayType = readRawByte();
+			}
+
+			int n = readRawInt();
+			node.children = new Vector<>(n);
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = readRawObjectDescription();
+				node.children.addElement(child);
+			}
+		}
+		else if (!isSimpleType(nodeType)) {
+			throw new RuntimeException("unsupported type: " + nodeType);
+		}
+
+		return node;
+	}
+
+	public ValueTree readObject(ObjectModelNode model) {
+		checkType(TYPE_TREE);
+		ValueTree root = (ValueTree) readRawObject(model);
+
+		return root;
+	}
+
+	protected Object readRawObject(ObjectModelNode model) {
+		if (!model.isArray && model.children != null) {
+			checkType(TYPE_TREE);
+			int n = model.children.size();
+			ValueTree tree = new ValueTree(n);
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = model.children.get(i);
+				tree.values[i] = readRawObject(child);
+			}
+
+			return tree;
+		}
+		else if (isSimpleType(model.networkType)) {
+			return readRawByType(model.networkType);
+		}
+		else if (model.isArray) {
+			int n = beginArray(model.arrayType);
+			ValueTree tree = new ValueTree(n);
+			int fieldCount = model.children.size();
+
+			if (model.arrayType == TYPE_TREE) {
+				for (int i = 0; i < n; ++i) {
+					ValueTree fieldValues = new ValueTree(fieldCount);
+
+					for (int j = 0; j < fieldCount; ++j) {
+						ObjectModelNode field = model.children.get(j);
+						fieldValues.values[j] = readRawObject(field);
+					}
+
+					tree.values[i] = fieldValues;
+				}
+			}
+			else if (isSimpleType(model.arrayType)) {
+				for (int i = 0; i < n; ++i) {
+					tree.values[i] = readRawByType(model.arrayType);
+				}
+			}
+			else {
+				throw new RuntimeException("unsupported array type: " + model.arrayType);
+			}
+
+			return tree;
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
 		}
 	}
 

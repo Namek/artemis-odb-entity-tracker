@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.BitSet;
 
@@ -10,19 +10,18 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NetworkSerializationTest {
-	NetworkSerializer serializer;
 	NetworkDeserializer deserializer;
 
 
 	@Before
 	public void setup() {
-		serializer = new NetworkSerializer();
 		deserializer = new NetworkDeserializer();
 	}
 
 	@Test
-	public void testSimpleTypes() {
-		serializer.reset();
+	public void deserialize_simple_types() {
+		NetworkSerializer serializer = new NetworkSerializer().reset();
+
 		serializer.addInt(124);
 		serializer.addShort((short) 113);
 		serializer.addInt(84);
@@ -49,7 +48,9 @@ public class NetworkSerializationTest {
 	}
 
 	@Test
-	public void testBitsets() {
+	public void deserialize_bitsets() {
+		NetworkSerializer serializer = new NetworkSerializer().reset();
+
 		BitSet bitset1 = new BitSet();
 		bitset1.set(0);
 		bitset1.set(2);
@@ -65,6 +66,10 @@ public class NetworkSerializationTest {
 		bitset2.set(4);
 		bitset2.set(74);
 
+		// just make sure that bitsets are comparable
+		assertNotEquals(bitset1, bitset2);
+		assertEquals(bitset1, bitset1);
+
 		BitSet bitset3 = new BitSet(20);
 		for (int index : new int[] { 2, 3, 4, 5, 6, 7, 10, 11, 14, 15, 16, 18, 19 }) {
 			bitset3.set(index);
@@ -75,7 +80,6 @@ public class NetworkSerializationTest {
 		bitset4.set(7);
 		bitset4.set(10);
 
-		serializer.reset();
 		serializer.addBitSet(bitset1);
 		serializer.addBitSet(bitset2);
 		serializer.addBitSet(bitset1);

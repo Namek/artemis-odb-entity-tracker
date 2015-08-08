@@ -5,7 +5,9 @@ import java.util.BitSet;
 public abstract class NetworkSerialization {
 	public final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
-	protected final static byte TYPE_ARRAY = 6;
+	public final static byte TYPE_ARRAY = 6;
+	public final static byte TYPE_TREE_DESCR = 7;
+	public final static byte TYPE_TREE = 9;
 
 	public final static byte TYPE_BYTE = 10;
 	public final static byte TYPE_SHORT = 11;
@@ -30,8 +32,8 @@ public abstract class NetworkSerialization {
 		return new NetworkDeserializer();
 	}
 
-	public static int determineNetworkType(Class<?> type) {
-		int netType = TYPE_UNKNOWN;
+	public static byte determineSimpleType(Class<?> type) {
+		byte netType = TYPE_UNKNOWN;
 
 		if (type.equals(byte.class)) {
 			netType = TYPE_BYTE;
@@ -64,7 +66,7 @@ public abstract class NetworkSerialization {
 		return netType;
 	}
 
-	public static Object convertStringToTypedValue(String value, int valueType) {
+	public static Object convertStringToTypedValue(String value, byte valueType) {
 		switch (valueType) {
 			case TYPE_BYTE: return Byte.valueOf(value);
 			case TYPE_SHORT: return Short.valueOf(value);
@@ -77,6 +79,21 @@ public abstract class NetworkSerialization {
 			case TYPE_BITSET: return new BitSet(Integer.valueOf(value));
 			case TYPE_ARRAY: throw new UnsupportedOperationException("arrays are not supported (yet?)");
 			default: return null;
+		}
+	}
+
+	public static boolean isSimpleType(byte valueType) {
+		switch (valueType) {
+			case TYPE_BYTE: return true;
+			case TYPE_SHORT: return true;
+			case TYPE_INT: return true;
+			case TYPE_LONG: return true;
+			case TYPE_STRING: return true;
+			case TYPE_BOOLEAN: return true;
+			case TYPE_FLOAT: return true;
+			case TYPE_DOUBLE: return true;
+			case TYPE_BITSET: return true;
+			default: return false;
 		}
 	}
 }

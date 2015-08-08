@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker;
 
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
+
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,6 +17,8 @@ import net.namekdev.entity_tracker.model.ManagerInfo;
 import net.namekdev.entity_tracker.utils.ArrayPool;
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector;
 
 import com.artemis.Aspect;
 import com.artemis.BaseSystem;
@@ -40,6 +44,7 @@ import com.artemis.utils.reflect.ReflectionException;
  *
  */
 public class EntityTracker extends Manager implements WorldController {
+	private ObjectTypeInspector componentInspector;
 	private WorldUpdateListener updateListener;
 
 	public final Bag<SystemInfo> systemsInfo = new Bag<SystemInfo>();
@@ -61,9 +66,21 @@ public class EntityTracker extends Manager implements WorldController {
 
 
 	public EntityTracker() {
+		this(new ObjectTypeInspector.OneLevel(), null);
+	}
+
+	public EntityTracker(ObjectTypeInspector inspector) {
+		this(inspector, null);
 	}
 
 	public EntityTracker(WorldUpdateListener listener) {
+		this(new ObjectTypeInspector.OneLevel(), listener);
+	}
+
+	public EntityTracker(ObjectTypeInspector inspector, WorldUpdateListener listener) {
+		assert(inspector != null);
+
+		this.componentInspector = inspector;
 		setUpdateListener(listener);
 	}
 
@@ -226,7 +243,18 @@ public class EntityTracker extends Manager implements WorldController {
 		ComponentTypeInfo info = new ComponentTypeInfo(type);
 
 		for (Field field : fields) {
-			info.fields.add(FieldInfo.reflectField(field));
+			FieldInfo fieldInfo = FieldInfo.reflectField(field);
+
+			if (fieldInfo.valueType == TYPE_UNKNOWN) {
+				ObjectModelNode treeDesc = componentInspector.inspect(fieldInfo.field.getType());
+
+				if (treeDesc != null) {
+					fieldInfo.valueType = TYPE_TREE;
+					fieldInfo.treeDesc = treeDesc;
+				}
+			}
+
+			info.fields.add(fieldInfo);
 		}
 
 		return info;

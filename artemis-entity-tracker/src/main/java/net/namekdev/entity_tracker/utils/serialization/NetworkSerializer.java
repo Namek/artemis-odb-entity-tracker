@@ -2,6 +2,8 @@ package net.namekdev.entity_tracker.utils.serialization;
 
 import java.util.BitSet;
 
+import net.namekdev.entity_tracker.utils.ReflectionUtils;
+
 public class NetworkSerializer extends NetworkSerialization {
 	private byte[] _ourBuffer;
 	private byte[] _buffer;
@@ -112,6 +114,10 @@ public class NetworkSerializer extends NetworkSerialization {
 
 	public NetworkSerializer addBoolean(boolean value) {
 		_buffer[_pos++] = TYPE_BOOLEAN;
+		return addRawBoolean(value);
+	}
+
+	public NetworkSerializer addRawBoolean(boolean value) {
 		return addRawByte((byte) (value ? 1 : 0));
 	}
 
@@ -216,6 +222,120 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
+	public NetworkSerializer addRawByType(byte valueType, Object value) {
+		switch (valueType) {
+			case TYPE_BYTE: addRawByte((Byte) value); break;
+			case TYPE_SHORT: addRawShort((Short) value); break;
+			case TYPE_INT: addRawInt((Integer) value); break;
+			case TYPE_LONG: addRawLong((Long) value); break;
+			case TYPE_STRING: addString((String) value); break;
+			case TYPE_BOOLEAN: addRawBoolean((Boolean) value); break;
+			case TYPE_FLOAT: addRawFloat((Float) value); break;
+			case TYPE_DOUBLE: addRawDouble((Double) value); break;
+			case TYPE_BITSET: addBitSet((BitSet) value); break;
+
+			default: throw new RuntimeException("type not supported: " + valueType);
+		}
+
+		return this;
+	}
+
+	public NetworkSerializer addObjectDescription(ObjectModelNode model, int modelId) {
+		_buffer[_pos++] = TYPE_TREE_DESCR;
+		addRawInt(modelId);
+		addRawObjectDescription(model);
+
+		return this;
+	}
+
+	protected void addRawObjectDescription(ObjectModelNode model) {
+		addString(model.name);
+
+		if (model.children != null) {
+			if (model.isArray) {
+				addRawByte(TYPE_ARRAY);
+				addRawByte(model.arrayType);
+
+				if (model.arrayType != TYPE_TREE && !isSimpleType(model.arrayType)) {
+					throw new RuntimeException("unsupported array type: " + model.arrayType);
+				}
+			}
+			else {
+				addRawByte(TYPE_TREE);
+			}
+
+			if (model.networkType == TYPE_TREE || model.arrayType == TYPE_TREE) {
+				int n = model.children.size();
+				addRawInt(n);
+
+				for (int i = 0; i < n; ++i) {
+					ObjectModelNode node = model.children.get(i);
+					addRawObjectDescription(node);
+				}
+			}
+		}
+		else if (isSimpleType(model.networkType)) {
+			addRawByte(model.networkType);
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
+	}
+
+	public NetworkSerializer addObject(ObjectModelNode model, Object object) {
+		addRawByte(TYPE_TREE);
+		addRawObject(model, object);
+
+		return this;
+	}
+
+	protected void addRawObject(ObjectModelNode model, Object object) {
+		if (!model.isArray && model.children != null) {
+			addRawByte(TYPE_TREE);
+			int n = model.children.size();
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = model.children.get(i);
+				Object childObject = ReflectionUtils.getHiddenFieldValue(object.getClass(), child.name, object);
+
+				addRawObject(child, childObject);
+			}
+		}
+		else if (isSimpleType(model.networkType)) {
+			addRawByType(model.networkType, object);
+		}
+		else if (model.isArray) {
+			Object[] array = (Object[]) object;
+
+			int n = array.length;
+			beginArray(model.arrayType, n);
+
+			if (model.arrayType == TYPE_TREE) {
+				int fieldCount = model.children.size();
+
+				for (int i = 0; i < n; ++i) {
+					for (int j = 0; j < fieldCount; ++j) {
+						ObjectModelNode field = model.children.get(j);
+						Object fieldValue = ReflectionUtils.getHiddenFieldValue(array[i].getClass(), field.name, array[i]);
+
+						addRawObject(field, fieldValue);
+					}
+				}
+			}
+			else if (isSimpleType(model.arrayType)) {
+				for (int i = 0; i < n; ++i) {
+					addRawByType(model.arrayType, array[i]);
+				}
+			}
+			else {
+				throw new RuntimeException("unsupported array type: " + model.arrayType);
+			}
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
+	}
+
 	public SerializeResult getResult() {
 //		_buffer[_pos++] = PACKET_END;
 
@@ -223,6 +343,7 @@ public class NetworkSerializer extends NetworkSerialization {
 			? _serializeResult.setup(_buffer, _pos)
 			: new SerializeResult(_buffer, _pos);
 	}
+
 
 
 	public static class SerializeResult {
