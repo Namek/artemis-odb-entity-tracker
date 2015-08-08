@@ -14,7 +14,19 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.TreeModelListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
+
+import org.jdesktop.swingx.JXTreeTable;
+import org.jdesktop.swingx.treetable.AbstractMutableTreeTableNode;
+import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode;
+import org.jdesktop.swingx.treetable.DefaultTreeTableModel;
+import org.jdesktop.swingx.treetable.TreeTableModel;
+import org.jdesktop.swingx.treetable.TreeTableNode;
 
 import net.miginfocom.swing.MigLayout;
 import net.namekdev.entity_tracker.connectors.DummyWorldUpdateListener;
@@ -22,6 +34,7 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.ui.Context;
+import net.namekdev.entity_tracker.ui.model.ComponentTreeTableModel;
 
 
 public class ComponentDataPanel extends JPanel {
@@ -29,6 +42,9 @@ public class ComponentDataPanel extends JPanel {
 	private ComponentTypeInfo _info;
 	private int _entityId;
 	private Vector<JComponent> _components;
+
+	private ComponentTreeTableModel treeTableModel;
+	private JXTreeTable treeTable;
 
 
 	public ComponentDataPanel(Context appContext, ComponentTypeInfo info, int entityId) {
@@ -40,6 +56,31 @@ public class ComponentDataPanel extends JPanel {
 	}
 
 	protected void initialize() {
+		treeTableModel = new ComponentTreeTableModel();
+		treeTable = new JXTreeTable(treeTableModel);
+		treeTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+		DefaultMutableTreeTableNode root = new DefaultMutableTreeTableNode();
+		DefaultMutableTreeTableNode propNumber = new DefaultMutableTreeTableNode(10);
+		root.add(propNumber);
+		root.add(new DefaultMutableTreeTableNode(10));
+		root.add(new DefaultMutableTreeTableNode(10));
+		propNumber.setParent(root);
+
+		/*DefaultMutableTreeNode incomeNode = new DefaultMutableTreeNode(new TableRowData("Income","25000","5000","300000",true));
+    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary1","250001","50001","3000001",false)));
+    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary2","250002","50002","3000002",false)));
+    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary3","250003","50003","3000003",false)));
+    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary4","250004","50004","3000004",false)));
+    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary5","250005","50005","3000005",false)));
+
+    	root.add(incomeNode);*/
+
+
+		treeTableModel.setRoot(root);
+		add(treeTable);
+
+		/*
 		MigLayout layout = new MigLayout("wrap", "[right][0:pref,grow]", "");
 		setLayout(layout);
 
@@ -73,7 +114,7 @@ public class ComponentDataPanel extends JPanel {
 		}
 
 		// register listener for component data
-		_appContext.eventBus.registerListener(worldListener);
+		_appContext.eventBus.registerListener(worldListener);*/
 	}
 
 	private void setupCheckBoxListener(final JCheckBox checkbox, final int fieldIndex) {
