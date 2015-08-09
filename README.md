@@ -15,12 +15,24 @@ Server and Client that provides online tracking of [artemis-odb](https://github.
 	<artifactId>artemis-entity-tracker</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 </dependency>
+
+<!-- uncomment in case you need GUI inside your game -->
+<!--dependency>
+	<groupId>net.namekdev.entity_tracker</groupId>
+	<artifactId>artemis-entity-tracke-guir</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+</dependency-->
 ```
 
 ### Gradle
 
 ```groovy
-dependencies { compile "net.namekdev.entity_tracker:artemis-entity-tracker:0.1.0-SNAPSHOT" }
+dependencies {
+	compile "net.namekdev.entity_tracker:artemis-entity-tracker:0.1.0-SNAPSHOT"
+	
+	// uncomment in case you need GUI inside your game
+	// compile "net.namekdev.entity_tracker:artemis-entity-tracker-gui:0.1.0-SNAPSHOT"
+}
 ```
 
 
