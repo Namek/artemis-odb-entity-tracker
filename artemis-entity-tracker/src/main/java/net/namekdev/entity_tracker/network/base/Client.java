@@ -59,7 +59,7 @@ public class Client {
 	/**
 	 * Connects to server. You can chain {@code #startThread()} call.
 	 *
-	 * @param remoteName
+	 * @param serverName
 	 * @param serverPort
 	 */
 	public Client connect(String serverName, int serverPort) {

@@ -1,7 +1,5 @@
 package net.namekdev.entity_tracker;
 
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
-
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,7 +36,6 @@ import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
 
 /**
- * @todo IDEA: annotation for systems/managers safe enough to be turned off/on
  * @author Namek
  *
  */
