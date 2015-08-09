@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.artemis.utils.IntBag;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
@@ -137,7 +138,7 @@ public class EntityTracker extends Manager implements WorldController {
 	private void listenForEntitySetChanges(final SystemInfo info) {
 		info.subscription.addSubscriptionListener(new SubscriptionListener() {
 			@Override
-			public void removed(ImmutableBag<Entity> entities) {
+			public void removed(IntBag entities) {
 				info.entitiesCount -= entities.size();
 
 				if (updateListener != null && (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_SYSTEM_STATS) != 0) {
@@ -146,7 +147,7 @@ public class EntityTracker extends Manager implements WorldController {
 			}
 
 			@Override
-			public void inserted(ImmutableBag<Entity> entities) {
+			public void inserted(IntBag entities) {
 				info.entitiesCount += entities.size();
 
 				if (info.entitiesCount > info.maxEntitiesCount) {
@@ -172,7 +173,9 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	@Override
-	public void added(Entity e) {
+	public void added(int entityId) {
+		Entity e = world.getEntity(entityId);
+
 		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_ADDED) == 0) {
 			return;
 		}
@@ -193,7 +196,9 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	@Override
-	public void deleted(Entity e) {
+	public void deleted(int entityId) {
+		Entity e = world.getEntity(entityId);
+
 		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_DELETED) == 0) {
 			return;
 		}
