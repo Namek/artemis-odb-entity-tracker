@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.namekdev.entity_tracker</groupId>
 	<artifactId>artemis-entity-tracker-parent</artifactId>
-	<version>0.1.0</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>artemis-odb Entity Tracker</name>
 	<description>Server and Client that provides online tracking and management of artemis-odb World state.</description>
