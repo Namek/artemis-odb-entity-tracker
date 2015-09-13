@@ -244,14 +244,18 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return node;
 	}
 
-	public ValueTree readObject(ObjectModelNode model) {
+	public ValueTree readObject(ObjectModelNode model, boolean joinDataToModel) {
 		checkType(TYPE_TREE);
-		ValueTree root = (ValueTree) readRawObject(model);
+		ValueTree root = (ValueTree) readRawObject(model, joinDataToModel);
 
 		return root;
 	}
 
-	protected Object readRawObject(ObjectModelNode model) {
+	public ValueTree readObject(ObjectModelNode model) {
+		return readObject(model, false);
+	}
+
+	protected Object readRawObject(ObjectModelNode model, boolean joinDataToModel) {
 		if (!model.isArray && model.children != null) {
 			checkType(TYPE_TREE);
 			int n = model.children.size();
@@ -259,13 +263,23 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 			for (int i = 0; i < n; ++i) {
 				ObjectModelNode child = model.children.get(i);
-				tree.values[i] = readRawObject(child);
+				tree.values[i] = readRawObject(child, joinDataToModel);
+			}
+
+			if (joinDataToModel) {
+				model.data = tree;
 			}
 
 			return tree;
 		}
 		else if (isSimpleType(model.networkType)) {
-			return readRawByType(model.networkType);
+			Object value = readRawByType(model.networkType);
+
+			if (joinDataToModel) {
+				model.data = value;
+			}
+
+			return value;
 		}
 		else if (model.isArray) {
 			int n = beginArray(model.arrayType);
@@ -278,7 +292,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 					for (int j = 0; j < fieldCount; ++j) {
 						ObjectModelNode field = model.children.get(j);
-						fieldValues.values[j] = readRawObject(field);
+						fieldValues.values[j] = readRawObject(field, joinDataToModel);
 					}
 
 					tree.values[i] = fieldValues;
@@ -291,6 +305,10 @@ public class NetworkDeserializer extends NetworkSerialization {
 			}
 			else {
 				throw new RuntimeException("unsupported array type: " + model.arrayType);
+			}
+
+			if (joinDataToModel) {
+				model.data = tree;
 			}
 
 			return tree;

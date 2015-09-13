@@ -8,6 +8,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
@@ -23,6 +25,7 @@ import javax.swing.tree.TreePath;
 
 import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.treetable.AbstractMutableTreeTableNode;
+import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
 import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode;
 import org.jdesktop.swingx.treetable.DefaultTreeTableModel;
 import org.jdesktop.swingx.treetable.TreeTableModel;
@@ -34,7 +37,14 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.ui.Context;
-import net.namekdev.entity_tracker.ui.model.ComponentTreeTableModel;
+import net.namekdev.entity_tracker.ui.model.value_tree.ValueTreeTableModel;
+import net.namekdev.entity_tracker.ui.model.value_tree.ValueTreeTableModel_AbstractTreeTableModel;
+import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector;
+import net.namekdev.entity_tracker.utils.serialization.ValueTree;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
 
 
 public class ComponentDataPanel extends JPanel {
@@ -43,7 +53,7 @@ public class ComponentDataPanel extends JPanel {
 	private int _entityId;
 	private Vector<JComponent> _components;
 
-	private ComponentTreeTableModel treeTableModel;
+	private ValueTreeTableModel_AbstractTreeTableModel treeTableModel;
 	private JXTreeTable treeTable;
 
 
@@ -56,7 +66,7 @@ public class ComponentDataPanel extends JPanel {
 	}
 
 	protected void initialize() {
-		treeTableModel = new ComponentTreeTableModel();
+		/*treeTableModel = new ValueTreeTableModel_AbstractTreeTableModel();
 		treeTable = new JXTreeTable(treeTableModel);
 		treeTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -65,7 +75,7 @@ public class ComponentDataPanel extends JPanel {
 		root.add(propNumber);
 		root.add(new DefaultMutableTreeTableNode(10));
 		root.add(new DefaultMutableTreeTableNode(10));
-		propNumber.setParent(root);
+		propNumber.setParent(root);*/
 
 		/*DefaultMutableTreeNode incomeNode = new DefaultMutableTreeNode(new TableRowData("Income","25000","5000","300000",true));
     	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary1","250001","50001","3000001",false)));
@@ -77,7 +87,12 @@ public class ComponentDataPanel extends JPanel {
     	root.add(incomeNode);*/
 
 
-		treeTableModel.setRoot(root);
+//		treeTableModel.setRoot(root);
+//		add(treeTable);
+
+		ValueTreeTableModel model = getTestModel();
+//		treeTable = new JXTreeTable(new MyTreeTableModel());
+		treeTable = new JXTreeTable(model);
 		add(treeTable);
 
 		/*
@@ -115,6 +130,206 @@ public class ComponentDataPanel extends JPanel {
 
 		// register listener for component data
 		_appContext.eventBus.registerListener(worldListener);*/
+	}
+
+	private ValueTreeTableModel getTestModel() {
+		NetworkDeserializer deserializer = new NetworkDeserializer();
+		ObjectTypeInspector inspectorMulti = new ObjectTypeInspector.MultiLevel();
+
+		GameState gameState = new GameState();
+		gameState.objects = new GameObject[] {
+			new GameObject(), new GameObject(),
+			new GameObject(), new GameObject()
+		};
+
+		NetworkSerializer serializer = new NetworkSerializer().reset();
+		ObjectModelNode model = inspectorMulti.inspect(GameState.class);
+		int id = 1734552;
+
+
+		serializer.addObjectDescription(model, id);
+		serializer.addObject(model, gameState);
+
+		SerializeResult serialized = serializer.getResult();
+		deserializer.setSource(serialized.buffer, 0, serialized.size);
+
+		ObjectModelNode model2 = deserializer.readObjectDescription();
+		model.rootId = id;
+
+		ValueTree result = deserializer.readObject(model2, true);
+
+		return new ValueTreeTableModel(model2);
+	}
+	public class GameState {
+		public GameObject[] objects;
+	}
+	public class GameObject {
+		public Vector3 pos = new Vector3(1, 2, 3);
+		public Vector2 size = new Vector2(10, 5);
+	}
+	public class Vector3 {
+		public float x, y, z;
+
+		public Vector3(float x, float y, float z) {
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		}
+	}
+	public class Vector2 {
+		public float x, y;
+
+		public Vector2(float x, float y) {
+			this.x = x;
+			this.y = y;
+		}
+	}
+	class MyTreeNode
+	{
+		private String name;
+		private String description;
+		private List<MyTreeNode> children = new ArrayList<MyTreeNode>();
+
+		public MyTreeNode()
+		{
+		}
+
+		public MyTreeNode( String name, String description )
+		{
+			this.name = name;
+			this.description = description;
+		}
+
+		public String getName()
+		{
+			return name;
+		}
+
+		public void setName(String name)
+		{
+			this.name = name;
+		}
+
+		public String getDescription()
+		{
+			return description;
+		}
+
+		public void setDescription(String description)
+		{
+			this.description = description;
+		}
+
+		public List<MyTreeNode> getChildren()
+		{
+			return children;
+		}
+
+		public String toString()
+		{
+			return "MyTreeNode: " + name + ", " + description;
+		}
+	}
+	public class MyTreeTableModel extends AbstractTreeTableModel
+	{
+		private MyTreeNode myroot;
+
+		public MyTreeTableModel()
+		{
+			myroot = new MyTreeNode( "root", "Root of the tree" );
+
+			myroot.getChildren().add( new MyTreeNode( "Empty Child 1",
+			  "This is an empty child" ) );
+
+			MyTreeNode subtree = new MyTreeNode( "Sub Tree",
+			  "This is a subtree (it has children)" );
+			subtree.getChildren().add( new MyTreeNode( "EmptyChild 1, 1",
+			  "This is an empty child of a subtree" ) );
+			subtree.getChildren().add( new MyTreeNode( "EmptyChild 1, 2",
+			  "This is an empty child of a subtree" ) );
+			myroot.getChildren().add( subtree );
+
+			myroot.getChildren().add( new MyTreeNode( "Empty Child 2",
+			  "This is an empty child" ) );
+
+		}
+
+		@Override
+		public int getColumnCount()
+		{
+			return 3;
+		}
+
+		@Override
+		public String getColumnName( int column )
+		{
+			switch( column )
+			{
+			case 0: return "Name";
+			case 1: return "Description";
+			case 2: return "Number Of Children";
+			default: return "Unknown";
+			}
+		}
+
+		@Override
+		public Object getValueAt( Object node, int column )
+		{
+			System.out.println( "getValueAt: " + node + ", " + column );
+			MyTreeNode treenode = ( MyTreeNode )node;
+			switch( column )
+			{
+			case 0: return treenode.getName();
+			case 1: return treenode.getDescription();
+			case 2: return treenode.getChildren().size();
+			default: return "Unknown";
+			}
+		}
+
+		@Override
+		public Object getChild( Object node, int index )
+		{
+			MyTreeNode treenode = ( MyTreeNode )node;
+			return treenode.getChildren().get( index );
+		}
+
+		@Override
+		public int getChildCount( Object parent )
+		{
+			MyTreeNode treenode = ( MyTreeNode )parent;
+			return treenode.getChildren().size();
+		}
+
+		@Override
+		public int getIndexOfChild( Object parent, Object child )
+		{
+			MyTreeNode treenode = ( MyTreeNode )parent;
+			for( int i=0; i>treenode.getChildren().size(); i++ )
+			{
+				if( treenode.getChildren().get( i ) == child )
+				{
+					return i;
+				}
+			}
+
+			return 0;
+		}
+
+		 public boolean isLeaf( Object node )
+		 {
+			 MyTreeNode treenode = ( MyTreeNode )node;
+			 if( treenode.getChildren().size() > 0 )
+			 {
+				 return false;
+			 }
+			 return true;
+		 }
+
+		 @Override
+		 public Object getRoot()
+		 {
+			 return myroot;
+		 }
 	}
 
 	private void setupCheckBoxListener(final JCheckBox checkbox, final int fieldIndex) {

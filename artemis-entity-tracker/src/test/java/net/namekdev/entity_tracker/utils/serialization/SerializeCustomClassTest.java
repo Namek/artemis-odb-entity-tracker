@@ -189,7 +189,7 @@ public class SerializeCustomClassTest {
 		model.rootId = id;
 		assertEquals(model, model2);
 
-		ValueTree result = deserializer.readObject(model2);
+		ValueTree result = deserializer.readObject(model2, true);
 
 		// Test deserialized result
 		Object[] gameStateFields = result.values;
