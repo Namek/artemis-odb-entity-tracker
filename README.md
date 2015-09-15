@@ -19,7 +19,7 @@ Server and Client that provides online tracking of [artemis-odb](https://github.
 <!-- uncomment in case you need GUI inside your game -->
 <!--dependency>
 	<groupId>net.namekdev.entity_tracker</groupId>
-	<artifactId>artemis-entity-tracke-guir</artifactId>
+	<artifactId>artemis-entity-tracker-gui</artifactId>
 	<version>0.1.0</version>
 </dependency-->
 ```
