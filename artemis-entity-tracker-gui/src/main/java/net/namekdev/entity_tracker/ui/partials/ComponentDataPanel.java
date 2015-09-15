@@ -1,9 +1,9 @@
 package net.namekdev.entity_tracker.ui.partials;
 
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_BOOLEAN;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_UNKNOWN;
 
 import java.awt.Component;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,22 +14,8 @@ import java.util.Vector;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.event.TreeModelListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreePath;
-
-import org.jdesktop.swingx.JXTreeTable;
-import org.jdesktop.swingx.treetable.AbstractMutableTreeTableNode;
-import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
-import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode;
-import org.jdesktop.swingx.treetable.DefaultTreeTableModel;
-import org.jdesktop.swingx.treetable.TreeTableModel;
-import org.jdesktop.swingx.treetable.TreeTableNode;
 
 import net.miginfocom.swing.MigLayout;
 import net.namekdev.entity_tracker.connectors.DummyWorldUpdateListener;
@@ -37,14 +23,17 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.ui.Context;
-import net.namekdev.entity_tracker.ui.model.value_tree.ValueTreeTableModel;
-import net.namekdev.entity_tracker.ui.model.value_tree.ValueTreeTableModel_AbstractTreeTableModel;
+import net.namekdev.entity_tracker.ui.model.ValueTreeTableModel;
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector;
 import net.namekdev.entity_tracker.utils.serialization.ValueTree;
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
+
+import org.jdesktop.swingx.DynamicJXTreeTable;
+import org.jdesktop.swingx.JXTreeTable;
+import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
 
 
 public class ComponentDataPanel extends JPanel {
@@ -53,7 +42,7 @@ public class ComponentDataPanel extends JPanel {
 	private int _entityId;
 	private Vector<JComponent> _components;
 
-	private ValueTreeTableModel_AbstractTreeTableModel treeTableModel;
+	private ValueTreeTableModel treeTableModel;
 	private JXTreeTable treeTable;
 
 
@@ -66,34 +55,12 @@ public class ComponentDataPanel extends JPanel {
 	}
 
 	protected void initialize() {
-		/*treeTableModel = new ValueTreeTableModel_AbstractTreeTableModel();
-		treeTable = new JXTreeTable(treeTableModel);
-		treeTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		MigLayout layout = new MigLayout("", "[grow]", "");
+		setLayout(layout);
 
-		DefaultMutableTreeTableNode root = new DefaultMutableTreeTableNode();
-		DefaultMutableTreeTableNode propNumber = new DefaultMutableTreeTableNode(10);
-		root.add(propNumber);
-		root.add(new DefaultMutableTreeTableNode(10));
-		root.add(new DefaultMutableTreeTableNode(10));
-		propNumber.setParent(root);*/
-
-		/*DefaultMutableTreeNode incomeNode = new DefaultMutableTreeNode(new TableRowData("Income","25000","5000","300000",true));
-    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary1","250001","50001","3000001",false)));
-    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary2","250002","50002","3000002",false)));
-    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary3","250003","50003","3000003",false)));
-    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary4","250004","50004","3000004",false)));
-    	incomeNode.add(new DefaultMutableTreeNode(new TableRowData("Salary5","250005","50005","3000005",false)));
-
-    	root.add(incomeNode);*/
-
-
-//		treeTableModel.setRoot(root);
-//		add(treeTable);
-
-		ValueTreeTableModel model = getTestModel();
-//		treeTable = new JXTreeTable(new MyTreeTableModel());
-		treeTable = new JXTreeTable(model);
-		add(treeTable);
+		treeTableModel = getTestModel();
+		treeTable = new DynamicJXTreeTable(treeTableModel, treeTableModel);
+		add(treeTable, "growx");
 
 		/*
 		MigLayout layout = new MigLayout("wrap", "[right][0:pref,grow]", "");
@@ -158,10 +125,11 @@ public class ComponentDataPanel extends JPanel {
 
 		ValueTree result = deserializer.readObject(model2, true);
 
-		return new ValueTreeTableModel(model2);
+		return new ValueTreeTableModel(result);
 	}
 	public class GameState {
 		public GameObject[] objects;
+		public boolean omg;
 	}
 	public class GameObject {
 		public Vector3 pos = new Vector3(1, 2, 3);

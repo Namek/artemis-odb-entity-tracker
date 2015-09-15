@@ -10,21 +10,9 @@ public class ObjectModelNode {
 	public Vector<ObjectModelNode> children;
 	public byte networkType, arrayType;
 
-	/* available after deserializing object */
-	public Object data;
 
 	public boolean isLeaf() {
 		return !isArray && children == null && networkType != TYPE_TREE;
-	}
-
-	public void removeData() {
-		data = null;
-
-		if (children != null) {
-			for (int i = 0, n = children.size(); i < n; ++i) {
-				children.get(i).removeData();
-			}
-		}
 	}
 
 	@Override

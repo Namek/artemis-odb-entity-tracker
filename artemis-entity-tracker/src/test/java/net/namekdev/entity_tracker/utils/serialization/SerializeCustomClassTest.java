@@ -192,17 +192,33 @@ public class SerializeCustomClassTest {
 		ValueTree result = deserializer.readObject(model2, true);
 
 		// Test deserialized result
+		assertNull(result.parent);
 		Object[] gameStateFields = result.values;
 		assertEquals(1, gameStateFields.length);
-		Object[] objects = ((ValueTree) gameStateFields[0]).values;
+
+		ValueTree objectsField = (ValueTree) gameStateFields[0];
+		assertNotNull(objectsField.parent);
+		assertEquals(result, objectsField.parent);
+
+		Object[] objects = (objectsField).values;
 		assertEquals(gameState.objects.length, objects.length);
 
 		int n = objects.length;
 		for (int i = 0; i < n; ++i) {
 			ValueTree gameObj = (ValueTree) objects[i];
+			assertNotNull(gameObj.parent);
+			assertEquals(objectsField, gameObj.parent);
 			assertEquals(2, gameObj.values.length);
-			Object[] pos = ((ValueTree)gameObj.values[0]).values;
-			Object[] size = ((ValueTree)gameObj.values[1]).values;
+
+			ValueTree posField = (ValueTree) gameObj.values[0];
+			assertNotNull(posField.parent);
+			assertEquals(gameObj, posField.parent);
+			Object[] pos = posField.values;
+
+			ValueTree sizeField = (ValueTree) gameObj.values[1];
+			assertNotNull(sizeField.parent);
+			assertEquals(gameObj, sizeField.parent);
+			Object[] size = sizeField.values;
 
 			Vector3 pos0 = gameState.objects[i].pos;
 			Vector2 size0 = gameState.objects[i].size;

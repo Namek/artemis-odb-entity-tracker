@@ -246,7 +246,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	public ValueTree readObject(ObjectModelNode model, boolean joinDataToModel) {
 		checkType(TYPE_TREE);
-		ValueTree root = (ValueTree) readRawObject(model, joinDataToModel);
+		ValueTree root = (ValueTree) readRawObject(model, null, joinDataToModel);
 
 		return root;
 	}
@@ -255,19 +255,20 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return readObject(model, false);
 	}
 
-	protected Object readRawObject(ObjectModelNode model, boolean joinDataToModel) {
+	protected Object readRawObject(ObjectModelNode model, ValueTree parentTree, boolean joinModelToData) {
 		if (!model.isArray && model.children != null) {
 			checkType(TYPE_TREE);
 			int n = model.children.size();
 			ValueTree tree = new ValueTree(n);
+			tree.parent = parentTree;
 
 			for (int i = 0; i < n; ++i) {
 				ObjectModelNode child = model.children.get(i);
-				tree.values[i] = readRawObject(child, joinDataToModel);
+				tree.values[i] = readRawObject(child, tree, joinModelToData);
 			}
 
-			if (joinDataToModel) {
-				model.data = tree;
+			if (joinModelToData) {
+				tree.model = model;
 			}
 
 			return tree;
@@ -275,27 +276,25 @@ public class NetworkDeserializer extends NetworkSerialization {
 		else if (isSimpleType(model.networkType)) {
 			Object value = readRawByType(model.networkType);
 
-			if (joinDataToModel) {
-				model.data = value;
-			}
-
 			return value;
 		}
 		else if (model.isArray) {
 			int n = beginArray(model.arrayType);
 			ValueTree tree = new ValueTree(n);
-			int fieldCount = model.children.size();
+			tree.parent = parentTree;
 
 			if (model.arrayType == TYPE_TREE) {
+				int fieldCount = model.children.size();
+
 				for (int i = 0; i < n; ++i) {
 					ValueTree fieldValues = new ValueTree(fieldCount);
+					fieldValues.parent = tree;
+					tree.values[i] = fieldValues;
 
 					for (int j = 0; j < fieldCount; ++j) {
 						ObjectModelNode field = model.children.get(j);
-						fieldValues.values[j] = readRawObject(field, joinDataToModel);
+						fieldValues.values[j] = readRawObject(field, fieldValues, joinModelToData);
 					}
-
-					tree.values[i] = fieldValues;
 				}
 			}
 			else if (isSimpleType(model.arrayType)) {
@@ -307,8 +306,8 @@ public class NetworkDeserializer extends NetworkSerialization {
 				throw new RuntimeException("unsupported array type: " + model.arrayType);
 			}
 
-			if (joinDataToModel) {
-				model.data = tree;
+			if (joinModelToData) {
+				tree.model = model;
 			}
 
 			return tree;
