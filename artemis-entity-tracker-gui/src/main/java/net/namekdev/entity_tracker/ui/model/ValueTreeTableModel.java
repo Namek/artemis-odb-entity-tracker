@@ -15,6 +15,10 @@ import org.jdesktop.swingx.treetable.TreeTableModel;
 public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, ISimpleLeafsTreeModel {
 	private ValueTree root;
 
+	private static final int COL_OMG = 0;
+	private static final int COL_KEY = 1;
+	private static final int COL_VAL = 2;
+
 
 	public ValueTreeTableModel(ValueTree tree) {
 		assert tree.model != null;
@@ -54,19 +58,19 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public Object getValueAt(Object node, int column) {
-		if (node == null) {
+		if (node == null || column == COL_OMG) {
 			return null;
 		}
 
 		if (!(node instanceof ValueTree)) {
-			return column == 1 ? node : node.getClass().getSimpleName();
+			return column == COL_VAL ? node : node.getClass().getSimpleName();
 		}
 
 		ValueTree tree = (ValueTree) node;
 		ObjectModelNode model = tree.model;
 
 		if (model != null) {
-			return column == 0 ? model.name : null;
+			return column == COL_KEY ? model.name : null;
 		}
 		else {
 			assert tree.parent != null;
@@ -82,10 +86,23 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public Object getValueAt(Object node, Object parentNode, int nodeIndex, int column) {
-		if (column == 1 && !(node instanceof ValueTree)) {
+		if (column == COL_OMG) {
+			return null;
+		}
+
+		if (!(node instanceof ValueTree)) {
 			if (parentNode instanceof ValueTree) {
 				ValueTree parentTree = (ValueTree) parentNode;
-				return parentTree.values[nodeIndex];
+
+				if (column == COL_VAL) {
+					return parentTree.values[nodeIndex];
+				}
+				else if (node != null) {
+					String name = parentTree.model.children.get(nodeIndex).name;
+					String str = name + " (" + node.getClass().getSimpleName() + ")";
+
+					return str;
+				}
 			}
 		}
 
@@ -94,7 +111,7 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public void setValueAt(Object value, Object node, Object parentNode, int nodeIndex, int column) {
-		assert column == 1;
+		assert column == COL_VAL;
 		assert !(node instanceof ValueTree);
 
 		if (parentNode instanceof ValueTree) {
@@ -113,7 +130,7 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public boolean isCellEditable(Object node, int column) {
-		return column == 1 && getCellClass(node, column) != null;
+		return column == COL_VAL && getCellClass(node, column) != null;
 	}
 
 	@Override
@@ -123,7 +140,7 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public Class<?> getCellClass(Object node, int column) {
-		if (node != null && !(node instanceof ValueTree)) {
+		if (node != null && !(node instanceof ValueTree) && column == COL_VAL) {
 			return node.getClass();
 		}
 
@@ -167,12 +184,17 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 
 	@Override
 	public int getColumnCount() {
-		return 2;
+		return 3;
 	}
 
 	@Override
 	public String getColumnName(int column) {
-		return column == 0 ? "field" : "value";
+		if (column == COL_KEY)
+			return "field";
+		if (column == COL_VAL)
+			return "value";
+
+		return "omg";
 	}
 
 	@Override
