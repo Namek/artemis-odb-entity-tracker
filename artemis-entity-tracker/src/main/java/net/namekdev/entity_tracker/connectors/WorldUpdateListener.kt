@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.connectors
 
-import com.artemis.utils.BitVector
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 
 /**
@@ -18,12 +18,12 @@ interface WorldUpdateListener {
 	//	void changed(Entity e);
 	fun deletedEntity(entityId: Int)
 
-	fun updatedComponentState(entityId: Int, componentIndex: Int, values: Array<Object>?)
+	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Object?)
 
 	companion object {
 		const val ENTITY_ADDED = 1 shl 1
 		const val ENTITY_DELETED = 1 shl 2
-		//const val CHANGED = 1 << 3;
+		//	const val CHANGED = 1 shl 3;
 		const val ENTITY_SYSTEM_STATS = 1 shl 4
 	}
 }

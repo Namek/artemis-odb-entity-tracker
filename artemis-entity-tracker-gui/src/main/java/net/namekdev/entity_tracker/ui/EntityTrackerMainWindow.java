@@ -274,8 +274,8 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	}
 
 	@Override
-	public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
-		context.eventBus.updatedComponentState(entityId, componentIndex, values);
+	public void updatedComponentState(int entityId, int componentIndex, Object valueTree) {
+		context.eventBus.updatedComponentState(entityId, componentIndex, valueTree);
 	}
 
 	@Override

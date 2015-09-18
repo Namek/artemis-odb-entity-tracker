@@ -1,7 +1,5 @@
 package net.namekdev.entity_tracker.ui.model;
 
-import java.util.ArrayList;
-
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreePath;
 
@@ -28,6 +26,10 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 	@Override
 	public Object getRoot() {
 		return root;
+	}
+
+	public void setRoot(ValueTree tree) {
+		this.root = tree;
 	}
 
 	@Override

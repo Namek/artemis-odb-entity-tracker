@@ -35,28 +35,28 @@ public abstract class NetworkSerialization {
 	public static byte determineSimpleType(Class<?> type) {
 		byte netType = TYPE_UNKNOWN;
 
-		if (type.equals(byte.class)) {
+		if (type.equals(byte.class) || type.equals(Byte.class)) {
 			netType = TYPE_BYTE;
 		}
-		else if (type.equals(short.class)) {
+		else if (type.equals(short.class) || type.equals(Short.class)) {
 			netType = TYPE_SHORT;
 		}
-		else if (type.equals(int.class)) {
+		else if (type.equals(int.class) || type.equals(Integer.class)) {
 			netType = TYPE_INT;
 		}
-		else if (type.equals(long.class)) {
+		else if (type.equals(long.class) || type.equals(Long.class)) {
 			netType = TYPE_LONG;
 		}
 		else if (type.equals(String.class)) {
 			netType = TYPE_STRING;
 		}
-		else if (type.equals(boolean.class)) {
+		else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
 			netType = TYPE_BOOLEAN;
 		}
-		else if (type.equals(float.class)) {
+		else if (type.equals(float.class) || type.equals(Float.class)) {
 			netType = TYPE_FLOAT;
 		}
-		else if (type.equals(float.class)) {
+		else if (type.equals(double.class) || type.equals(Double.class)) {
 			netType = TYPE_DOUBLE;
 		}
 		else if (type.equals(BitVector.class)) {

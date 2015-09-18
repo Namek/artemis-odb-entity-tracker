@@ -19,9 +19,9 @@ public class EventBus extends DummyWorldUpdateListener {
 
 
 	@Override
-	public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
+	public void updatedComponentState(int entityId, int componentIndex, Object valueTree) {
 		for (int i = 0, n = _listeners.size(); i < n; ++i) {
-			_listeners.get(i).updatedComponentState(entityId, componentIndex, values);
+			_listeners.get(i).updatedComponentState(entityId, componentIndex, valueTree);
 		}
 	}
 }

@@ -50,4 +50,15 @@ public class ReflectionUtils {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public static void setHiddenFieldValue(Class<? extends Object> type, String fieldName, Object obj, Object value) {
+		Field field = getHiddenField(type, fieldName);
+
+		try {
+			field.set(obj, value);
+		}
+		catch (ReflectionException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

@@ -79,7 +79,7 @@ public class EntityTracker extends Manager implements WorldController {
 
 
 	public EntityTracker() {
-		this(new ObjectTypeInspector.OneLevel(), null);
+		this(new ObjectTypeInspector.MultiLevel(), null);
 	}
 
 	public EntityTracker(ObjectTypeInspector inspector) {
@@ -87,7 +87,7 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	public EntityTracker(WorldUpdateListener listener) {
-		this(new ObjectTypeInspector.OneLevel(), listener);
+		this(new ObjectTypeInspector.MultiLevel(), listener);
 	}
 
 	public EntityTracker(ObjectTypeInspector inspector, WorldUpdateListener listener) {
@@ -250,24 +250,8 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	private ComponentTypeInfo inspectComponentType(Class<Component> type) {
-		Field[] fields = ClassReflection.getDeclaredFields(type);
-
 		ComponentTypeInfo info = new ComponentTypeInfo(type);
-
-		for (Field field : fields) {
-			FieldInfo fieldInfo = FieldInfo.reflectField(field);
-
-			if (fieldInfo.valueType == TYPE_UNKNOWN) {
-				ObjectModelNode treeDesc = componentInspector.inspect(fieldInfo.field.getType());
-
-				if (treeDesc != null) {
-					fieldInfo.valueType = TYPE_TREE;
-					fieldInfo.treeDesc = treeDesc;
-				}
-			}
-
-			info.fields.add(fieldInfo);
-		}
+		info.model = componentInspector.inspect(type);
 
 		return info;
 	}
@@ -294,44 +278,15 @@ public class EntityTracker extends Manager implements WorldController {
 		final BaseComponentMapper<Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
-
-		int size = info.fields.size();
-		Object[] values = _objectArrPool.obtain(size, true);
-
-		for (int i = 0; i < size; ++i) {
-			FieldInfo fieldInfo = info.fields.get(i);
-
-			// TODO no support for arrays, yet
-			if (fieldInfo.isArray) {
-				values[i] = null;
-			}
-			else {
-				values[i] = ReflectionUtils.getFieldValue(fieldInfo.field, component);
-			}
-		}
-
-		updateListener.updatedComponentState(entityId, componentIndex, values);
-		_objectArrPool.free(values, true);
+		updateListener.updatedComponentState(entityId, componentIndex, component);
 	}
 
 	@Override
-	public void setComponentFieldValue(int entityId, int componentIndex, int fieldIndex, Object value) {
+	public void setComponentFieldValue(int entityId, int componentIndex, int[] treePath, Object value) {
 		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
 		final BaseComponentMapper<Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
-		FieldInfo fieldInfo = info.fields.get(fieldIndex);
-
-		// TODO we should receive appropriate type here. Convert Strings on GUI side.
-		if (value instanceof String) {
-			value = NetworkSerialization.convertStringToTypedValue((String) value, fieldInfo.valueType);
-		}
-
-		try {
-			fieldInfo.field.set(component, value);
-		}
-		catch (ReflectionException e) {
-			e.printStackTrace();
-		}
+		info.model.setValue(component, treePath, value);
 	}
 }

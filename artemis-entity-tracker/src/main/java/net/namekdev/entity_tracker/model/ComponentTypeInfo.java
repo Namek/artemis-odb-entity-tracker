@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.model;
 
-import java.util.Vector;
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
 
 
 public class ComponentTypeInfo {
@@ -9,7 +9,7 @@ public class ComponentTypeInfo {
 
 	public String name;
 	public int index;
-	public final Vector<FieldInfo> fields = new Vector<FieldInfo>();
+	public ObjectModelNode model;
 
 
 	public ComponentTypeInfo(String name) {

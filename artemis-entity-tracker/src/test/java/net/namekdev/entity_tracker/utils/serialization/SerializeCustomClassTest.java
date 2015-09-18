@@ -232,4 +232,25 @@ public class SerializeCustomClassTest {
 		}
 	}
 
+	@Test
+	public void set_values_for_object_model() {
+		ObjectModelNode model;
+		float y = 55f;
+
+		Vector3 vect = new Vector3(6, 5, 4);
+		model = inspectorMulti.inspect(vect.getClass());
+		model.setValue(vect, new int[] { 1 }/*vert.y*/, y);
+		assertEquals(y, vect.y, 0.01f);
+
+		GameObject obj = new GameObject();
+		model = inspectorMulti.inspect(obj.getClass());
+		model.setValue(obj, new int[] { 1, 1 }/*obj.size.y*/, y);
+		assertEquals(y, obj.size.y, 0.01f);
+
+		GameState gs = new GameState();
+		gs.objects = new GameObject[] { new GameObject(), new GameObject(), new GameObject() };
+		model = inspectorMulti.inspect(gs.getClass());
+		model.setValue(gs, new int[] { 0, 2, 0, 1 }/*gs.objects[2].pos.y*/, y);
+		assertEquals(y, gs.objects[2].pos.y, 0.01f);
+	}
 }

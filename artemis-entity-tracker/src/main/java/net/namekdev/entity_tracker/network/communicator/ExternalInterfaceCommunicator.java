@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker.network.communicator;
 
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
+
 import java.net.SocketAddress;
 
 import com.artemis.utils.BitVector;
@@ -8,7 +10,11 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.model.FieldInfo;
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
+import net.namekdev.entity_tracker.utils.Array;
 import net.namekdev.entity_tracker.utils.ArrayPool;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
+import net.namekdev.entity_tracker.utils.serialization.ValueTree;
 
 /**
  * Communicator used by UI (client).
@@ -17,7 +23,8 @@ import net.namekdev.entity_tracker.utils.ArrayPool;
  */
 public class ExternalInterfaceCommunicator extends Communicator implements WorldController {
 	private WorldUpdateInterfaceListener _listener;
-	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
+//	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
+	private final Array<ComponentTypeInfo> _componentTypes = new Array<>();
 
 
 	public ExternalInterfaceCommunicator(WorldUpdateInterfaceListener listener) {
@@ -59,22 +66,11 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			case TYPE_ADDED_COMPONENT_TYPE: {
 				int index = _deserializer.readInt();
 				String name = _deserializer.readString();
-				int size = _deserializer.beginArray();
 
 				ComponentTypeInfo info = new ComponentTypeInfo(name);
 				info.index = index;
-				info.fields.ensureCapacity(size);
-
-				for (int i = 0; i < size; ++i) {
-					FieldInfo field = new FieldInfo();
-					field.isAccessible = _deserializer.readBoolean();
-					field.fieldName = _deserializer.readString();
-					field.classType = _deserializer.readString();
-					field.isArray = _deserializer.readBoolean();
-					field.valueType = _deserializer.readByte();
-
-					info.fields.insertElementAt(field, i);
-				}
+				info.model = _deserializer.readObjectDescription();
+				_componentTypes.set(index, info);
 
 				_listener.addedComponentType(index, info);
 				break;
@@ -100,17 +96,10 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			case TYPE_UPDATED_COMPONENT_STATE: {
 				int entityId = _deserializer.readInt();
 				int index = _deserializer.readInt();
-				int size = _deserializer.beginArray();
+				ObjectModelNode componentModel = _componentTypes.get(index).model;
+				ValueTree valueTree = _deserializer.readObject(componentModel);
 
-				Object[] values = _objectArrayPool.obtain(size, true);
-
-				for (int i = 0; i < size; ++i) {
-					values[i] = _deserializer.readSomething(true);
-				}
-
-				_listener.updatedComponentState(entityId, index, values);
-				_objectArrayPool.free(values, true);
-
+				_listener.updatedComponentState(entityId, index, valueTree);
 				break;
 			}
 
@@ -146,13 +135,18 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 	}
 
 	@Override
-	public void setComponentFieldValue(int entityId, int componentIndex, int fieldIndex, Object value) {
-		send(
+	public void setComponentFieldValue(int entityId, int componentIndex, int[] treePath, Object value) {
+		NetworkSerializer p =
 			beginPacket(TYPE_SET_COMPONENT_FIELD_VALUE)
 			.addInt(entityId)
 			.addInt(componentIndex)
-			.addInt(fieldIndex)
-			.addSomething(value)
-		);
+			.addSomething(value);
+
+		p.beginArray(TYPE_INT, treePath.length);
+		for (int i = 0; i < treePath.length; ++i) {
+			p.addInt(treePath[i]);
+		}
+
+		send(p);
 	}
 }

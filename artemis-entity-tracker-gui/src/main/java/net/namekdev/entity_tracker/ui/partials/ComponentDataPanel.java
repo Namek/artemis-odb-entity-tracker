@@ -300,17 +300,17 @@ public class ComponentDataPanel extends JPanel {
 		 }
 	}
 
-	private void setupCheckBoxListener(final JCheckBox checkbox, final int fieldIndex) {
+	private void setupCheckBoxListener(final JCheckBox checkbox, final int[] treePath) {
 		checkbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				boolean value = checkbox.isSelected();
-				_appContext.worldController.setComponentFieldValue(_entityId, _info.index, fieldIndex, value);
+				_appContext.worldController.setComponentFieldValue(_entityId, _info.index, treePath, value);
 			}
 		});
 	}
 
-	private void setupTextFieldListener(final JTextField textField, final int fieldIndex) {
+	private void setupTextFieldListener(final JTextField textField, final int[] treePath) {
 		textField.addKeyListener(new KeyListener() {
 			@Override
 			public void keyTyped(KeyEvent e) {
@@ -329,7 +329,7 @@ public class ComponentDataPanel extends JPanel {
 					String text = textField.getText();
 
 					// TODO convert string to appropriate field's type
-					_appContext.worldController.setComponentFieldValue(_entityId, _info.index, fieldIndex, text);
+					_appContext.worldController.setComponentFieldValue(_entityId, _info.index, treePath, text);
 				}
 			}
 		});
@@ -344,11 +344,13 @@ public class ComponentDataPanel extends JPanel {
 
 	private final WorldUpdateListener worldListener = new DummyWorldUpdateListener() {
 		@Override
-		public void updatedComponentState(int entityId, int componentIndex, Object[] values) {
+		public void updatedComponentState(int entityId, int componentIndex, Object valueTree) {
 			if (_info.index != componentIndex || _entityId != entityId) {
 				return;
 			}
 
+			treeTableModel.setRoot((ValueTree) valueTree);
+/*
 			for (int i = 0, n = values.length; i < n; ++i) {
 				Object value = values[i];
 
@@ -365,7 +367,7 @@ public class ComponentDataPanel extends JPanel {
 				else if (info.valueType != TYPE_UNKNOWN) {
 					((JTextField) component).setText(values[i].toString());
 				}
-			}
+			}*/
 		}
 	};
 }
