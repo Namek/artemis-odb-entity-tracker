@@ -7,12 +7,12 @@
 	<parent>
 		<groupId>net.namekdev.entity_tracker</groupId>
 		<artifactId>artemis-entity-tracker-parent</artifactId>
-		<version>0.2.0-SNAPSHOT</version>
+		<version>0.2.0</version>
 	</parent>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<artemis-odb.version>0.10.2</artemis-odb.version>
+		<artemis-odb.version>[1.0.0,2.0.0)</artemis-odb.version>
 	</properties>
 
 	<dependencies>

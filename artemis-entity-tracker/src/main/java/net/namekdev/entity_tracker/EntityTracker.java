@@ -30,6 +30,7 @@ import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
+import com.artemis.utils.IntBag;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Field;
 import com.artemis.utils.reflect.Method;
@@ -84,8 +85,13 @@ public class EntityTracker extends Manager implements WorldController {
 
 	private void find42UnicornManagers() {
 		ImmutableBag<BaseSystem> systems = world.getSystems();
+		int index = 0;
 		for (int i = 0, n = systems.size(); i < n; ++i) {
 			BaseSystem system = systems.get(i);
+
+			if (system instanceof Manager) {
+				continue;
+			}
 
 			Class<? extends BaseSystem> systemType = system.getClass();
 			String systemName = systemType.getSimpleName();
@@ -116,12 +122,17 @@ public class EntityTracker extends Manager implements WorldController {
 				listenForEntitySetChanges(info);
 			}
 
-			updateListener.addedSystem(i, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes);
+			updateListener.addedSystem(index++, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes);
 		}
 
-		ImmutableBag<Manager> managers = world.getManagers();
-		for (int i = 0, n = managers.size(); i < n; ++i) {
-			Manager manager = managers.get(i);
+		for (int i = 0, n = systems.size(); i < n; ++i) {
+			BaseSystem system = systems.get(i);
+
+			if (!(system instanceof Manager)) {
+				continue;
+			}
+
+			Manager manager = (Manager) system;
 
 			Class<? extends Manager> managerType = manager.getClass();
 			String managerName = managerType.getSimpleName();
@@ -137,7 +148,7 @@ public class EntityTracker extends Manager implements WorldController {
 	private void listenForEntitySetChanges(final SystemInfo info) {
 		info.subscription.addSubscriptionListener(new SubscriptionListener() {
 			@Override
-			public void removed(ImmutableBag<Entity> entities) {
+			public void removed(IntBag entities) {
 				info.entitiesCount -= entities.size();
 
 				if (updateListener != null && (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_SYSTEM_STATS) != 0) {
@@ -146,7 +157,7 @@ public class EntityTracker extends Manager implements WorldController {
 			}
 
 			@Override
-			public void inserted(ImmutableBag<Entity> entities) {
+			public void inserted(IntBag entities) {
 				info.entitiesCount += entities.size();
 
 				if (info.entitiesCount > info.maxEntitiesCount) {
@@ -189,7 +200,7 @@ public class EntityTracker extends Manager implements WorldController {
 			inspectNewComponentTypesAndNotify();
 		}
 
-		updateListener.addedEntity(e.id, (BitSet) componentBitset.clone());
+		updateListener.addedEntity(e.getId(), (BitSet) componentBitset.clone());
 	}
 
 	@Override
@@ -198,7 +209,7 @@ public class EntityTracker extends Manager implements WorldController {
 			return;
 		}
 
-		updateListener.deletedEntity(e.id);
+		updateListener.deletedEntity(e.getId());
 	}
 
 	private void inspectNewComponentTypesAndNotify() {
