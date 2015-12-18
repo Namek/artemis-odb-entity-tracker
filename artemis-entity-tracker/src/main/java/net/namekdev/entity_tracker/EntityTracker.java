@@ -17,6 +17,7 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
 
 import com.artemis.Aspect;
+import com.artemis.BaseEntitySystem;
 import com.artemis.BaseSystem;
 import com.artemis.Component;
 import com.artemis.ComponentManager;
@@ -26,7 +27,6 @@ import com.artemis.ComponentTypeFactory;
 import com.artemis.Entity;
 import com.artemis.EntitySubscription;
 import com.artemis.EntitySubscription.SubscriptionListener;
-import com.artemis.EntitySystem;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
@@ -99,8 +99,8 @@ public class EntityTracker extends Manager implements WorldController {
 			BitSet actives = null;
 			EntitySubscription subscription = null;
 
-			if (system instanceof EntitySystem) {
-				EntitySystem entitySystem = (EntitySystem) system;
+			if (system instanceof BaseEntitySystem) {
+				BaseEntitySystem entitySystem = (BaseEntitySystem) system;
 
 				subscription = entitySystem.getSubscription();
 				aspect = subscription.getAspect();
