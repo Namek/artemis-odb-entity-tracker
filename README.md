@@ -35,24 +35,30 @@ dependencies {
 }
 ```
 
+# How to use
 
-## Simple Usage
+## Option 1. Simple Usage
+
+Import both `Entity Tracker` and `Entity Tracker GUI` libraries into your project.
 
 
 ```java
 artemisWorld.setManager(new EntityTracker(new EntityTrackerMainWindow()));
 ```
 
-## Network Connection
+## Option 2. Network Connection
 
-Host your Entity Tracker Server:
+Host `Entity Tracker Server` inside your game:
 ```java
 EntityTrackerServer entityTrackerServer = new EntityTrackerServer();
 entityTrackerServer.start();
 artemisWorld.setManager(new EntityTracker(entityTrackerServer));
 ```
 
-For GUI see `Build` section or run [StandaloneMain.java](artemis-entity-tracker-gui/src/main/java/net/namekdev/entity_tracker/StandaloneMain.java) file or setup GUI manually:
+There are 2 options to run `Entity Tracker GUI` that connects with `EntityTrackerServer`:
+
+1. run external app (you can download `*-app` from [releases](https://github.com/Namek/artemis-odb-entity-tracker/releases)) or build it yourself (see `Build` section below)
+2. run [StandaloneMain.java](artemis-entity-tracker-gui/src/main/java/net/namekdev/entity_tracker/StandaloneMain.java) file or setup GUI manually:
 ```java
 final EntityTrackerMainWindow window = new EntityTrackerMainWindow();
 final Client client = new PersistentClient(new ExternalInterfaceCommunicator(window));
