@@ -126,6 +126,15 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			.addBoolean(isOn)
 		);
 	}
+	
+	@Override
+	public void setManagerState(String name, boolean isOn) {
+		send(
+			beginPacket(TYPE_SET_MANAGER_STATE)
+			.addString(name)
+			.addBoolean(isOn)
+		);
+	}
 
 	@Override
 	public void requestComponentState(int entityId, int componentIndex) {

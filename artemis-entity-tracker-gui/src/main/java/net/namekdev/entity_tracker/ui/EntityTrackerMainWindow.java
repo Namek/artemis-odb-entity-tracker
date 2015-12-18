@@ -6,9 +6,6 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyVetoException;
-import java.beans.VetoableChangeListener;
 import java.util.BitSet;
 import java.util.Enumeration;
 
@@ -24,10 +21,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -36,6 +29,7 @@ import javax.swing.table.TableColumnModel;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.ui.listener.ChangingSystemEnabledStateListener;
 import net.namekdev.entity_tracker.ui.model.BaseSystemTableModel;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
@@ -168,8 +162,17 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		entitiesTable.addKeyListener(entityTableKeyListener);
 		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
-		entitySystemsTableModel.addTableModelListener(entitySystemsModelListener);
-		baseSystemsTableModel.addTableModelListener(baseSystemsModelListener);
+		
+		
+		entitySystemsTableModel.addChangingSystemEnabledStateListener(systemEnableChangingListener);
+		baseSystemsTableModel.addChangingSystemEnabledStateListener(systemEnableChangingListener);
+		
+		managersTableModel.addChangingSystemEnabledStateListener(new ChangingSystemEnabledStateListener() {	
+			@Override
+			public void onChangingSystemEnabledState(BaseSystemTableModel model, int systemIndex, String managerName, boolean enabled) {
+				context.worldController.setManagerState(managerName, enabled);
+			}
+		});
 	}
 
 	public void setVisible(boolean visible) {
@@ -352,34 +355,14 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		public void keyReleased(KeyEvent e) {
 		}
 	};
-
-	private TableModelListener entitySystemsModelListener = new TableModelListener() {
-		@Override
-		public void tableChanged(TableModelEvent e) {
-			if (e.getColumn() != 0) {
-				return;
-			}
-
-			int rowIndex = e.getFirstRow();
-			String systemName = entitySystemsTableModel.getSystemName(rowIndex);
-			boolean desiredSystemState = entitySystemsTableModel.getSystemState(rowIndex);
-
-			context.worldController.setSystemState(systemName, desiredSystemState);
-		}
-	};
 	
-	private TableModelListener baseSystemsModelListener = new TableModelListener() {
+	private ChangingSystemEnabledStateListener systemEnableChangingListener = new ChangingSystemEnabledStateListener() {
 		@Override
-		public void tableChanged(TableModelEvent e) {
-			if (e.getColumn() != 0) {
-				return;
-			}
-
-			int rowIndex = e.getFirstRow();
-			String systemName = baseSystemsTableModel.getSystemName(rowIndex);
-			boolean desiredSystemState = baseSystemsTableModel.getSystemState(rowIndex);
-
-			context.worldController.setSystemState(systemName, desiredSystemState);
+		public void onChangingSystemEnabledState(BaseSystemTableModel model, int systemIndex, String systemName, boolean enabled) {
+			entitySystemsTableModel.updateSystemState(systemIndex, enabled);
+			baseSystemsTableModel.updateSystemState(systemIndex, enabled);
+			
+			context.worldController.setSystemState(systemName, enabled);
 		}
 	};
 }

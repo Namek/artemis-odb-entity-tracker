@@ -25,37 +25,51 @@ public class EntitySystemTableModel extends BaseSystemTableModel {
 		}
 	}
 	
-	
+	@Override
+	public int getSystemIndex(int rowIndex) {
+		return _systemIndexMap.getGlobalIndex(rowIndex);
+	}
 
 	@Override
-	public void setSystem(int index, String name) {
+	public void setSystem(int systemIndex, String name) {
 		// we assume here that this system is called 
 		// by order of system indices.
 
-		_systemIndexMap.ensureSize(index+1);
-		int localIndex = _entitySystemsCount++;
-		_systemIndexMap.set(localIndex, index);
+		_systemIndexMap.ensureSize(systemIndex+1);
+		int rowIndex = _entitySystemsCount++;
+		_systemIndexMap.set(rowIndex, systemIndex);
 
-		super.setSystem(localIndex, name);
-		setValueAt(0, localIndex, 2);
-		setValueAt(0, localIndex, 3);
+		super.setSystem(rowIndex, name);
+		setValueAt(0, rowIndex, 2);
+		setValueAt(0, rowIndex, 3);
+	}
+	
+	/**
+	 * Update system state without firing events.
+	 */
+	public void updateSystemState(int systemIndex, boolean enabled) {
+		int rowIndex = _systemIndexMap.getLocalIndex(systemIndex);
+		
+		if (rowIndex >= 0) {
+			updateValueAt(enabled, rowIndex, 0);
+		}
 	}
 
-	public void updateSystem(int index, int entitiesCount, int maxEntitiesCount) {
-		int localIndex = _systemIndexMap.getLocalIndex(index);
-		setValueAt(entitiesCount, localIndex, 2);
-		setValueAt(maxEntitiesCount, localIndex, 3);
+	public void updateSystem(int systemIndex, int entitiesCount, int maxEntitiesCount) {
+		int rowIndex = _systemIndexMap.getLocalIndex(systemIndex);
+		setValueAt(entitiesCount, rowIndex, 2);
+		setValueAt(maxEntitiesCount, rowIndex, 3);
 	}
 
 	@Override
-	public String getSystemName(int index) {
-		int localIndex = _systemIndexMap.getLocalIndex(index);
-		return super.getSystemName(localIndex);
+	public String getSystemName(int systemIndex) {
+		int rowIndex = _systemIndexMap.getLocalIndex(systemIndex);
+		return super.getSystemName(rowIndex);
 	}
 
 	@Override
-	public boolean getSystemState(int index) {
-		int localIndex = _systemIndexMap.getLocalIndex(index);
-		return super.getSystemState(index);
+	public boolean getSystemState(int systemIndex) {
+		int rowIndex = _systemIndexMap.getLocalIndex(systemIndex);
+		return super.getSystemState(rowIndex);
 	}	
 }

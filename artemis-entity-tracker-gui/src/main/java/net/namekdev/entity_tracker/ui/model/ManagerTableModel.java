@@ -1,24 +1,9 @@
 package net.namekdev.entity_tracker.ui.model;
 
-import javax.swing.table.DefaultTableModel;
-
-public class ManagerTableModel extends DefaultTableModel {
+public class ManagerTableModel extends BaseSystemTableModel {
 	public ManagerTableModel() {
-		addColumn("");
-		addColumn("manager");
-	}
-
-	@Override
-	public Class<?> getColumnClass(int columnIndex) {
-		switch (columnIndex) {
-			case 0: return Boolean.class;
-			case 1: return String.class;
-			default: return null;
-		}
-	}
-
-	public boolean isCellEditable(int row, int column) {
-		return column == 0;
+		super();
+		columnIdentifiers.set(1, "manager");
 	}
 
 	public void addManager(String name) {

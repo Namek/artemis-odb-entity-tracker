@@ -1,11 +1,42 @@
 package net.namekdev.entity_tracker.ui.model;
 
-import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
 
-public class BaseSystemTableModel extends DefaultTableModel {
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+
+import net.namekdev.entity_tracker.ui.listener.ChangingSystemEnabledStateListener;
+import net.namekdev.entity_tracker.ui.utils.ExtendedTableModel;
+
+public class BaseSystemTableModel extends ExtendedTableModel {
+	private final ArrayList<ChangingSystemEnabledStateListener> _listeners = new ArrayList<>();
+
+
 	public BaseSystemTableModel() {
 		addColumn("");
 		addColumn("system");
+
+		addTableModelListener(new TableModelListener() {
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				if (e.getColumn() != 0) {
+					return;
+				}
+				
+				int rowIndex = e.getFirstRow();
+				int systemIndex = getSystemIndex(rowIndex);
+				String systemName = getSystemName(systemIndex);
+				boolean enabled = getSystemState(systemIndex);
+
+				for (ChangingSystemEnabledStateListener l : _listeners) {
+					l.onChangingSystemEnabledState(BaseSystemTableModel.this, systemIndex, systemName, enabled);
+				}
+			}
+		});
+	}
+	
+	public void addChangingSystemEnabledStateListener(ChangingSystemEnabledStateListener listener) {
+		_listeners.add(listener);
 	}
 
 	@Override
@@ -20,21 +51,32 @@ public class BaseSystemTableModel extends DefaultTableModel {
 	public boolean isCellEditable(int row, int column) {
 		return column == 0;
 	}
+	
+	public int getSystemIndex(int rowIndex) {
+		return rowIndex;
+	}
 
-	public void setSystem(int index, String name) {
-		for (int i = getRowCount(); i <= index; ++i) {
+	public void setSystem(int systemIndex, String name) {
+		for (int i = getRowCount(); i <= systemIndex; ++i) {
 			addRow(new Object[] { true, "" });
 		}
 
-		setValueAt(name, index, 1);
+		setValueAt(name, systemIndex, 1);
+	}
+	
+	/**
+	 * Update system state without firing events.
+	 */
+	public void updateSystemState(int systemIndex, boolean enabled) {
+		updateValueAt(enabled, systemIndex, 0);
 	}
 
-	public String getSystemName(int index) {
-		return (String) getValueAt(index, 1);
+	public String getSystemName(int systemIndex) {
+		return (String) getValueAt(systemIndex, 1);
 	}
 
-	public boolean getSystemState(int index) {
-		return (boolean) getValueAt(index, 0);
+	public boolean getSystemState(int systemIndex) {
+		return (boolean) getValueAt(systemIndex, 0);
 	}
 
 	public void clear() {

@@ -252,6 +252,12 @@ public class EntityTracker extends Manager implements WorldController {
 		SystemInfo info = systemsInfoByName.get(name);
 		info.system.setEnabled(isOn);
 	}
+	
+	@Override
+	public void setManagerState(String name, boolean isOn) {
+		ManagerInfo info = managersInfoByName.get(name);
+		info.manager.setEnabled(isOn);
+	}
 
 	@Override
 	public void requestComponentState(int entityId, int componentIndex) {

@@ -29,6 +29,7 @@ public abstract class Communicator implements RawConnectionCommunicator {
 
 	// UI requests
 	protected static final byte TYPE_SET_SYSTEM_STATE = 90;
+	protected static final byte TYPE_SET_MANAGER_STATE = 94;
 	protected static final byte TYPE_REQUEST_COMPONENT_STATE = 103;
 	protected static final byte TYPE_SET_COMPONENT_FIELD_VALUE = 113;
 
