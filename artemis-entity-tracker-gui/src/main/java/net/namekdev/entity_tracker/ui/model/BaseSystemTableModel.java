@@ -2,12 +2,10 @@ package net.namekdev.entity_tracker.ui.model;
 
 import javax.swing.table.DefaultTableModel;
 
-public class SystemTableModel extends DefaultTableModel {
-	public SystemTableModel() {
+public class BaseSystemTableModel extends DefaultTableModel {
+	public BaseSystemTableModel() {
 		addColumn("");
 		addColumn("system");
-		addColumn("entities");
-		addColumn("max entities");
 	}
 
 	@Override
@@ -15,7 +13,7 @@ public class SystemTableModel extends DefaultTableModel {
 		switch (columnIndex) {
 			case 0: return Boolean.class;
 			case 1: return String.class;
-			default: return Integer.class;
+			default: return null;
 		}
 	}
 
@@ -23,17 +21,12 @@ public class SystemTableModel extends DefaultTableModel {
 		return column == 0;
 	}
 
-	public void setSystem(int index, String name, boolean hasAspect) {
+	public void setSystem(int index, String name) {
 		for (int i = getRowCount(); i <= index; ++i) {
-			addRow(new Object[] { true, "", hasAspect ? 0 : null });
+			addRow(new Object[] { true, "" });
 		}
 
 		setValueAt(name, index, 1);
-	}
-
-	public void updateSystem(int index, int entitiesCount, int maxEntitiesCount) {
-		setValueAt(entitiesCount, index, 2);
-		setValueAt(maxEntitiesCount, index, 3);
 	}
 
 	public String getSystemName(int index) {

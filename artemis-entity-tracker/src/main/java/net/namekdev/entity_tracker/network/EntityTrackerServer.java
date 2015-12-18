@@ -65,8 +65,6 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 			communicator.addedSystem(index, name, allTypes, oneTypes, notTypes);
 		}
 		_systems.add(Tuple3.create(index, name, new AspectInfo(allTypes, oneTypes, notTypes)));
-		_entitySystemsEntitiesCount.set(index, 0);
-		_entitySystemsMaxEntitiesCount.set(index, 0);
 	}
 
 	@Override

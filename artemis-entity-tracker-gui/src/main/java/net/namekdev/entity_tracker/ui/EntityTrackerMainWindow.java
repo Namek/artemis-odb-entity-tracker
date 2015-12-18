@@ -36,9 +36,10 @@ import javax.swing.table.TableColumnModel;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.ui.model.BaseSystemTableModel;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
-import net.namekdev.entity_tracker.ui.model.SystemTableModel;
+import net.namekdev.entity_tracker.ui.model.EntitySystemTableModel;
 import net.namekdev.entity_tracker.ui.partials.EntityDetailsPanel;
 import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
@@ -49,11 +50,12 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	private JTable entitiesTable;
 	private JScrollPane tableScrollPane, filtersScrollPane, detailsPanelContainer;
 	private EntityTableModel entitiesTableModel;
-	private SystemTableModel systemsTableModel;
+	private EntitySystemTableModel entitySystemsTableModel;
+	private BaseSystemTableModel baseSystemsTableModel;
 	private ManagerTableModel managersTableModel;
 	private JSplitPane mainSplitPane, tableFiltersSplitPane, systemsDetailsSplitPane;
 	private JPanel filtersPanel, systemsManagersPanel;
-	private JTable systemsTable, managersTable;
+	private JTable entitySystemsTable, baseSystemsTable, managersTable;
 	private JTabbedPane tabbedPane;
 	private EntityDetailsPanel entityDetailsPanel;
 
@@ -110,21 +112,32 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 
 		systemsManagersPanel = new JPanel();
 		systemsManagersPanel.setLayout(new CardLayout(0, 0));
-		systemsTableModel = new SystemTableModel();
+		entitySystemsTableModel = new EntitySystemTableModel();
+		baseSystemsTableModel = new BaseSystemTableModel();
 		managersTableModel = new ManagerTableModel();
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		systemsManagersPanel.add(tabbedPane, "name_959362872326203");
 
-		systemsTable = new AdjustableJTable();
-		systemsTable.setAutoCreateRowSorter(true);
-		systemsTable.setFillsViewportHeight(true);
-		systemsTable.setShowVerticalLines(false);
-		systemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		systemsTable.setModel(systemsTableModel);
-		JScrollPane systemsTableScrollPane = new JScrollPane();
-		systemsTableScrollPane.setViewportView(systemsTable);
-		tabbedPane.addTab("Systems", null, systemsTableScrollPane, null);
+		entitySystemsTable = new AdjustableJTable();
+		entitySystemsTable.setAutoCreateRowSorter(true);
+		entitySystemsTable.setFillsViewportHeight(true);
+		entitySystemsTable.setShowVerticalLines(false);
+		entitySystemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		entitySystemsTable.setModel(entitySystemsTableModel);
+		JScrollPane entitySystemsTableScrollPane = new JScrollPane();
+		entitySystemsTableScrollPane.setViewportView(entitySystemsTable);
+		tabbedPane.addTab("Entity Systems", null, entitySystemsTableScrollPane, null);
+		
+		baseSystemsTable = new AdjustableJTable();
+		baseSystemsTable.setAutoCreateRowSorter(true);
+		baseSystemsTable.setFillsViewportHeight(true);
+		baseSystemsTable.setShowVerticalLines(false);
+		baseSystemsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		baseSystemsTable.setModel(baseSystemsTableModel);
+		JScrollPane baseSystemsTableScrollPane = new JScrollPane();
+		baseSystemsTableScrollPane.setViewportView(baseSystemsTable);
+		tabbedPane.addTab("Base Systems", null, baseSystemsTableScrollPane, null);
 
 		managersTable = new JTable();
 		managersTable.setAutoCreateRowSorter(true);
@@ -155,7 +168,8 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		entitiesTable.addKeyListener(entityTableKeyListener);
 		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
-		systemsTableModel.addTableModelListener(systemsModelListener);
+		entitySystemsTableModel.addTableModelListener(entitySystemsModelListener);
+		baseSystemsTableModel.addTableModelListener(baseSystemsModelListener);
 	}
 
 	public void setVisible(boolean visible) {
@@ -197,7 +211,11 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				systemsTableModel.setSystem(index, name, hasAspect);
+				baseSystemsTableModel.setSystem(index, name);
+
+				if (hasAspect) {
+					entitySystemsTableModel.setSystem(index, name);
+				}
 			}
 		});
 	}
@@ -229,7 +247,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	public void updatedEntitySystem(final int systemIndex, final int entitiesCount, final int maxEntitiesCount) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				systemsTableModel.updateSystem(systemIndex, entitiesCount, maxEntitiesCount);
+				entitySystemsTableModel.updateSystem(systemIndex, entitiesCount, maxEntitiesCount);
 			}
 		});
 	}
@@ -260,7 +278,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	@Override
 	public void disconnected() {
 		entitiesTableModel.clear();
-		systemsTableModel.clear();
+		entitySystemsTableModel.clear();
 		managersTableModel.clear();
 		detailsPanelContainer.setViewportView(null);
 	}
@@ -335,7 +353,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		}
 	};
 
-	private TableModelListener systemsModelListener = new TableModelListener() {
+	private TableModelListener entitySystemsModelListener = new TableModelListener() {
 		@Override
 		public void tableChanged(TableModelEvent e) {
 			if (e.getColumn() != 0) {
@@ -343,8 +361,23 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 			}
 
 			int rowIndex = e.getFirstRow();
-			String systemName = systemsTableModel.getSystemName(rowIndex);
-			boolean desiredSystemState = systemsTableModel.getSystemState(rowIndex);
+			String systemName = entitySystemsTableModel.getSystemName(rowIndex);
+			boolean desiredSystemState = entitySystemsTableModel.getSystemState(rowIndex);
+
+			context.worldController.setSystemState(systemName, desiredSystemState);
+		}
+	};
+	
+	private TableModelListener baseSystemsModelListener = new TableModelListener() {
+		@Override
+		public void tableChanged(TableModelEvent e) {
+			if (e.getColumn() != 0) {
+				return;
+			}
+
+			int rowIndex = e.getFirstRow();
+			String systemName = baseSystemsTableModel.getSystemName(rowIndex);
+			boolean desiredSystemState = baseSystemsTableModel.getSystemState(rowIndex);
 
 			context.worldController.setSystemState(systemName, desiredSystemState);
 		}

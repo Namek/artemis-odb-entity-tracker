@@ -9,7 +9,7 @@ public class IndexBiMap extends Array<Integer> {
 		super(capacity);
 	}
 
-	public int getLocalIndex(int typeIndex) {
+	public int getLocalIndex(int globalIndex) {
 		for (int i = 0, n = _array.size(); i < n; ++i) {
 			Integer val = _array.get(i);
 
@@ -17,7 +17,7 @@ public class IndexBiMap extends Array<Integer> {
 				break;
 			}
 
-			if (val == typeIndex) {
+			if (val == globalIndex) {
 				return i;
 			}
 		}
