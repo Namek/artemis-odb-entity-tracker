@@ -114,7 +114,7 @@ public class EntityTracker extends Manager implements WorldController {
 				aspectInfo.exclusionTypes = aspect.getExclusionSet();
 			}
 
-			SystemInfo info = new SystemInfo(i, systemName, system, aspect, aspectInfo, actives, subscription);
+			SystemInfo info = new SystemInfo(index, systemName, system, aspect, aspectInfo, actives, subscription);
 			systemsInfo.add(info);
 			systemsInfoByName.put(systemName, info);
 
