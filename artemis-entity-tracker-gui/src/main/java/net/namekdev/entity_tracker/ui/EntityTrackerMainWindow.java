@@ -122,7 +122,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		JScrollPane entitySystemsTableScrollPane = new JScrollPane();
 		entitySystemsTableScrollPane.setViewportView(entitySystemsTable);
 		tabbedPane.addTab("Entity Systems", null, entitySystemsTableScrollPane, null);
-		
+
 		baseSystemsTable = new AdjustableJTable();
 		baseSystemsTable.setAutoCreateRowSorter(true);
 		baseSystemsTable.setFillsViewportHeight(true);
@@ -162,12 +162,12 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		entitiesTable.addKeyListener(entityTableKeyListener);
 		entityDetailsPanel = new EntityDetailsPanel(context, entitiesTableModel);
 
-		
-		
+
+
 		entitySystemsTableModel.addChangingSystemEnabledStateListener(systemEnableChangingListener);
 		baseSystemsTableModel.addChangingSystemEnabledStateListener(systemEnableChangingListener);
-		
-		managersTableModel.addChangingSystemEnabledStateListener(new ChangingSystemEnabledStateListener() {	
+
+		managersTableModel.addChangingSystemEnabledStateListener(new ChangingSystemEnabledStateListener() {
 			@Override
 			public void onChangingSystemEnabledState(BaseSystemTableModel model, int systemIndex, String managerName, boolean enabled) {
 				context.worldController.setManagerState(managerName, enabled);
@@ -183,20 +183,24 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		return frame.isVisible();
 	}
 
-	private void selectEntity(int row, int col) {
-		if (row >= 0) {
-			int entityId = (int) entitiesTableModel.getValueAt(row, 0);
-			int componentIndex = col-1;
-
-			BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
-
-			if (componentIndex >= 0 && !entityComponents.get(componentIndex)) {
-				componentIndex = -1;
-			}
-
-			showEntityDetails(entityId, componentIndex);
-			_lastSelectedCol = col;
+	private void selectEntity(int viewRow, int viewCol) {
+		if (viewRow < 0) {
+			return;
 		}
+		int modelRow = entitiesTable.convertRowIndexToModel(viewRow);
+		int modelCol = entitiesTable.convertColumnIndexToModel(viewCol);
+
+		int entityId = (int) entitiesTableModel.getValueAt(modelRow, 0);
+		int componentIndex = modelCol-1;
+
+		BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
+
+		if (componentIndex >= 0 && !entityComponents.get(componentIndex)) {
+			componentIndex = -1;
+		}
+
+		showEntityDetails(entityId, componentIndex);
+		_lastSelectedCol = modelCol;
 	}
 
 	public void injectWorldController(WorldController worldController) {
@@ -355,13 +359,13 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		public void keyReleased(KeyEvent e) {
 		}
 	};
-	
+
 	private ChangingSystemEnabledStateListener systemEnableChangingListener = new ChangingSystemEnabledStateListener() {
 		@Override
 		public void onChangingSystemEnabledState(BaseSystemTableModel model, int systemIndex, String systemName, boolean enabled) {
 			entitySystemsTableModel.updateSystemState(systemIndex, enabled);
 			baseSystemsTableModel.updateSystemState(systemIndex, enabled);
-			
+
 			context.worldController.setSystemState(systemName, enabled);
 		}
 	};
