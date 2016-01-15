@@ -21,6 +21,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -31,6 +32,7 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.ui.listener.ChangingSystemEnabledStateListener;
 import net.namekdev.entity_tracker.ui.model.BaseSystemTableModel;
+import net.namekdev.entity_tracker.ui.model.ComponentColumnModel;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
 import net.namekdev.entity_tracker.ui.model.EntitySystemTableModel;
@@ -91,6 +93,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		entitiesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		JTableHeader tableHeader = entitiesTable.getTableHeader();
 		tableHeader.setDefaultRenderer(new VerticalTableHeaderCellRenderer());
+		entitiesTable.setColumnModel(new ComponentColumnModel());
 		entitiesTableModel = new EntityTableModel();
 		entitiesTable.setModel(entitiesTableModel);
 		entitiesTable.getColumnModel().getColumn(0).setMaxWidth(10);
@@ -242,6 +245,8 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 			public void run() {
 				TableColumnModel columns = entitiesTable.getColumnModel();
 				TableColumn col = new TableColumn(columns.getColumnCount());
+				col.setHeaderValue(info.name);
+				col.setModelIndex(info.index);
 				columns.addColumn(col);
 
 				entitiesTableModel.setComponentType(index, info);
