@@ -21,8 +21,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.table.DefaultTableColumnModel;
-import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
@@ -32,11 +30,11 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.ui.listener.ChangingSystemEnabledStateListener;
 import net.namekdev.entity_tracker.ui.model.BaseSystemTableModel;
-import net.namekdev.entity_tracker.ui.model.ComponentColumnModel;
+import net.namekdev.entity_tracker.ui.model.EntitySystemTableModel;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.model.ManagerTableModel;
-import net.namekdev.entity_tracker.ui.model.EntitySystemTableModel;
 import net.namekdev.entity_tracker.ui.partials.EntityDetailsPanel;
+import net.namekdev.entity_tracker.ui.partials.EntityTable;
 import net.namekdev.entity_tracker.ui.utils.AdjustableJTable;
 import net.namekdev.entity_tracker.ui.utils.VerticalTableHeaderCellRenderer;
 
@@ -85,22 +83,12 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		frame.setBounds(100, 100, 959, 823);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
 
-
-		entitiesTable = new JTable();
-		entitiesTable.setAutoCreateRowSorter(true);
-		entitiesTable.setShowVerticalLines(false);
-		entitiesTable.setFillsViewportHeight(true);
-		entitiesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		JTableHeader tableHeader = entitiesTable.getTableHeader();
-		tableHeader.setDefaultRenderer(new VerticalTableHeaderCellRenderer());
-		entitiesTable.setColumnModel(new ComponentColumnModel());
 		entitiesTableModel = new EntityTableModel();
-		entitiesTable.setModel(entitiesTableModel);
-		entitiesTable.getColumnModel().getColumn(0).setMaxWidth(10);
-
+		entitiesTable = new EntityTable(entitiesTableModel);
 
 		tableScrollPane = new JScrollPane();
 		tableScrollPane.setViewportView(entitiesTable);
+
 
 		filtersPanel = new JPanel();
 //		filtersPanel.add(new JLabel("TODO filters here"));

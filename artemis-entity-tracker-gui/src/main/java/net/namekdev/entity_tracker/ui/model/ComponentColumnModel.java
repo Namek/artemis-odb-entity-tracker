@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.ui.model;
 
+import javax.swing.event.TableColumnModelEvent;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableColumn;
 
@@ -7,8 +8,11 @@ public class ComponentColumnModel extends DefaultTableColumnModel {
 	public static final int ORDER_ASC = 1;
 	public static final int ORDER_DESC = 2;
 	public static final int ORDER_MODEL = 3;
+	protected static final int ORDER_FIRST = ORDER_ASC;
+	protected static final int ORDER_LAST = ORDER_MODEL;
 
 	protected int currentOrder = ORDER_ASC;
+	protected boolean wasOrderManuallyChanged = false;
 
 
 	public ComponentColumnModel() {
@@ -33,6 +37,16 @@ public class ComponentColumnModel extends DefaultTableColumnModel {
 		return this.currentOrder;
 	}
 
+	public String getCurrentOrderName() {
+		int o = getCurrentOrder();
+		switch (o) {
+			case ORDER_ASC: return "ASC";
+			case ORDER_DESC: return "DESC";
+			case ORDER_MODEL: return "MODEL";
+		}
+
+		return null;
+	}
 
 	/**
 	 * Adds column as always and runs column sorting for it.
@@ -43,6 +57,26 @@ public class ComponentColumnModel extends DefaultTableColumnModel {
 		sortColumns();
 	}
 
+	public void toggleOrdering() {
+		if (!wasOrderManuallyChanged) {
+			int order = getCurrentOrder()+1;
+			if (order > ORDER_LAST) {
+				order = ORDER_FIRST;
+			}
+			setCurrentOrder(order);
+		}
+
+		sortColumns();
+	}
+
+	@Override
+	protected void fireColumnMoved(TableColumnModelEvent evt) {
+		if (evt.getFromIndex() != evt.getToIndex()) {
+			wasOrderManuallyChanged = true;
+		}
+
+		super.fireColumnMoved(evt);
+	}
 
 	private void sortColumns() {
 		final int n = getColumnCount();
@@ -77,6 +111,8 @@ public class ComponentColumnModel extends DefaultTableColumnModel {
 				switchColumns(mostLeftColIndex, i);
 			}
 		}
+
+		wasOrderManuallyChanged = false;
 	}
 
 	protected void switchColumns(int index1, int index2) {
@@ -86,7 +122,7 @@ public class ComponentColumnModel extends DefaultTableColumnModel {
 		tableColumns.set(index1, col2);
 		tableColumns.set(index2, col1);
 
-//		fireColumnMoved(new TableColumnModelEvent(this, columnIndex,
-//                newIndex));
+		TableColumnModelEvent evt = new TableColumnModelEvent(this, index1, index2);
+		super.fireColumnMoved(evt);
 	}
 }
