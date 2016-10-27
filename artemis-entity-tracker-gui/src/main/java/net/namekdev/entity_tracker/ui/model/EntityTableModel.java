@@ -1,17 +1,17 @@
 package net.namekdev.entity_tracker.ui.model;
 
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.table.DefaultTableModel;
 
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.utils.Array;
 
 public class EntityTableModel extends DefaultTableModel {
-	private Map<Integer, BitSet> _entityComponents = new HashMap<Integer, BitSet>();
+	private Map<Integer, BitVector> _entityComponents = new HashMap<>();
 	private Array<ComponentTypeInfo> _componentTypes = new Array<ComponentTypeInfo>(50);
 
 
@@ -30,13 +30,13 @@ public class EntityTableModel extends DefaultTableModel {
 		fireTableStructureChanged();
 	}
 
-	public void addEntity(int entityId, BitSet components) {
+	public void addEntity(int entityId, BitVector components) {
 		// TODO check if bitset isn't greater than before model header columns
 
 		Vector<Object> row = new Vector<Object>(components.length() + 1);
 		row.add(entityId);
 
-		for (int i = 0, n = components.size(); i < n; ++i) {
+		for (int i = 0, n = components.length(); i < n; ++i) {
 			row.add(components.get(i));
 		}
 
@@ -56,7 +56,7 @@ public class EntityTableModel extends DefaultTableModel {
 		_entityComponents.remove(entityId);
 	}
 
-	public BitSet getEntityComponents(int entityId) {
+	public BitVector getEntityComponents(int entityId) {
 		return _entityComponents.get(entityId);
 	}
 

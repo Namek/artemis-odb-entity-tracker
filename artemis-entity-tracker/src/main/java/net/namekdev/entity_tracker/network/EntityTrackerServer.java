@@ -1,11 +1,12 @@
 package net.namekdev.entity_tracker.network;
 
 import java.net.SocketAddress;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.artemis.utils.Bag;
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.AspectInfo;
@@ -16,8 +17,6 @@ import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener;
 import net.namekdev.entity_tracker.network.base.Server;
 import net.namekdev.entity_tracker.network.communicator.EntityTrackerCommunicator;
 import net.namekdev.entity_tracker.utils.tuple.Tuple3;
-
-import com.artemis.utils.Bag;
 
 /**
  * Server listening to new clients, useful to pass into Entity Tracker itself.
@@ -32,7 +31,7 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 	private Bag<String> _managers = new Bag<String>();
 	private Bag<Tuple3<Integer, String, AspectInfo>> _systems = new Bag<Tuple3<Integer, String, AspectInfo>>();
 	private Bag<ComponentTypeInfo> _componentTypes = new Bag<ComponentTypeInfo>();
-	private Map<Integer, BitSet> _entities = new HashMap<Integer,BitSet>();
+	private Map<Integer, BitVector> _entities = new HashMap<>();
 	private Bag<Integer> _entitySystemsEntitiesCount = new Bag<Integer>();
 	private Bag<Integer> _entitySystemsMaxEntitiesCount = new Bag<Integer>();
 
@@ -59,7 +58,7 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+	public void addedSystem(int index, String name, BitVector allTypes, BitVector oneTypes, BitVector notTypes) {
 		for (int i = 0, n = _listeners.size(); i < n; ++i) {
 			EntityTrackerCommunicator communicator = _listeners.get(i);
 			communicator.addedSystem(index, name, allTypes, oneTypes, notTypes);
@@ -96,7 +95,7 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedEntity(int entityId, BitSet components) {
+	public void addedEntity(int entityId, BitVector components) {
 		for (int i = 0, n = _listeners.size(); i < n; ++i) {
 			EntityTrackerCommunicator communicator = _listeners.get(i);
 			communicator.addedEntity(entityId, components);
@@ -155,7 +154,7 @@ public class EntityTrackerServer extends Server implements WorldUpdateListener {
 						}
 					}
 
-					for (Entry<Integer, BitSet> entity : _entities.entrySet()) {
+					for (Entry<Integer, BitVector> entity : _entities.entrySet()) {
 						addedEntity(entity.getKey(), entity.getValue());
 					}
 				}

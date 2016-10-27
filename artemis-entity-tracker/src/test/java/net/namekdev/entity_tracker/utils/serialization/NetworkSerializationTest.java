@@ -1,13 +1,11 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.BitSet;
-
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class NetworkSerializationTest {
 	NetworkSerializer serializer;
@@ -49,47 +47,48 @@ public class NetworkSerializationTest {
 	}
 
 	@Test
-	public void testBitsets() {
-		BitSet bitset1 = new BitSet();
-		bitset1.set(0);
-		bitset1.set(2);
-		bitset1.set(5);
-		bitset1.set(31);
-		bitset1.set(32);
-		bitset1.set(63);
-		bitset1.set(64);
-		bitset1.set(80);
+	public void testBitVector() {
+		BitVector bitVector1 = new BitVector();
+		bitVector1.set(0);
+		bitVector1.set(2);
+		bitVector1.set(5);
+		bitVector1.set(31);
+		bitVector1.set(32);
+		bitVector1.set(63);
+		bitVector1.set(64);
+		bitVector1.set(80);
 
-		BitSet bitset2 = new BitSet();
-		bitset2.set(1);
-		bitset2.set(4);
-		bitset2.set(74);
+		BitVector bitVector2 = new BitVector();
+		bitVector2.set(1);
+		bitVector2.set(4);
+		bitVector2.set(74);
 
-		BitSet bitset3 = new BitSet(20);
+		BitVector bitVector3 = new BitVector(20);
 		for (int index : new int[] { 2, 3, 4, 5, 6, 7, 10, 11, 14, 15, 16, 18, 19 }) {
-			bitset3.set(index);
+			bitVector3.set(index);
 		}
 
-		BitSet bitset4 = new BitSet();
-		bitset4.set(0);
-		bitset4.set(7);
-		bitset4.set(10);
+		BitVector bitVector4 = new BitVector();
+		bitVector4.set(0);
+		bitVector4.set(7);
+		bitVector4.set(10);
 
 		serializer.reset();
-		serializer.addBitSet(bitset1);
-		serializer.addBitSet(bitset2);
-		serializer.addBitSet(bitset1);
-		serializer.addBitSet(bitset3);
-		serializer.addBitSet(bitset4);
+		serializer.addBitVector(bitVector1);
+		serializer.addBitVector(bitVector2);
+		serializer.addBitVector(bitVector1);
+		serializer.addBitVector(bitVector3);
+		serializer.addBitVector(bitVector4);
 		SerializeResult result = serializer.getResult();
 
 		deserializer.setSource(result.buffer, 0, result.size);
-		assertEquals(bitset1, deserializer.readBitSet());
-		assertEquals(bitset2, deserializer.readBitSet());
-		assertEquals(bitset1, deserializer.readBitSet());
-		assertEquals(bitset3, deserializer.readBitSet());
-		assertEquals(bitset4, deserializer.readBitSet());
+		assertEquals(bitVector1, deserializer.readBitVector());
+		assertEquals(bitVector2, deserializer.readBitVector());
+		assertEquals(bitVector1, deserializer.readBitVector());
+		assertEquals(bitVector3, deserializer.readBitVector());
+		assertEquals(bitVector4, deserializer.readBitVector());
 
 		assertEquals(result.size, deserializer.getConsumedBytesCount());
 	}
+
 }

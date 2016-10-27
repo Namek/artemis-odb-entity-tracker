@@ -21,7 +21,6 @@ public class Server implements Runnable {
 	protected final Bag<Client> clients = new Bag<Client>();
 
 	protected RawConnectionCommunicatorProvider clientListenerProvider;
-	protected int listeningBitset;
 
 
 	public Server(RawConnectionCommunicatorProvider clientListenerProvider) {

@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import java.util.BitSet;
+import com.artemis.utils.BitVector;
 
 public abstract class NetworkSerialization {
 	public final static byte TYPE_UNKNOWN = 1;
@@ -15,7 +15,7 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
 	public final static byte TYPE_FLOAT = 16;
 	public final static byte TYPE_DOUBLE = 17;
-	public final static byte TYPE_BITSET = 20;//takes minimum 4 bytes
+	public final static byte Type_BITVECTOR = 20;//takes minimum 4 bytes
 
 
 	public static NetworkSerializer createSerializer() {
@@ -57,8 +57,8 @@ public abstract class NetworkSerialization {
 		else if (type.equals(float.class)) {
 			netType = TYPE_DOUBLE;
 		}
-		else if (type.equals(BitSet.class)) {
-			netType = TYPE_BITSET;
+		else if (type.equals(BitVector.class)) {
+			netType = Type_BITVECTOR;
 		}
 
 		return netType;
@@ -74,7 +74,7 @@ public abstract class NetworkSerialization {
 			case TYPE_BOOLEAN: return Boolean.valueOf(value);
 			case TYPE_FLOAT: return Float.valueOf(value);
 			case TYPE_DOUBLE: return Double.valueOf(value);
-			case TYPE_BITSET: return new BitSet(Integer.valueOf(value));
+			case Type_BITVECTOR: return new BitVector(Integer.valueOf(value));
 			case TYPE_ARRAY: throw new UnsupportedOperationException("arrays are not supported (yet?)");
 			default: return null;
 		}
