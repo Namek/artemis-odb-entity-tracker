@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import java.util.BitSet;
+import com.artemis.utils.BitVector;
 
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
@@ -99,15 +99,15 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return Double.longBitsToDouble(readRawLong());
 	}
 
-	public BitSet readBitSet() {
+	public BitVector readBitVector() {
 		if (checkNull()) {
 			return null;
 		}
 
-		checkType(TYPE_BITSET);
+		checkType(Type_BITVECTOR);
 
 		final short allBitsCount = readRawShort();
-		final BitSet bitset = new BitSet(allBitsCount);
+		final BitVector bitVector = new BitVector(allBitsCount);
 
 		int i = 0;
 		while (i < allBitsCount) {
@@ -118,13 +118,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 			for (int j = 0; j < nBits; ++j, ++i) {
 				if ((value & 1) == 1) {
-					bitset.set(i);
+					bitVector.set(i);
 				}
 				value >>= 1;
 			}
 		}
 
-		return bitset;
+		return bitVector;
 	}
 
 	public byte readRawByte() {
@@ -174,8 +174,8 @@ public class NetworkDeserializer extends NetworkSerialization {
 		else if (type == TYPE_DOUBLE) {
 			return readDouble();
 		}
-		else if (type == TYPE_BITSET) {
-			return readBitSet();
+		else if (type == Type_BITVECTOR) {
+			return readBitVector();
 		}
 		else if (allowUnknown) {
 			_sourcePos++;

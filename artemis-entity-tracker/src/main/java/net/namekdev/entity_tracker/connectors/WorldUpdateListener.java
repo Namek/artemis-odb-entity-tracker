@@ -1,7 +1,6 @@
 package net.namekdev.entity_tracker.connectors;
 
-import java.util.BitSet;
-
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 
 /**
@@ -19,7 +18,7 @@ public interface WorldUpdateListener {
 
 	int getListeningBitset();
 
-	void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes);
+	void addedSystem(int index, String name, BitVector allTypes, BitVector oneTypes, BitVector notTypes);
 
 	void addedManager(String name);
 
@@ -27,7 +26,7 @@ public interface WorldUpdateListener {
 
 	void updatedEntitySystem(int index, int entitiesCount, int maxEntitiesCount);
 
-	void addedEntity(int entityId, BitSet components);
+	void addedEntity(int entityId, BitVector components);
 
 //	void changed(Entity e);
 

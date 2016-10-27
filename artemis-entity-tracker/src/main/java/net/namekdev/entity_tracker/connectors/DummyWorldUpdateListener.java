@@ -1,7 +1,6 @@
 package net.namekdev.entity_tracker.connectors;
 
-import java.util.BitSet;
-
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 
 public class DummyWorldUpdateListener implements WorldUpdateListener {
@@ -15,8 +14,7 @@ public class DummyWorldUpdateListener implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
-	}
+	public void addedSystem(int index, String name, BitVector allTypes, BitVector oneTypes, BitVector notTypes) {}
 
 	@Override
 	public void addedManager(String name) {
@@ -31,8 +29,7 @@ public class DummyWorldUpdateListener implements WorldUpdateListener {
 	}
 
 	@Override
-	public void addedEntity(int entityId, BitSet components) {
-	}
+	public void addedEntity(int entityId, BitVector components) {}
 
 	@Override
 	public void deletedEntity(int entityId) {

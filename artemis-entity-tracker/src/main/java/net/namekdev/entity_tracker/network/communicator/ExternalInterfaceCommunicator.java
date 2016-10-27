@@ -1,8 +1,8 @@
 package net.namekdev.entity_tracker.network.communicator;
 
 import java.net.SocketAddress;
-import java.util.BitSet;
 
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
@@ -45,9 +45,9 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			case TYPE_ADDED_ENTITY_SYSTEM: {
 				int index = _deserializer.readInt();
 				String name = _deserializer.readString();
-				BitSet allTypes = _deserializer.readBitSet();
-				BitSet oneTypes = _deserializer.readBitSet();
-				BitSet notTypes = _deserializer.readBitSet();
+				BitVector allTypes = _deserializer.readBitVector();
+				BitVector oneTypes = _deserializer.readBitVector();
+				BitVector notTypes = _deserializer.readBitVector();
 				_listener.addedSystem(index, name, allTypes, oneTypes, notTypes);
 				break;
 			}
@@ -88,7 +88,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			}
 			case TYPE_ADDED_ENTITY: {
 				int entityId = _deserializer.readInt();
-				BitSet components = _deserializer.readBitSet();
+				BitVector components = _deserializer.readBitVector();
 				_listener.addedEntity(entityId, components);
 				break;
 			}

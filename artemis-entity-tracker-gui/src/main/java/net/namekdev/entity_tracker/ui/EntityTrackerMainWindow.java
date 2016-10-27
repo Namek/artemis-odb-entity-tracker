@@ -6,7 +6,6 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.BitSet;
 import java.util.Enumeration;
 
 import javax.swing.BoxLayout;
@@ -25,6 +24,7 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
@@ -184,7 +184,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 		int entityId = (int) entitiesTableModel.getValueAt(modelRow, 0);
 		int componentIndex = modelCol-1;
 
-		BitSet entityComponents = entitiesTableModel.getEntityComponents(entityId);
+		BitVector entityComponents = entitiesTableModel.getEntityComponents(entityId);
 
 		if (componentIndex >= 0 && !entityComponents.get(componentIndex)) {
 			componentIndex = -1;
@@ -204,7 +204,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	}
 
 	@Override
-	public void addedSystem(final int index, final String name, final BitSet allTypes, final BitSet oneTypes, final BitSet notTypes) {
+	public void addedSystem(final int index, final String name, final BitVector allTypes, final BitVector oneTypes, final BitVector notTypes) {
 		final boolean hasAspect = allTypes != null || oneTypes != null || notTypes != null;
 
 		SwingUtilities.invokeLater(new Runnable() {
@@ -253,7 +253,7 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 	}
 
 	@Override
-	public void addedEntity(final int entityId, final BitSet components) {
+	public void addedEntity(final int entityId, final BitVector components) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				entitiesTableModel.addEntity(entityId, components);

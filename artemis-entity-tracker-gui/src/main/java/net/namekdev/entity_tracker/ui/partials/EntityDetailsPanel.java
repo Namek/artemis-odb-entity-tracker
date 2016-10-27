@@ -3,7 +3,6 @@ package net.namekdev.entity_tracker.ui.partials;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.util.BitSet;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -14,12 +13,11 @@ import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionListener;
 
-import net.namekdev.entity_tracker.connectors.WorldController;
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
 import net.namekdev.entity_tracker.ui.Context;
 import net.namekdev.entity_tracker.ui.model.EntityTableModel;
 import net.namekdev.entity_tracker.ui.utils.SelectionListener;
-import net.namekdev.entity_tracker.utils.Array;
 import net.namekdev.entity_tracker.utils.IndexBiMap;
 
 public class EntityDetailsPanel extends JPanel {
@@ -91,7 +89,7 @@ public class EntityDetailsPanel extends JPanel {
 		}
 
 		if (entityId != _currentEntityId) {
-			BitSet entityComponents = _entityTableModel.getEntityComponents(entityId);
+			BitVector entityComponents = _entityTableModel.getEntityComponents(entityId);
 
 			_entityTitledBorder.setTitle("Entity #" + entityId);
 

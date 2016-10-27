@@ -1,17 +1,17 @@
 package net.namekdev.entity_tracker.model;
 
-import java.util.BitSet;
+import com.artemis.utils.BitVector;
 
 public class AspectInfo {
-	public BitSet allTypes;
-	public BitSet oneTypes;
-	public BitSet exclusionTypes;
+	public BitVector allTypes;
+	public BitVector oneTypes;
+	public BitVector exclusionTypes;
 
 
 	public AspectInfo() {
 	}
 
-	public AspectInfo(BitSet allTypes, BitSet oneTypes, BitSet exclusionTypes) {
+	public AspectInfo(BitVector allTypes, BitVector oneTypes, BitVector exclusionTypes) {
 		this.allTypes = allTypes;
 		this.oneTypes = oneTypes;
 		this.exclusionTypes = exclusionTypes;

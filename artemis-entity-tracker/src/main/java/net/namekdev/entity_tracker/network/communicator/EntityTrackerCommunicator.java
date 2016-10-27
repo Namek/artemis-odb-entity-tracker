@@ -1,7 +1,6 @@
 package net.namekdev.entity_tracker.network.communicator;
 
-import java.util.BitSet;
-
+import com.artemis.utils.BitVector;
 import net.namekdev.entity_tracker.connectors.WorldController;
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
 import net.namekdev.entity_tracker.model.ComponentTypeInfo;
@@ -64,14 +63,14 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 	}
 
 	@Override
-	public void addedSystem(int index, String name, BitSet allTypes, BitSet oneTypes, BitSet notTypes) {
+	public void addedSystem(int index, String name, BitVector allTypes, BitVector oneTypes, BitVector notTypes) {
 		send(
 			beginPacket(TYPE_ADDED_ENTITY_SYSTEM)
 			.addInt(index)
 			.addString(name)
-			.addBitSet(allTypes)
-			.addBitSet(oneTypes)
-			.addBitSet(notTypes)
+			.addBitVector(allTypes)
+			.addBitVector(oneTypes)
+			.addBitVector(notTypes)
 		);
 	}
 
@@ -115,11 +114,11 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 	}
 
 	@Override
-	public void addedEntity(int entityId, BitSet components) {
+	public void addedEntity(int entityId, BitVector components) {
 		send(
 			beginPacket(TYPE_ADDED_ENTITY)
 			.addInt(entityId)
-			.addBitSet(components)
+			.addBitVector(components)
 		);
 	}
 

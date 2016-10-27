@@ -1,22 +1,10 @@
 package net.namekdev.entity_tracker;
 
-import java.util.BitSet;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.namekdev.entity_tracker.connectors.WorldController;
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
-import net.namekdev.entity_tracker.model.AspectInfo;
-import net.namekdev.entity_tracker.model.ComponentTypeInfo;
-import net.namekdev.entity_tracker.model.FieldInfo;
-import net.namekdev.entity_tracker.model.SystemInfo;
-import net.namekdev.entity_tracker.model.ManagerInfo;
-import net.namekdev.entity_tracker.utils.ArrayPool;
-import net.namekdev.entity_tracker.utils.ReflectionUtils;
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
-
 import com.artemis.Aspect;
+import com.artemis.BaseComponentMapper;
 import com.artemis.BaseEntitySystem;
 import com.artemis.BaseSystem;
 import com.artemis.Component;
@@ -29,12 +17,23 @@ import com.artemis.EntitySubscription;
 import com.artemis.EntitySubscription.SubscriptionListener;
 import com.artemis.Manager;
 import com.artemis.utils.Bag;
+import com.artemis.utils.BitVector;
 import com.artemis.utils.ImmutableBag;
 import com.artemis.utils.IntBag;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Field;
 import com.artemis.utils.reflect.Method;
 import com.artemis.utils.reflect.ReflectionException;
+import net.namekdev.entity_tracker.connectors.WorldController;
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener;
+import net.namekdev.entity_tracker.model.AspectInfo;
+import net.namekdev.entity_tracker.model.ComponentTypeInfo;
+import net.namekdev.entity_tracker.model.FieldInfo;
+import net.namekdev.entity_tracker.model.ManagerInfo;
+import net.namekdev.entity_tracker.model.SystemInfo;
+import net.namekdev.entity_tracker.utils.ArrayPool;
+import net.namekdev.entity_tracker.utils.ReflectionUtils;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization;
 
 /**
  * @author Namek
@@ -50,7 +49,7 @@ public class EntityTracker extends Manager implements WorldController {
 	public final Map<String, ManagerInfo> managersInfoByName = new HashMap<String, ManagerInfo>();
 	public final Map<Class<Component>, ComponentTypeInfo> allComponentTypesInfoByClass = new HashMap<Class<Component>, ComponentTypeInfo>();
 	public final Bag<ComponentTypeInfo> allComponentTypesInfo = new Bag<ComponentTypeInfo>();
-	public final Bag<ComponentMapper<? extends Component>> allComponentMappers = new Bag<ComponentMapper<? extends Component>>();
+	public final Bag<BaseComponentMapper<Component>> allComponentMappers = new Bag<>();
 
 
 	protected Method entity_getComponentBits;
@@ -96,7 +95,7 @@ public class EntityTracker extends Manager implements WorldController {
 			Class<? extends BaseSystem> systemType = system.getClass();
 			String systemName = systemType.getSimpleName();
 			Aspect aspect = null;
-			BitSet actives = null;
+			BitVector actives = null;
 			EntitySubscription subscription = null;
 
 			if (system instanceof BaseEntitySystem) {
@@ -171,36 +170,25 @@ public class EntityTracker extends Manager implements WorldController {
 		});
 	}
 
-	private BitSet componentsToAspectBitset(Collection<Class<? extends Component>> componentTypes) {
-		BitSet bitset = new BitSet(allComponentTypes.size());
-
-		for (Class<? extends Component> componentType : componentTypes) {
-			int index = typeFactory.getIndexFor(componentType);
-			bitset.set(index);
-		}
-
-		return bitset;
-	}
-
 	@Override
 	public void added(Entity e) {
 		if (updateListener == null || (updateListener.getListeningBitset() & WorldUpdateListener.ENTITY_ADDED) == 0) {
 			return;
 		}
 
-		BitSet componentBitset = null;
+		BitVector componentBitVector = null;
 		try {
-			componentBitset = (BitSet) entity_getComponentBits.invoke(e);
+			componentBitVector = (BitVector) entity_getComponentBits.invoke(e);
 		}
 		catch (ReflectionException exc) {
 			throw new RuntimeException(exc);
 		}
 
-		if (componentBitset.size() > _notifiedComponentTypesCount) {
+		if (componentBitVector.length() > _notifiedComponentTypesCount) {
 			inspectNewComponentTypesAndNotify();
 		}
 
-		updateListener.addedEntity(e.getId(), (BitSet) componentBitset.clone());
+		updateListener.addedEntity(e.getId(), new BitVector(componentBitVector));
 	}
 
 	@Override
@@ -262,7 +250,7 @@ public class EntityTracker extends Manager implements WorldController {
 	@Override
 	public void requestComponentState(int entityId, int componentIndex) {
 		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
-		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
+		final BaseComponentMapper<Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
 
@@ -288,7 +276,7 @@ public class EntityTracker extends Manager implements WorldController {
 	@Override
 	public void setComponentFieldValue(int entityId, int componentIndex, int fieldIndex, Object value) {
 		final ComponentTypeInfo info = allComponentTypesInfo.get(componentIndex);
-		final ComponentMapper<? extends Component> mapper = allComponentMappers.get(componentIndex);
+		final BaseComponentMapper<Component> mapper = allComponentMappers.get(componentIndex);
 
 		Object component = mapper.get(entityId);
 		FieldInfo fieldInfo = info.fields.get(fieldIndex);
