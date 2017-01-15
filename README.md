@@ -7,6 +7,8 @@ Server and Client that provides online tracking of [artemis-odb](https://github.
 
 ## Installation
 
+**Note**: Due to https://github.com/Namek/artemis-odb-entity-tracker/issues/7 about artemis-odb 2.x support, the latest version of Entity Tracker is `0.4.0-SNAPSHOT`. If you need this please apply the version to the following configuration.
+
 ### Maven
 
 ```xml
