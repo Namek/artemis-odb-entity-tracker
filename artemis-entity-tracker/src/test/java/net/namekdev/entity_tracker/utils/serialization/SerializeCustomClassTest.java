@@ -1,15 +1,24 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*;
-import static org.junit.Assert.*;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ARRAY;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_FLOAT;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_TREE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import net.namekdev.entity_tracker.utils.sample.EnumTestClass;
+import net.namekdev.entity_tracker.utils.sample.EnumTestClass.TestEnum;
 import net.namekdev.entity_tracker.utils.sample.GameObject;
 import net.namekdev.entity_tracker.utils.sample.GameState;
 import net.namekdev.entity_tracker.utils.sample.Vector2;
 import net.namekdev.entity_tracker.utils.sample.Vector3;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
-
-import org.junit.Before;
-import org.junit.Test;
 
 public class SerializeCustomClassTest {
 	NetworkDeserializer deserializer;
@@ -261,21 +270,10 @@ public class SerializeCustomClassTest {
 		
 		TestEnum newVal = TestEnum.Third;
 		model.setValue(obj, new int[] { 0 }, newVal);
-		assertEquals(obj.enumUndefined, newVal);
+		assertEquals(obj.getEnumUndefined(), newVal);
 		
-		assertEquals(obj.enumValued, TestEnum.First);
+		assertEquals(obj.getEnumValued(), TestEnum.First);
 		model.setValue(obj, new int[] { 1 }, newVal);
-		assertEquals(obj.enumValued, newVal);
-	}
-	
-	static enum TestEnum {
-		First,
-		Second,
-		Third
-	}
-	
-	static class EnumTestClass {
-		TestEnum enumUndefined;
-		TestEnum enumValued = TestEnum.First;
+		assertEquals(obj.getEnumValued(), newVal);
 	}
 }
