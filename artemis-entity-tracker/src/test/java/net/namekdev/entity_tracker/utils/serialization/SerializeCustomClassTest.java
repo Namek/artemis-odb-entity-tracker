@@ -253,4 +253,29 @@ public class SerializeCustomClassTest {
 		model.setValue(gs, new int[] { 0, 2, 0, 1 }/*gs.objects[2].pos.y*/, y);
 		assertEquals(y, gs.objects[2].pos.y, 0.01f);
 	}
+	
+	@Test
+	public void inspect_enums() {
+		EnumTestClass obj = new EnumTestClass();
+		ObjectModelNode model = inspectorMulti.inspect(obj.getClass());
+		
+		TestEnum newVal = TestEnum.Third;
+		model.setValue(model, new int[] { 0 }, newVal);
+		assertEquals(obj.enumUndefined, newVal);
+		
+		assertEquals(obj.enumValued, TestEnum.First);
+		model.setValue(model, new int[] { 1 }, newVal);
+		assertEquals(obj.enumValued, newVal);
+	}
+	
+	static enum TestEnum {
+		First,
+		Second,
+		Third
+	}
+	
+	static class EnumTestClass {
+		TestEnum enumUndefined;
+		TestEnum enumValued = TestEnum.First;
+	}
 }
