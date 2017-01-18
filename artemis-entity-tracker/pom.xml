@@ -12,7 +12,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<artemis-odb.version>2.0.0</artemis-odb.version>
+		<artemis-odb.version>[2.0.0,3.0.0)</artemis-odb.version>
 	</properties>
 
 	<dependencies>
