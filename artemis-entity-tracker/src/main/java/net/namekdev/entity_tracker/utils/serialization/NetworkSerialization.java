@@ -17,6 +17,7 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
 	public final static byte TYPE_FLOAT = 16;
 	public final static byte TYPE_DOUBLE = 17;
+	public final static byte TYPE_ENUM = 18;
 	public final static byte TYPE_BITVECTOR = 20;//takes minimum 4 bytes
 
 
@@ -62,6 +63,9 @@ public abstract class NetworkSerialization {
 		else if (type.equals(BitVector.class)) {
 			netType = TYPE_BITVECTOR;
 		}
+		else if (type.isEnum()) {
+			netType = TYPE_ENUM;
+		}
 
 		return netType;
 	}
@@ -76,6 +80,7 @@ public abstract class NetworkSerialization {
 			case TYPE_BOOLEAN: return Boolean.valueOf(value);
 			case TYPE_FLOAT: return Float.valueOf(value);
 			case TYPE_DOUBLE: return Double.valueOf(value);
+			case TYPE_ENUM: throw new UnsupportedOperationException("probably unsupported, not sure");
 			case TYPE_BITVECTOR: return new BitVector(Integer.valueOf(value));
 			case TYPE_ARRAY: throw new UnsupportedOperationException("arrays are not supported (yet?)");
 			default: return null;
@@ -92,6 +97,7 @@ public abstract class NetworkSerialization {
 			case TYPE_BOOLEAN: return true;
 			case TYPE_FLOAT: return true;
 			case TYPE_DOUBLE: return true;
+			case TYPE_ENUM: return true;
 			case TYPE_BITVECTOR: return true;
 			default: return false;
 		}

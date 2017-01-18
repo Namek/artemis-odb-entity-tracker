@@ -260,11 +260,11 @@ public class SerializeCustomClassTest {
 		ObjectModelNode model = inspectorMulti.inspect(obj.getClass());
 		
 		TestEnum newVal = TestEnum.Third;
-		model.setValue(model, new int[] { 0 }, newVal);
+		model.setValue(obj, new int[] { 0 }, newVal);
 		assertEquals(obj.enumUndefined, newVal);
 		
 		assertEquals(obj.enumValued, TestEnum.First);
-		model.setValue(model, new int[] { 1 }, newVal);
+		model.setValue(obj, new int[] { 1 }, newVal);
 		assertEquals(obj.enumValued, newVal);
 	}
 	

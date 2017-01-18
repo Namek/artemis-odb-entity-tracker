@@ -51,7 +51,7 @@ public abstract class ObjectTypeInspector {
 	}
 
 	protected ObjectModelNode inspectLevels(Class<?> type, int leftLevels) {
-		Field[] fields = ClassReflection.getFields(type);
+		Field[] fields = ClassReflection.getDeclaredFields(type);
 
 		ObjectModelNode root = new ObjectModelNode();
 		root.networkType = TYPE_TREE;

@@ -3,8 +3,6 @@ package net.namekdev.entity_tracker.utils.serialization;
 import com.artemis.utils.BitVector;
 import static org.junit.Assert.*;
 
-import java.util.BitSet;
-
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
 import org.junit.Before;
 import org.junit.Test;
