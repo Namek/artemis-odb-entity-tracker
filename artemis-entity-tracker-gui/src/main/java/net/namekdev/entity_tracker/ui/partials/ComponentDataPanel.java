@@ -101,7 +101,7 @@ public class ComponentDataPanel extends JPanel {
 
 	private ValueTreeTableModel getTestModel() {
 		NetworkDeserializer deserializer = new NetworkDeserializer();
-		ObjectTypeInspector inspectorMulti = new ObjectTypeInspector.MultiLevel();
+		ObjectTypeInspector inspector = new ObjectTypeInspector();
 
 		GameState gameState = new GameState();
 		gameState.objects = new GameObject[] {
@@ -110,7 +110,7 @@ public class ComponentDataPanel extends JPanel {
 		};
 
 		NetworkSerializer serializer = new NetworkSerializer().reset();
-		ObjectModelNode model = inspectorMulti.inspect(GameState.class);
+		ObjectModelNode model = inspector.inspect(GameState.class);
 		int id = 1734552;
 
 

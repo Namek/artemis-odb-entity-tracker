@@ -22,26 +22,24 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.Seriali
 
 public class SerializeCustomClassTest {
 	NetworkDeserializer deserializer;
-	ObjectTypeInspector inspector1;
-	ObjectTypeInspector inspectorMulti;
+	ObjectTypeInspector inspector;
 
 
 	@Before
 	public void setup() {
 		deserializer = new NetworkDeserializer();
-		inspector1 = new ObjectTypeInspector.OneLevel();
-		inspectorMulti = new ObjectTypeInspector.MultiLevel();
+		inspector = new ObjectTypeInspector();
 	}
 
 	@Test
 	public void inspect_vectors() {
-		ObjectModelNode model = inspector1.inspect(Vector3.class);
+		ObjectModelNode model = inspector.inspect(Vector3.class);
 		assertTrue(model.children != null && model.children.size() == 3);
 		assertEquals("x", model.children.get(0).name);
 		assertEquals("y", model.children.get(1).name);
 		assertEquals("z", model.children.get(2).name);
 
-		model = inspector1.inspect(Vector2.class);
+		model = inspector.inspect(Vector2.class);
 		assertTrue(model.children != null && model.children.size() == 2);
 		assertEquals("x", model.children.get(0).name);
 		assertEquals("y", model.children.get(1).name);
@@ -54,7 +52,7 @@ public class SerializeCustomClassTest {
 			new GameObject(), new GameObject()
 		};
 
-		ObjectModelNode model = inspectorMulti.inspect(GameState.class);
+		ObjectModelNode model = inspector.inspect(GameState.class);
 
 		// GameState
 		assertEquals(TYPE_TREE, model.networkType);
@@ -111,12 +109,12 @@ public class SerializeCustomClassTest {
 
 	@Test
 	public void deserialize_vector3_one_level() {
-		testVector3(inspector1);
+		testVector3(inspector);
 	}
 
 	@Test
 	public void deserialize_vector3_multi_level() {
-		testVector3(inspectorMulti);
+		testVector3(inspector);
 	}
 
 	private void testVector3(ObjectTypeInspector inspector) {
@@ -149,8 +147,8 @@ public class SerializeCustomClassTest {
 		Float[] floats = new Float[] { 0f, 1f, 2f };
 		String[] strings = new String[] { "asd", "omg", "this is a test?" };
 
-		testArray(floats, inspector1);
-		testArray(strings, inspector1);
+		testArray(floats, inspector);
+		testArray(strings, inspector);
 	}
 
 	@Test
@@ -158,8 +156,8 @@ public class SerializeCustomClassTest {
 		Float[] floats = new Float[] { 0f, 1f, 2f };
 		String[] strings = new String[] { "asd", "omg", "this is a test?" };
 
-		testArray(floats, inspectorMulti);
-		testArray(strings, inspectorMulti);
+		testArray(floats, inspector);
+		testArray(strings, inspector);
 	}
 
 	private void testArray(Object[] arr, ObjectTypeInspector inspector) {
@@ -184,7 +182,7 @@ public class SerializeCustomClassTest {
 		};
 
 		NetworkSerializer serializer = new NetworkSerializer().reset();
-		ObjectModelNode model = inspectorMulti.inspect(GameState.class);
+		ObjectModelNode model = inspector.inspect(GameState.class);
 		int id = 1734552;
 
 
@@ -247,18 +245,18 @@ public class SerializeCustomClassTest {
 		float y = 55f;
 
 		Vector3 vect = new Vector3(6, 5, 4);
-		model = inspectorMulti.inspect(vect.getClass());
+		model = inspector.inspect(vect.getClass());
 		model.setValue(vect, new int[] { 1 }/*vert.y*/, y);
 		assertEquals(y, vect.y, 0.01f);
 
 		GameObject obj = new GameObject();
-		model = inspectorMulti.inspect(obj.getClass());
+		model = inspector.inspect(obj.getClass());
 		model.setValue(obj, new int[] { 1, 1 }/*obj.size.y*/, y);
 		assertEquals(y, obj.size.y, 0.01f);
 
 		GameState gs = new GameState();
 		gs.objects = new GameObject[] { new GameObject(), new GameObject(), new GameObject() };
-		model = inspectorMulti.inspect(gs.getClass());
+		model = inspector.inspect(gs.getClass());
 		model.setValue(gs, new int[] { 0, 2, 0, 1 }/*gs.objects[2].pos.y*/, y);
 		assertEquals(y, gs.objects[2].pos.y, 0.01f);
 	}
@@ -266,7 +264,7 @@ public class SerializeCustomClassTest {
 	@Test
 	public void inspect_enums() {
 		EnumTestClass obj = new EnumTestClass();
-		ObjectModelNode model = inspectorMulti.inspect(obj.getClass());
+		ObjectModelNode model = inspector.inspect(obj.getClass());
 		
 		TestEnum newVal = TestEnum.Third;
 		model.setValue(obj, new int[] { 0 }, newVal);

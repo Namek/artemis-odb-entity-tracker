@@ -7,46 +7,13 @@ import java.util.Vector;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Field;
 
-public abstract class ObjectTypeInspector {
+public class ObjectTypeInspector {
 	/**
 	 * Returns tree description of type.
 	 *
 	 * @return return {@code null} to ignore type (it won't be de/serialized)
 	 */
-	public abstract ObjectModelNode inspect(Class<?> type);
-
-
-	protected ObjectModelNode inspectOneLevel(Class<?> type) {
-		/*ield[] fields = ClassReflection.getFields(type);
-
-		ObjectModelNode root = new ObjectModelNode();
-		root.networkType = TYPE_TREE_DESCR_CHILDREN;
-		root.children = new Vector<>(fields.length);
-
-		for (Field field : fields) {
-			Class<?> fieldType = field.getType();
-			ObjectModelNode child = new ObjectModelNode();
-
-			child.name = field.getName();
-			child.isArray = fieldType.isArray();
-
-			if (child.isArray) {
-				child.networkType = TYPE_ARRAY;
-				child.arrayType = NetworkSerialization.determineSimpleType(fieldType);
-			}
-			else {
-				child.networkType = NetworkSerialization.determineSimpleType(fieldType);
-			}
-
-			root.children.addElement(child);
-		}
-
-		return root;*/
-
-		return inspectLevels(type, 0);
-	}
-
-	protected ObjectModelNode inspectMultiLevel(Class<?> type) {
+	public ObjectModelNode inspect(Class<?> type) {
 		return inspectLevels(type, Integer.MAX_VALUE);
 	}
 
@@ -92,21 +59,5 @@ public abstract class ObjectTypeInspector {
 		}
 
 		return root;
-	}
-
-
-
-	public static class OneLevel extends ObjectTypeInspector {
-		@Override
-		public ObjectModelNode inspect(Class<?> type) {
-			return inspectOneLevel(type);
-		}
-	}
-
-	public static class MultiLevel extends ObjectTypeInspector {
-		@Override
-		public ObjectModelNode inspect(Class<?> type) {
-			return inspectMultiLevel(type);
-		}
 	}
 }

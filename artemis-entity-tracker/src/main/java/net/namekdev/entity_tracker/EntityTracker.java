@@ -79,7 +79,7 @@ public class EntityTracker extends Manager implements WorldController {
 
 
 	public EntityTracker() {
-		this(new ObjectTypeInspector.MultiLevel(), null);
+		this(new ObjectTypeInspector(), null);
 	}
 
 	public EntityTracker(ObjectTypeInspector inspector) {
@@ -87,7 +87,7 @@ public class EntityTracker extends Manager implements WorldController {
 	}
 
 	public EntityTracker(WorldUpdateListener listener) {
-		this(new ObjectTypeInspector.MultiLevel(), listener);
+		this(new ObjectTypeInspector(), listener);
 	}
 
 	public EntityTracker(ObjectTypeInspector inspector, WorldUpdateListener listener) {
