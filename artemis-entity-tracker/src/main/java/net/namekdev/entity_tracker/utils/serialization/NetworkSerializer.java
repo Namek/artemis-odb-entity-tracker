@@ -240,29 +240,19 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
-	public NetworkSerializer addObjectDescription(ObjectModelNode model, int modelId) {
+	public NetworkSerializer addObjectDescription(ObjectModelNode model) {
 		_buffer[_pos++] = TYPE_TREE_DESCR;
-		addRawInt(modelId);
 		addRawObjectDescription(model);
 
 		return this;
 	}
 
 	protected void addRawObjectDescription(ObjectModelNode model) {
+		addRawInt(model.id);
 		addString(model.name);
 
 		if (model.children != null) {
-			if (model.isArray) {
-				addRawByte(TYPE_ARRAY);
-				addRawByte(model.arrayType);
-
-				if (model.arrayType != TYPE_TREE && !isSimpleType(model.arrayType)) {
-					throw new RuntimeException("unsupported array type: " + model.arrayType);
-				}
-			}
-			else {
-				addRawByte(TYPE_TREE);
-			}
+			addRawByte(TYPE_TREE);
 
 			if (model.networkType == TYPE_TREE || model.arrayType == TYPE_TREE) {
 				int n = model.children.size();
@@ -277,6 +267,15 @@ public class NetworkSerializer extends NetworkSerialization {
 		else if (isSimpleType(model.networkType)) {
 			addRawByte(model.networkType);
 		}
+		else if (model.isArray()) {
+			addRawByte(TYPE_ARRAY);
+			addRawByte(model.arrayType);
+
+			if (model.arrayType != TYPE_TREE && !isSimpleType(model.arrayType)) {
+				// TODO it looks like we'll have to dynamically inspect here!
+				throw new RuntimeException("unsupported array type: " + model.arrayType);
+			}
+		}
 		else {
 			throw new RuntimeException("unsupported type: " + model.networkType);
 		}
@@ -290,7 +289,9 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	protected void addRawObject(ObjectModelNode model, Object object) {
-		if (!model.isArray && model.children != null) {
+		final boolean isArray = model.isArray();
+
+		if (!isArray && model.children != null) {
 			addRawByte(TYPE_TREE);
 			int n = model.children.size();
 
@@ -304,7 +305,7 @@ public class NetworkSerializer extends NetworkSerialization {
 		else if (isSimpleType(model.networkType)) {
 			addRawByType(model.networkType, object);
 		}
-		else if (model.isArray) {
+		else if (isArray) {
 			Object[] array = (Object[]) object;
 
 			int n = array.length;

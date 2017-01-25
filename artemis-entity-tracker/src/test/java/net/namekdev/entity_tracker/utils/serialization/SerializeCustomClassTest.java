@@ -3,15 +3,15 @@ package net.namekdev.entity_tracker.utils.serialization;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ARRAY;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_FLOAT;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_TREE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_UNKNOWN;
+import static org.junit.Assert.*;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import net.namekdev.entity_tracker.utils.sample.ArrayTestClass;
+import net.namekdev.entity_tracker.utils.sample.CyclicClass;
+import net.namekdev.entity_tracker.utils.sample.CyclicClassIndirectly;
 import net.namekdev.entity_tracker.utils.sample.EnumTestClass;
 import net.namekdev.entity_tracker.utils.sample.EnumTestClass.TestEnum;
 import net.namekdev.entity_tracker.utils.sample.GameObject;
@@ -46,7 +46,7 @@ public class SerializeCustomClassTest {
 	}
 
 	@Test
-	public void inspect_gamestate_multi_level() {
+	public void inspect_gamestate() {
 		GameState gameState = new GameState();
 		gameState.objects = new GameObject[] {
 			new GameObject(), new GameObject()
@@ -57,14 +57,14 @@ public class SerializeCustomClassTest {
 		// GameState
 		assertEquals(TYPE_TREE, model.networkType);
 		assertNotNull(model.children);
-		assertFalse(model.isArray);
+		assertFalse(model.isArray());
 		assertEquals(1, model.children.size());
 
 		// GameState.objects (GameObject[])
 		ObjectModelNode objects = model.children.elementAt(0);
 		assertEquals("objects", objects.name);
 		assertEquals(TYPE_ARRAY, objects.networkType);
-		assertTrue(objects.isArray);
+		assertTrue(objects.isArray());
 		assertNotNull(objects.children);
 		assertEquals(2, objects.children.size());
 		assertEquals(TYPE_TREE, objects.arrayType);
@@ -81,7 +81,7 @@ public class SerializeCustomClassTest {
 	private void assertVector3(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
 		assertEquals(TYPE_TREE, node.networkType);
-		assertFalse(node.isArray);
+		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
 		// GameState.objects[0].pos -> x, y, z (floats)
@@ -93,7 +93,7 @@ public class SerializeCustomClassTest {
 	private void assertVector2(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
 		assertEquals(TYPE_TREE, node.networkType);
-		assertFalse(node.isArray);
+		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
 		// Vector2 -> x, y (floats)
@@ -103,17 +103,12 @@ public class SerializeCustomClassTest {
 
 	private void assertFloat(ObjectModelNode node) {
 		assertEquals(TYPE_FLOAT, node.networkType);
-		assertFalse(node.isArray);
+		assertFalse(node.isArray());
 		assertNull(node.children);
 	}
 
 	@Test
-	public void deserialize_vector3_one_level() {
-		testVector3(inspector);
-	}
-
-	@Test
-	public void deserialize_vector3_multi_level() {
+	public void deserialize_vector3() {
 		testVector3(inspector);
 	}
 
@@ -122,16 +117,14 @@ public class SerializeCustomClassTest {
 
 		Vector3 vector = new Vector3(4, 5, 6);
 		ObjectModelNode model = inspector.inspect(vector.getClass());
-		int id = 198;
 
-		serializer.addObjectDescription(model, id);
+		serializer.addObjectDescription(model);
 		serializer.addObject(model, vector);
 
 		byte[] buffer = serializer.getResult().buffer;
 		deserializer.setSource(buffer, 0, serializer.getResult().size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
-		model.rootId = id;
 		assertEquals(model, model2);
 
 		ValueTree result = deserializer.readObject(model2);
@@ -143,16 +136,7 @@ public class SerializeCustomClassTest {
 	}
 
 	@Test
-	public void deserialize_arrays_one_level() {
-		Float[] floats = new Float[] { 0f, 1f, 2f };
-		String[] strings = new String[] { "asd", "omg", "this is a test?" };
-
-		testArray(floats, inspector);
-		testArray(strings, inspector);
-	}
-
-	@Test
-	public void deserialize_arrays_multi_level() {
+	public void deserialize_simple_arrays() {
 		Float[] floats = new Float[] { 0f, 1f, 2f };
 		String[] strings = new String[] { "asd", "omg", "this is a test?" };
 
@@ -163,18 +147,16 @@ public class SerializeCustomClassTest {
 	private void testArray(Object[] arr, ObjectTypeInspector inspector) {
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(arr.getClass());
-		int modelId = 123;
-		serializer.addObjectDescription(model, modelId);
+		serializer.addObjectDescription(model);
 		SerializeResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
-		model.rootId = modelId;
 		assertEquals(model, model2);
 	}
 
 	@Test
-	public void deserialize_gamestate_multi_level() {
+	public void deserialize_gamestate() {
 		GameState gameState = new GameState();
 		gameState.objects = new GameObject[] {
 			new GameObject(), new GameObject(),
@@ -183,17 +165,15 @@ public class SerializeCustomClassTest {
 
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(GameState.class);
-		int id = 1734552;
 
 
-		serializer.addObjectDescription(model, id);
+		serializer.addObjectDescription(model);
 		serializer.addObject(model, gameState);
 
 		SerializeResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
-		model.rootId = id;
 		assertEquals(model, model2);
 
 		ValueTree result = deserializer.readObject(model2, true);
@@ -273,5 +253,109 @@ public class SerializeCustomClassTest {
 		assertEquals(obj.getEnumValued(), TestEnum.First);
 		model.setValue(obj, new int[] { 1 }, newVal);
 		assertEquals(obj.getEnumValued(), newVal);
+	}
+	
+	@Test
+	public void serialize_enums() {
+		Object obj = new EnumTestClass();
+		
+		// TODO!!
+		assertTrue(false);
+
+		// now put it through serializer
+		NetworkSerializer serializer = new NetworkSerializer().reset();
+		// serializer.defineEnums(/*strings and respective values here*/)
+//		serializer.addEnum(/*just the integer?*/)
+	}
+	
+	@Test
+	public void inspect_cyclic_reference() {
+		CyclicClass obj = new CyclicClass();
+		obj.other = new CyclicClass();
+		obj.other.other = obj;
+		
+		ObjectModelNode model = inspector.inspect(obj.getClass());	
+	}
+	
+	@Test
+	public void inspect_indirectly_cyclic_class() {
+		CyclicClassIndirectly obj = new CyclicClassIndirectly();
+		obj.obj = new CyclicClassIndirectly.OtherClass();
+		obj.obj.obj = obj;
+		obj.obj.obj.obj = new CyclicClassIndirectly.OtherClass();
+		
+		ObjectModelNode model = inspector.inspect(obj.getClass());
+		assertEquals(1, model.children.size());
+		ObjectModelNode fieldModel = model.children.elementAt(0);
+		assertEquals(model.id, fieldModel.children.elementAt(0).id);
+	}
+	
+	@Test
+	public void inspect_indirectly_cyclic_class_in_array() {
+		// TODO
+		assert(false);
+	}
+	
+	@Test
+	public void fail_to_inspect_simple_types() {
+		Object[] testSubjects = new Object[] {
+			"asd",		// String
+			5,			// Integer
+		};
+		
+		for (Object testSubject : testSubjects) {
+			ObjectModelNode model = null;
+			try {
+				model = inspector.inspect(testSubject.getClass());
+			}
+			catch (Error exc) { }
+			finally {
+				assertEquals(null, model);
+			}
+		}
+	}
+	
+	@Test
+	public void inspect_array_field_containing_various_objects() {
+		ArrayTestClass obj = new ArrayTestClass();
+		obj.array = new Object[] {
+			new Vector2(5, 6),
+			new Vector3(7, 8, 9)
+		};
+		ObjectModelNode model = inspector.inspect(obj.getClass());
+		assert(!model.isArray());
+		assertEquals(1, model.children.size());
+		
+		ObjectModelNode arrayModel = model.children.elementAt(0);
+		assert(arrayModel.isArray());
+		assert(arrayModel.children == null);
+		assertEquals("array", arrayModel.name);
+	}
+	
+	@Test
+	public void deserialize_array_of_various_objects() {
+		Object[] array = new Object[] {
+			new Vector2(5, 6),
+			new Vector3(7, 8, 9)
+		};
+
+		ObjectModelNode model = inspector.inspect(array.getClass());
+		assert(model.isArray());
+		assertEquals(null, model.children);
+		assertEquals(TYPE_UNKNOWN, model.arrayType);
+		
+		
+		// Vector2
+//		ObjectModelNode v2Model = fieldModel.children.elementAt(0);
+//		assertEquals(2, v2Model.children.size());
+//		assertEquals("x", v2Model.children.elementAt(0).name);
+//		assertEquals("y", v2Model.children.elementAt(1).name);
+//		
+//		// Vector3
+//		ObjectModelNode v3Model = fieldModel.children.elementAt(1);
+//		assertEquals(3, v3Model.children.size());
+//		assertEquals("x", v3Model.children.elementAt(0).name);
+//		assertEquals("y", v3Model.children.elementAt(1).name);
+//		assertEquals("z", v3Model.children.elementAt(1).name);
 	}
 }

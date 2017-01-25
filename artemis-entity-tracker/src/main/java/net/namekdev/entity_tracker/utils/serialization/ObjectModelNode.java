@@ -6,16 +6,32 @@ import java.util.Vector;
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
-public class ObjectModelNode {
-	public int rootId = -1;
+/**
+ * Describes a structure of class or class field.
+ * Allows to hierarchically get or set a value.
+ * 
+ * <p>It does not describe a structure of a specific object hierarchy.
+ * Array fields will be just described as a definition,
+ * independently of the array's content.</p>
+ */
+public final class ObjectModelNode {
+	public int id = -1;
 	public String name;
-	public boolean isArray;
 	public Vector<ObjectModelNode> children;
-	public byte networkType, arrayType;
+	public byte networkType;
+	public byte arrayType;
+	
 
+	public ObjectModelNode(int id) {
+		this.id = id;
+	}
 
 	public boolean isLeaf() {
-		return !isArray && children == null && networkType != TYPE_TREE;
+		return !isArray() && children == null && networkType != TYPE_TREE;
+	}
+	
+	public boolean isArray() {
+		return networkType == TYPE_ARRAY;
 	}
 
 	public void setValue(Object targetObj, int[] treePath, Object value) {
@@ -28,7 +44,7 @@ public class ObjectModelNode {
 		while (pathIndex < treePath.length) {
 			int index = treePath[pathIndex];
 
-			if (!node.isArray && node.children != null) {
+			if (!node.isArray() && node.children != null) {
 				node = node.children.get(index);
 				String fieldName = node.name;
 
@@ -46,7 +62,7 @@ public class ObjectModelNode {
 				String fieldName = node.name;
 				ReflectionUtils.setHiddenFieldValue(targetObj.getClass(), fieldName, targetObj, value);
 			}
-			else if (node.isArray) {
+			else if (node.isArray()) {
 				Object[] array = (Object[]) targetObj;
 
 				if (node.arrayType == TYPE_TREE) {
@@ -77,8 +93,8 @@ public class ObjectModelNode {
 		}
 
 		ObjectModelNode model = (ObjectModelNode) obj;
-
-		if (rootId != model.rootId || isArray != model.isArray) {
+		
+		if (id != model.id || isArray() != model.isArray()) {
 			return false;
 		}
 
@@ -90,6 +106,7 @@ public class ObjectModelNode {
 			return false;
 		}
 
+		/*
 		if (networkType != model.networkType || arrayType != model.arrayType) {
 			return false;
 		}
@@ -104,12 +121,24 @@ public class ObjectModelNode {
 			}
 
 			for (int i = 0, n = children.size(); i < n; ++i) {
-				if (!children.get(i).equals(model.children.get(i))) {
+				// TODO handle cyclic checks here!
+//				if (children.get(i) != model.children.get(i)) {
+//				if (!children.get(i).equals(model.children.get(i))) {
+				if (children.get(i).id != model.children.get(i).id) {
 					return false;
 				}
 			}
-		}
+		}*/
 
 		return true;
+	}
+
+	public ObjectModelNode copyFrom(ObjectModelNode other) {
+		this.id = other.id;
+		this.name = other.name;
+		this.networkType = other.networkType;
+		this.arrayType = other.arrayType;
+		this.children = new Vector<ObjectModelNode>(other.children);
+		return this;
 	}
 }

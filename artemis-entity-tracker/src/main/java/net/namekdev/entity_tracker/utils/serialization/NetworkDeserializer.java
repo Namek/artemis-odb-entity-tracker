@@ -210,22 +210,20 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	public ObjectModelNode readObjectDescription() {
 		checkType(TYPE_TREE_DESCR);
-		int modelId = readRawInt();
 		ObjectModelNode root = readRawObjectDescription();
-		root.rootId = modelId;
 
 		return root;
 	}
 
 	private ObjectModelNode readRawObjectDescription() {
-		ObjectModelNode node = new ObjectModelNode();
+		int modelId = readRawInt();
+		ObjectModelNode node = new ObjectModelNode(modelId);
 		node.name = readString();
 		byte nodeType = readRawByte();
 		node.networkType = nodeType;
 
 		if (nodeType == TYPE_TREE || nodeType == TYPE_ARRAY) {
 			if (nodeType == TYPE_ARRAY) {
-				node.isArray = true;
 				node.arrayType = readRawByte();
 			}
 
@@ -256,7 +254,9 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	protected Object readRawObject(ObjectModelNode model, ValueTree parentTree, boolean joinModelToData) {
-		if (!model.isArray && model.children != null) {
+		final boolean isArray = model.isArray();
+
+		if (!isArray && model.children != null) {
 			checkType(TYPE_TREE);
 			int n = model.children.size();
 			ValueTree tree = new ValueTree(n);
@@ -278,7 +278,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 			return value;
 		}
-		else if (model.isArray) {
+		else if (isArray) {
 			int n = beginArray(model.arrayType);
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;

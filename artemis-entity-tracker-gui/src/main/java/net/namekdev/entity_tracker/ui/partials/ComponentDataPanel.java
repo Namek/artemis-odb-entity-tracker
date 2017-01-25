@@ -111,17 +111,16 @@ public class ComponentDataPanel extends JPanel {
 
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(GameState.class);
-		int id = 1734552;
 
 
-		serializer.addObjectDescription(model, id);
+		serializer.addObjectDescription(model);
 		serializer.addObject(model, gameState);
 
 		SerializeResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
-		model.rootId = id;
+//		model.id = id; /??????? TODO
 
 		ValueTree result = deserializer.readObject(model2, true);
 

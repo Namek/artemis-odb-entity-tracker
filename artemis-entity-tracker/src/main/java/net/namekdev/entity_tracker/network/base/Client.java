@@ -114,8 +114,9 @@ public class Client {
 	 */
 	public boolean update() {
 		if (_isRunning && isConnected()) {
+			int n = 0;
 			try {
-				int n = input.available();
+				n = input.available();
 
 				if (n == 0) {
 					long currentTime = System.currentTimeMillis();
@@ -196,6 +197,7 @@ public class Client {
 			while (_isRunning && !socket.isClosed()) {
 				if (!update()) {
 					connectionListener.disconnected();
+					break;
 				}
 
 				try {
@@ -209,7 +211,8 @@ public class Client {
 					return;
 				}
 			}
-			_isRunning = false;
+
+			stop();
 		}
 	};
 

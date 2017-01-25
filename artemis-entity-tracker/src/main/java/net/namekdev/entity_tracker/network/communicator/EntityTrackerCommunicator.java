@@ -99,7 +99,7 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 			beginPacket(TYPE_ADDED_COMPONENT_TYPE)
 			.addInt(index)
 			.addString(info.name)
-			.addObjectDescription(info.model, index);
+			.addObjectDescription(info.model);
 
 		send(p);
 	}
