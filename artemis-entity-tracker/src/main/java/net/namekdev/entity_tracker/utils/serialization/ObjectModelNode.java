@@ -17,17 +17,24 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils;
 public final class ObjectModelNode {
 	public int id = -1;
 	public String name;
+
 	public Vector<ObjectModelNode> children;
+
+	
+	// when it's null it defines a class, otherwise it's field
+	public ObjectModelNode parent;
+
 	public byte networkType;
 	public byte arrayType;
 	
 
-	public ObjectModelNode(int id) {
+	public ObjectModelNode(int id, ObjectModelNode parent) {
 		this.id = id;
+		this.parent = parent;
 	}
 
 	public boolean isLeaf() {
-		return !isArray() && children == null && networkType != TYPE_TREE;
+		return !isArray() && children == null && networkType != TYPE_OBJECT;
 	}
 	
 	public boolean isArray() {
@@ -65,7 +72,7 @@ public final class ObjectModelNode {
 			else if (node.isArray()) {
 				Object[] array = (Object[]) targetObj;
 
-				if (node.arrayType == TYPE_TREE) {
+				if (node.arrayType == TYPE_OBJECT) {
 					assert pathIndex < treePath.length;
 					targetObj = array[index];
 					index = treePath[++pathIndex];

@@ -5,9 +5,11 @@ import com.artemis.utils.BitVector;
 public abstract class NetworkSerialization {
 	public final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
-	public final static byte TYPE_ARRAY = 6;
-	public final static byte TYPE_TREE_DESCR = 7;
-	public final static byte TYPE_TREE = 9;
+	public final static byte TYPE_ARRAY = 4;
+	public final static byte TYPE_DESCRIPTION = 6;
+	public final static byte TYPE_MULTIPLE_DESCRIPTIONS = 7;
+	public final static byte TYPE_DESCRIPTION_REF = 8;
+	public final static byte TYPE_OBJECT = 9;
 
 	public final static byte TYPE_BYTE = 10;
 	public final static byte TYPE_SHORT = 11;
@@ -23,10 +25,6 @@ public abstract class NetworkSerialization {
 
 	public static NetworkSerializer createSerializer() {
 		return new NetworkSerializer();
-	}
-
-	public static NetworkSerializer createSerializer(byte[] buffer) {
-		return new NetworkSerializer(buffer);
 	}
 
 	public static NetworkDeserializer createDeserializer() {

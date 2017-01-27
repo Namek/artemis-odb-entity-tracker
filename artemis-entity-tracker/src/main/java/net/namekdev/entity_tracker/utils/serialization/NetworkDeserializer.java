@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
 
+import java.util.ArrayList;
 import java.util.Vector;
 
 import com.artemis.utils.BitVector;
@@ -8,6 +9,8 @@ import com.artemis.utils.BitVector;
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
 	private int _sourcePos, _sourceBeginPos;
+	
+	private ArrayList<ObjectModelNode> _models = new ArrayList<>();
 
 
 	public NetworkDeserializer() {
@@ -209,31 +212,30 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ObjectModelNode readObjectDescription() {
-		checkType(TYPE_TREE_DESCR);
-		ObjectModelNode root = readRawObjectDescription();
+		checkType(TYPE_DESCRIPTION);
+		ObjectModelNode root = readRawObjectDescription(null);
 
 		return root;
 	}
 
-	private ObjectModelNode readRawObjectDescription() {
+	private ObjectModelNode readRawObjectDescription(ObjectModelNode parent) {
 		int modelId = readRawInt();
-		ObjectModelNode node = new ObjectModelNode(modelId);
+		ObjectModelNode node = new ObjectModelNode(modelId, parent);
 		node.name = readString();
 		byte nodeType = readRawByte();
 		node.networkType = nodeType;
 
-		if (nodeType == TYPE_TREE || nodeType == TYPE_ARRAY) {
-			if (nodeType == TYPE_ARRAY) {
-				node.arrayType = readRawByte();
-			}
-
+		if (nodeType == TYPE_OBJECT) {
 			int n = readRawInt();
 			node.children = new Vector<>(n);
 
 			for (int i = 0; i < n; ++i) {
-				ObjectModelNode child = readRawObjectDescription();
+				ObjectModelNode child = readRawObjectDescription(node);
 				node.children.addElement(child);
 			}
+		}
+		else if (nodeType == TYPE_ARRAY) {
+			node.arrayType = readRawByte();
 		}
 		else if (!isSimpleType(nodeType)) {
 			throw new RuntimeException("unsupported type: " + nodeType);
@@ -242,13 +244,46 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return node;
 	}
 
+	public ValueTree readObject() {
+		checkType(TYPE_MULTIPLE_DESCRIPTIONS);
+		int descrCount = readRawInt();
+		
+		ObjectModelNode rootModel = null;
+		
+		if (descrCount > 0) {
+			rootModel = readObjectDescription();
+			_models.add(rootModel);
+			
+			ObjectModelNode previousModel = rootModel;
+			for (int i = 0; i < descrCount-1; ++i) {
+				ObjectModelNode model = readObjectDescription();
+				model.parent = previousModel; // TODO is that right???
+	
+				_models.add(model);
+			}
+		}
+		else {
+			checkType(TYPE_DESCRIPTION_REF);
+			int modelId = readRawInt();
+			for (int i = 0, n = _models.size(); i < n; ++i) {
+				ObjectModelNode model = _models.get(i);
+
+				if (model.id == modelId) {
+					rootModel = model;
+				}
+			}
+		}
+		
+		return readObject(rootModel);
+	}
+
 	public ValueTree readObject(ObjectModelNode model, boolean joinDataToModel) {
-		checkType(TYPE_TREE);
+		checkType(TYPE_OBJECT);
 		ValueTree root = (ValueTree) readRawObject(model, null, joinDataToModel);
 
 		return root;
 	}
-
+	
 	public ValueTree readObject(ObjectModelNode model) {
 		return readObject(model, false);
 	}
@@ -257,7 +292,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 		final boolean isArray = model.isArray();
 
 		if (!isArray && model.children != null) {
-			checkType(TYPE_TREE);
+			checkType(TYPE_OBJECT);
 			int n = model.children.size();
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;
@@ -283,18 +318,11 @@ public class NetworkDeserializer extends NetworkSerialization {
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;
 
-			if (model.arrayType == TYPE_TREE) {
-				int fieldCount = model.children.size();
-
+			if (model.arrayType == TYPE_UNKNOWN) {
 				for (int i = 0; i < n; ++i) {
-					ValueTree fieldValues = new ValueTree(fieldCount);
-					fieldValues.parent = tree;
-					tree.values[i] = fieldValues;
-
-					for (int j = 0; j < fieldCount; ++j) {
-						ObjectModelNode field = model.children.get(j);
-						fieldValues.values[j] = readRawObject(field, fieldValues, joinModelToData);
-					}
+					ValueTree val = readObject();
+					val.parent = tree;
+					tree.values[i] = val;
 				}
 			}
 			else if (isSimpleType(model.arrayType)) {

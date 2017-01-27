@@ -3,7 +3,7 @@ package net.namekdev.entity_tracker.utils.serialization;
 import com.artemis.utils.BitVector;
 import static org.junit.Assert.*;
 
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ public class NetworkSerializationTest {
 		serializer.addRawInt(-4);
 		serializer.addRawInt(-2412424);
 		serializer.addRawInt(1152);
-		SerializeResult result = serializer.getResult();
+		SerializationResult result = serializer.getResult();
 
 		deserializer.setSource(result.buffer, 0, result.size);
 		assertEquals(124, deserializer.readInt());
@@ -87,7 +87,7 @@ public class NetworkSerializationTest {
 		serializer.addBitVector(bitVector3);
 		serializer.addBitVector(bitVector4);
 
-		SerializeResult result = serializer.getResult();
+		SerializationResult result = serializer.getResult();
 
 		deserializer.setSource(result.buffer, 0, result.size);
 		assertEquals(bitVector1, deserializer.readBitVector());

@@ -4,22 +4,32 @@ import com.artemis.utils.BitVector;
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
 
+/**
+ * This network serializer may seem indeterministic however it is not the case.
+ * When given object is being serialized through {@code addObject()} call or any
+ * descendant field is of custom type (class) then the definitions are implicitily 
+ * added to serialization buffer.
+ */
 public class NetworkSerializer extends NetworkSerialization {
 	private byte[] _ourBuffer;
 	private byte[] _buffer;
 	private int _pos;
 
-	private final SerializeResult _serializeResult = new SerializeResult();
+	private final SerializationResult _serializeResult = new SerializationResult();
+	
+	public final ObjectTypeInspector inspector;
+	private int _typeCountOnLastCheck = 0;
 
 
 	public NetworkSerializer() {
-		this(new byte[10240]);
+		this(new ObjectTypeInspector());
 	}
-
-	public NetworkSerializer(byte[] buffer) {
-		_ourBuffer = buffer;
+	
+	public NetworkSerializer(ObjectTypeInspector inspector) {
+		_ourBuffer = _buffer = new byte[10240];
+		this.inspector = inspector;
 	}
-
+	
 	public NetworkSerializer reset() {
 		return reset(_ourBuffer);
 	}
@@ -29,6 +39,13 @@ public class NetworkSerializer extends NetworkSerialization {
 		_buffer = buffer;
 //		_buffer[_pos++] = PACKET_BEGIN;
 		return this;
+	}
+
+	public int getNewInspectedTypeCountToBeManuallySent() {
+		int count = inspector.getRegisteredModelsCount();
+		int diff = count - _typeCountOnLastCheck;
+		_typeCountOnLastCheck = count;
+		return diff;
 	}
 
 	public NetworkSerializer beginArray(byte elementType, int length) {
@@ -241,20 +258,20 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addObjectDescription(ObjectModelNode model) {
-		_buffer[_pos++] = TYPE_TREE_DESCR;
+		_buffer[_pos++] = TYPE_DESCRIPTION;
 		addRawObjectDescription(model);
 
 		return this;
 	}
 
-	protected void addRawObjectDescription(ObjectModelNode model) {
+	private void addRawObjectDescription(ObjectModelNode model) {
 		addRawInt(model.id);
 		addString(model.name);
 
 		if (model.children != null) {
-			addRawByte(TYPE_TREE);
+			addRawByte(TYPE_OBJECT);
 
-			if (model.networkType == TYPE_TREE || model.arrayType == TYPE_TREE) {
+			if (model.networkType == TYPE_OBJECT || model.arrayType == TYPE_UNKNOWN) {
 				int n = model.children.size();
 				addRawInt(n);
 
@@ -271,9 +288,13 @@ public class NetworkSerializer extends NetworkSerialization {
 			addRawByte(TYPE_ARRAY);
 			addRawByte(model.arrayType);
 
-			if (model.arrayType != TYPE_TREE && !isSimpleType(model.arrayType)) {
-				// TODO it looks like we'll have to dynamically inspect here!
-				throw new RuntimeException("unsupported array type: " + model.arrayType);
+			if (model.arrayType != TYPE_OBJECT && !isSimpleType(model.arrayType)) {
+				if (model.arrayType == TYPE_UNKNOWN) {
+					// TODO ? model id
+				}
+				else {
+					throw new RuntimeException("unsupported array type: " + model.arrayType);
+				}
 			}
 		}
 		else {
@@ -281,8 +302,64 @@ public class NetworkSerializer extends NetworkSerialization {
 		}
 	}
 
+	/**
+	 * Inspects object, adds it's definition or cached ID if it was already inspected.
+	 * Then serializes the object.
+	 * 
+	 * <p>It is not the same as manual subsequent calls
+	 *  of {@code addObjectDescription()} and {@code addObject()}
+	 *  because of the inspection cache.</p>
+	 */
+	public NetworkSerializer addObject(Object obj) {
+		assert(!obj.getClass().isArray());
+		int previousInspectionCount = inspector.getRegisteredModelsCount();
+		ObjectModelNode model = inspector.inspect(obj.getClass());
+		int inspectionCount = inspector.getRegisteredModelsCount();
+		
+		addRawByte(TYPE_MULTIPLE_DESCRIPTIONS);
+		int diff = inspectionCount - previousInspectionCount;
+		addRawInt(diff);
+		
+		if (diff > 0) {
+			for (int i = previousInspectionCount; i < inspectionCount; ++i) {
+				addObjectDescription(
+					inspector.getRegisteredModelByIndex(i)
+				);
+			}
+			_typeCountOnLastCheck = inspectionCount;
+		}
+		else {
+			addRawByte(TYPE_DESCRIPTION_REF);
+			addRawInt(model.id);
+		}
+
+		addObject(model, obj);
+		
+		return this;
+	}
+	
+	public NetworkSerializer addArray(Object[] array) {
+		// TODO inspect every element
+		throw new RuntimeException("not implemented");
+//		return this;
+	}
+	
+	public NetworkSerializer addArrayOfSameType(Object[] array) {
+		// TODO inspect first element
+		throw new RuntimeException("not implemented");
+//		return this;
+	}
+	
+	public NetworkSerializer addArrayOfSameType(Object[] array, ObjectModelNode model) {
+		// TODO
+		// simpleType / TYPE_TREE ?
+		// empty array?
+		throw new RuntimeException("not implemented");
+//		return this;
+	}
+
 	public NetworkSerializer addObject(ObjectModelNode model, Object object) {
-		addRawByte(TYPE_TREE);
+		addRawByte(TYPE_OBJECT);
 		addRawObject(model, object);
 
 		return this;
@@ -292,7 +369,7 @@ public class NetworkSerializer extends NetworkSerialization {
 		final boolean isArray = model.isArray();
 
 		if (!isArray && model.children != null) {
-			addRawByte(TYPE_TREE);
+			addRawByte(TYPE_OBJECT);
 			int n = model.children.size();
 
 			for (int i = 0; i < n; ++i) {
@@ -311,7 +388,12 @@ public class NetworkSerializer extends NetworkSerialization {
 			int n = array.length;
 			beginArray(model.arrayType, n);
 
-			if (model.arrayType == TYPE_TREE) {
+			if (model.arrayType == TYPE_UNKNOWN) {
+				for (int i = 0; i < n; ++i) {
+					addObject(array[i]);
+				}
+			}
+			/*if (model.arrayType == TYPE_OBJECT || model.arrayType == TYPE_UNKNOWN) {
 				int fieldCount = model.children.size();
 
 				for (int i = 0; i < n; ++i) {
@@ -322,7 +404,7 @@ public class NetworkSerializer extends NetworkSerialization {
 						addRawObject(field, fieldValue);
 					}
 				}
-			}
+			}*/
 			else if (isSimpleType(model.arrayType)) {
 				for (int i = 0; i < n; ++i) {
 					addRawByType(model.arrayType, array[i]);
@@ -337,29 +419,29 @@ public class NetworkSerializer extends NetworkSerialization {
 		}
 	}
 
-	public SerializeResult getResult() {
+	public SerializationResult getResult() {
 //		_buffer[_pos++] = PACKET_END;
 
 		return _buffer == _ourBuffer
 			? _serializeResult.setup(_buffer, _pos)
-			: new SerializeResult(_buffer, _pos);
+			: new SerializationResult(_buffer, _pos);
 	}
 
 
 
-	public static class SerializeResult {
+	public static class SerializationResult {
 		public byte[] buffer;
 		public int size;
 
-		private SerializeResult() {
+		private SerializationResult() {
 		}
 
-		private SerializeResult(byte[] buffer, int size) {
+		private SerializationResult(byte[] buffer, int size) {
 			this.buffer = buffer;
 			this.size = size;
 		}
 
-		private SerializeResult setup(byte[] buffer, int size) {
+		private SerializationResult setup(byte[] buffer, int size) {
 			this.buffer = buffer;
 			this.size = size;
 			return this;

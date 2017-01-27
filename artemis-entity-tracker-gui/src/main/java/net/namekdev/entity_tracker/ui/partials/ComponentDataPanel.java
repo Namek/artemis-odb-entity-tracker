@@ -26,7 +26,7 @@ import net.namekdev.entity_tracker.ui.Context;
 import net.namekdev.entity_tracker.ui.model.ValueTreeTableModel;
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer;
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult;
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode;
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector;
 import net.namekdev.entity_tracker.utils.serialization.ValueTree;
@@ -116,7 +116,7 @@ public class ComponentDataPanel extends JPanel {
 		serializer.addObjectDescription(model);
 		serializer.addObject(model, gameState);
 
-		SerializeResult serialized = serializer.getResult();
+		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();

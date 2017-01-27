@@ -44,7 +44,7 @@ public abstract class Communicator implements RawConnectionCommunicator {
 	}
 
 	protected void send(NetworkSerializer serializer) {
-		NetworkSerializer.SerializeResult data = serializer.getResult();
+		NetworkSerializer.SerializationResult data = serializer.getResult();
 		_output.send(data.buffer, 0, data.size);
 	}
 

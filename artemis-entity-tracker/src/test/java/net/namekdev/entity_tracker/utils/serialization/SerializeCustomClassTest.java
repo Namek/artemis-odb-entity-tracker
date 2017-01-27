@@ -2,7 +2,7 @@ package net.namekdev.entity_tracker.utils.serialization;
 
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ARRAY;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_FLOAT;
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_TREE;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_OBJECT;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_UNKNOWN;
 import static org.junit.Assert.*;
 
@@ -18,15 +18,17 @@ import net.namekdev.entity_tracker.utils.sample.GameObject;
 import net.namekdev.entity_tracker.utils.sample.GameState;
 import net.namekdev.entity_tracker.utils.sample.Vector2;
 import net.namekdev.entity_tracker.utils.sample.Vector3;
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializeResult;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult;
 
 public class SerializeCustomClassTest {
+	NetworkSerializer serializer;
 	NetworkDeserializer deserializer;
 	ObjectTypeInspector inspector;
 
 
 	@Before
 	public void setup() {
+		serializer = NetworkSerialization.createSerializer(); 
 		deserializer = new NetworkDeserializer();
 		inspector = new ObjectTypeInspector();
 	}
@@ -45,7 +47,9 @@ public class SerializeCustomClassTest {
 		assertEquals("y", model.children.get(1).name);
 	}
 
-	@Test
+	// TODO rename to serialize_gamestate() and create separate inspect_gamestate()
+	// that will serialize only info about basic structure
+	/*@Test
 	public void inspect_gamestate() {
 		GameState gameState = new GameState();
 		gameState.objects = new GameObject[] {
@@ -76,11 +80,77 @@ public class SerializeCustomClassTest {
 		// GameState.objects[i].size (Vector2)
 		ObjectModelNode size1 = objects.children.elementAt(1);
 		assertVector2(size1, "size");
+	}*/
+	
+	private void checkGameStateInspection(ObjectTypeInspector inspector) {
+		int a = 5;
+//		assertEquals(TYPE_OBJECT, model.networkType);
+		// TODO!
+	}
+	
+	@Test
+	public void inspect_gamestate() {
+		GameState gameState = new GameState();
+		gameState.objects = new GameObject[] {
+			new GameObject(), new GameObject()
+		};
+		ObjectModelNode model = inspector.inspect(gameState.getClass());
+		checkGameStateInspection(inspector);
+	}
+	
+	@Test
+	public void serialize_gamestate() {
+		GameState gameState = new GameState();
+		gameState.objects = new GameObject[] {
+			new GameObject(), new GameObject(), new GameObject()
+		};
+		
+		serializer.addObject(gameState);
+		checkGameStateInspection(serializer.inspector);
+
+		SerializationResult res = serializer.getResult();
+		deserializer.setSource(res.buffer, 0, res.size);
+		ValueTree deserializedGameState = deserializer.readObject();
+		
+		assertNull(deserializedGameState.parent);
+		
+		// there is only one field - "objects"
+		assertEquals(1, deserializedGameState.values.length);
+		assert(deserializedGameState.values[0] instanceof ValueTree);
+		
+		ValueTree objects = (ValueTree) deserializedGameState.values[0];
+		assertEquals(gameState.objects.length, objects.values.length);
+		assertEquals(deserializedGameState, objects.parent);
+
+		for (int i = 0; i < objects.values.length; ++i) {
+			GameObject originalGameObject = gameState.objects[i];
+			ValueTree gameObject = (ValueTree) objects.values[i];
+			
+			assertEquals(objects, gameObject.parent);
+			
+			// two fields: pos, size
+			assertEquals(2, gameObject.values.length);
+			ValueTree posField = (ValueTree) gameObject.values[0];
+			ValueTree sizeField = (ValueTree) gameObject.values[1];
+			
+			assertEquals(gameObject, posField.parent);
+			assertEquals(gameObject, sizeField.parent);
+			
+			assertEquals(3, posField.values.length);
+			assertEquals(2, sizeField.values.length);
+			
+			assertEquals(originalGameObject.pos.x, posField.values[0]);
+			assertEquals(originalGameObject.pos.y, posField.values[1]);
+			assertEquals(originalGameObject.pos.z, posField.values[2]);
+			
+			assertEquals(originalGameObject.size.x, sizeField.values[0]);
+			assertEquals(originalGameObject.size.y, sizeField.values[1]);
+		}
 	}
 
 	private void assertVector3(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
-		assertEquals(TYPE_TREE, node.networkType);
+		assertEquals(TYPE_OBJECT, node.networkType);
 		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
@@ -92,7 +162,7 @@ public class SerializeCustomClassTest {
 
 	private void assertVector2(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
-		assertEquals(TYPE_TREE, node.networkType);
+		assertEquals(TYPE_OBJECT, node.networkType);
 		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
@@ -148,7 +218,7 @@ public class SerializeCustomClassTest {
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(arr.getClass());
 		serializer.addObjectDescription(model);
-		SerializeResult serialized = serializer.getResult();
+		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
@@ -170,7 +240,7 @@ public class SerializeCustomClassTest {
 		serializer.addObjectDescription(model);
 		serializer.addObject(model, gameState);
 
-		SerializeResult serialized = serializer.getResult();
+		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();

@@ -15,11 +15,15 @@ public class ObjectTypeInspector {
 	private static class RegisteredModel {
 		public Class<?> type;
 		public ObjectModelNode model;
-		
-		// TODO public String name
-
-		// when it's null it defines a class, otherwise it's field
-		public RegisteredModel parent;
+	}
+	
+	public int getRegisteredModelsCount() {
+		return registeredModels.size();
+	}
+	
+	public ObjectModelNode getRegisteredModelByIndex(int index) {
+		RegisteredModel model = registeredModels.get(index);
+		return model != null ? model.model : null;
 	}
 	
 	
@@ -32,21 +36,23 @@ public class ObjectTypeInspector {
 		return inspectLevels(type, null);
 	}
 
-	private ObjectModelNode inspectLevels(Class<?> type, RegisteredModel parentOfRoot) {
-		RegisteredModel root = findModel(type, parentOfRoot);
+	private ObjectModelNode inspectLevels(Class<?> type, ObjectModelNode parentOfRoot) {
+		RegisteredModel registeredModel = findModel(type, parentOfRoot);
 
-		if (root != null) {
-			return root.model;
+		if (registeredModel != null) {
+			return registeredModel.model;
 		}
+
+		ObjectModelNode root = null;
 
 		if (!type.isArray()) {
 			Field[] fields = ClassReflection.getDeclaredFields(type);
 	
-			ObjectModelNode model = new ObjectModelNode(++lastId);
-			model.networkType = TYPE_TREE;
+			ObjectModelNode model = new ObjectModelNode(++lastId, root);
+			model.networkType = TYPE_OBJECT;
 			model.children = new Vector<>(fields.length);
 		
-			root = rememberType(type, model, parentOfRoot);
+			root = rememberType(type, model).model;
 	
 			for (Field field : fields) {
 				Class<?> fieldType = field.getType();
@@ -59,12 +65,12 @@ public class ObjectTypeInspector {
 					byte networkType = NetworkSerialization.determineSimpleType(fieldType);
 	
 					if (networkType == TYPE_UNKNOWN) {
-						child = new ObjectModelNode(++lastId).copyFrom(
+						child = new ObjectModelNode(++lastId, root).copyFrom(
 							inspectLevels(fieldType, root)
 						);
 					}
 					else {
-						child = new ObjectModelNode(++lastId);
+						child = new ObjectModelNode(++lastId, root);
 						child.networkType = networkType;
 					}
 				}
@@ -83,8 +89,8 @@ public class ObjectTypeInspector {
 		}
 	}
 
-	private ObjectModelNode inspectArrayType(Class<?> fieldType, RegisteredModel root) {
-		ObjectModelNode model = new ObjectModelNode(++lastId);
+	private ObjectModelNode inspectArrayType(Class<?> fieldType, ObjectModelNode parent) {
+		ObjectModelNode model = new ObjectModelNode(++lastId, parent);
 		// TODO rememberType here ? or maybe if arrayElType == TYPE_TREE
 		
 		Class<?> arrayElType = fieldType.getComponentType();
@@ -99,7 +105,7 @@ public class ObjectTypeInspector {
 //				arrayType = TYPE_TREE;
 //			}
 			
-			arrayType = arrayElType.isArray() ? TYPE_ARRAY : TYPE_TREE;
+			arrayType = arrayElType.isArray() ? TYPE_ARRAY : TYPE_OBJECT;
 		}
 
 		model.networkType = TYPE_ARRAY;
@@ -108,18 +114,18 @@ public class ObjectTypeInspector {
 		return model;
 	}
 
-	private RegisteredModel findModel(final Class<?> type, RegisteredModel parent) {
+	private RegisteredModel findModel(final Class<?> type, ObjectModelNode parent) {
 		for (RegisteredModel registered : registeredModels) {
-			boolean sameParentModel = (parent == null && registered.parent == null)
-				|| (parent != null && parent.model.equals(registered.model));
+			boolean sameParentModel = (parent == null && registered.model.parent == null)
+				|| (parent != null && parent.equals(registered.model));
 			
 			if (registered.type.equals(type)) {
 				boolean isCyclicModel = false; 
 				
 				// go through parents models to find out a (indirect?) cyclic dependency
-				RegisteredModel par = parent;
+				ObjectModelNode par = parent;
 				while (par != null) {
-					if (par.model.equals(registered.model)) {
+					if (par.equals(registered.model)) {
 						isCyclicModel = true;
 					}
 					par = par.parent;
@@ -134,11 +140,10 @@ public class ObjectTypeInspector {
 		return null;
 	}
 
-	private RegisteredModel rememberType(Class<?> type, ObjectModelNode model, RegisteredModel parent) {
+	private RegisteredModel rememberType(Class<?> type, ObjectModelNode model) {
 		RegisteredModel newModel = new RegisteredModel();
 		newModel.type = type;
 		newModel.model = model;
-		newModel.parent = parent;
 		this.registeredModels.add(newModel);
 		return newModel;
 	}
