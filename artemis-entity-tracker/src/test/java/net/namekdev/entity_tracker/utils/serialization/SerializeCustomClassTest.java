@@ -307,8 +307,8 @@ public class SerializeCustomClassTest {
 		GameState gs = new GameState();
 		gs.objects = new GameObject[] { new GameObject(), new GameObject(), new GameObject() };
 		model = inspector.inspect(gs.getClass());
-		model.setValue(gs, new int[] { 0, 2, 0, 1 }/*gs.objects[2].pos.y*/, y);
-		assertEquals(y, gs.objects[2].pos.y, 0.01f);
+		model.setValue(gs, new int[] { 0, 2, 0, 0, 1 }/*gs.objects[2].pos.y*/, y);
+		assertEquals(y, gs.objects[2].pos.y, 0.000001f);
 	}
 	
 	@Test
@@ -362,6 +362,13 @@ public class SerializeCustomClassTest {
 	
 	@Test
 	public void inspect_indirectly_cyclic_class_in_array() {
+		CyclicClassIndirectly obj = new CyclicClassIndirectly();
+		obj.arr = new CyclicClassIndirectly.ArrayClass();
+		obj.arr.objs = new CyclicClassIndirectly[] {
+			obj
+		};
+		
+		serializer.addObject(obj);
 		// TODO
 		assert(false);
 	}

@@ -15,6 +15,8 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils;
  * independently of the array's content.</p>
  */
 public final class ObjectModelNode {
+	private final ObjectModelsCollection _models;
+	
 	public int id = -1;
 	public String name;
 
@@ -28,7 +30,8 @@ public final class ObjectModelNode {
 	public byte arrayType;
 	
 
-	public ObjectModelNode(int id, ObjectModelNode parent) {
+	public ObjectModelNode(ObjectModelsCollection models, int id, ObjectModelNode parent) {
+		this._models = models;
 		this.id = id;
 		this.parent = parent;
 	}
@@ -71,19 +74,40 @@ public final class ObjectModelNode {
 			}
 			else if (node.isArray()) {
 				Object[] array = (Object[]) targetObj;
+				
+				if (node.arrayType == TYPE_UNKNOWN) {
+					assert(pathIndex < treePath.length-1);
+					assert(node.children == null);
+					++pathIndex;
 
-				if (node.arrayType == TYPE_OBJECT) {
-					assert pathIndex < treePath.length;
-					targetObj = array[index];
-					index = treePath[++pathIndex];
-					node = node.children.get(index);
-					String fieldName = node.name;
-					targetObj = ReflectionUtils.getHiddenFieldValue(targetObj.getClass(), fieldName, targetObj);
+					Object arrayEl = array[pathIndex];
+					ObjectModelNode arrayElModel = _models.get(arrayEl.getClass());
+					
+					targetObj = arrayEl;
+					node = arrayElModel;
 				}
-				else {
-					assert pathIndex+1 < treePath.length;
+				else if (isSimpleType(node.arrayType)) {
+					assert(pathIndex == treePath.length-1);
+					++pathIndex;
+					
 					array[pathIndex] = value;
 				}
+				else {
+					throw new RuntimeException("unsupported operation");
+				}
+
+//				if (node.arrayType == TYPE_OBJECT || node.arrayType == TYPE_UNKNOWN) {
+//					assert pathIndex < treePath.length;
+//					targetObj = array[index];
+//					index = treePath[++pathIndex];
+//					node = node.children.get(index);
+//					String fieldName = node.name;
+//					targetObj = ReflectionUtils.getHiddenFieldValue(targetObj.getClass(), fieldName, targetObj);
+//				}
+//				else {
+//					assert pathIndex+1 < treePath.length;
+//					array[pathIndex] = value;
+//				}
 			}
 			else {
 				throw new RuntimeException("oops, logical error");

@@ -10,7 +10,29 @@ public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
 	private int _sourcePos, _sourceBeginPos;
 	
-	private ArrayList<ObjectModelNode> _models = new ArrayList<>();
+	private ObjectModelsCollection _models = new ObjectModelsCollection() {
+		private ArrayList<ObjectModelNode> models = new ArrayList<ObjectModelNode>();
+
+		@Override
+		public int size() {
+			return models.size();
+		}
+		
+		@Override
+		public ObjectModelNode get(int index) {
+			return models.get(index);
+		}
+		
+		@Override
+		public ObjectModelNode get(Class<?> type) {
+			throw new RuntimeException("deserializer doesn't provide inspection");
+		}
+		
+		@Override
+		public void add(ObjectModelNode model) {
+			models.add(model);
+		}
+	};
 
 
 	public NetworkDeserializer() {
@@ -220,7 +242,8 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	private ObjectModelNode readRawObjectDescription(ObjectModelNode parent) {
 		int modelId = readRawInt();
-		ObjectModelNode node = new ObjectModelNode(modelId, parent);
+		ObjectModelNode node = new ObjectModelNode(null, modelId, parent);
+		this._models.add(node);
 		node.name = readString();
 		byte nodeType = readRawByte();
 		node.networkType = nodeType;
