@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ARRAY;
+import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ENUM;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_FLOAT;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_OBJECT;
 import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_UNKNOWN;
@@ -312,7 +313,7 @@ public class SerializeCustomClassTest {
 	}
 	
 	@Test
-	public void inspect_enums() {
+	public void inspect_and_update_enum_fields() {
 		EnumTestClass obj = new EnumTestClass();
 		ObjectModelNode model = inspector.inspect(obj.getClass());
 		
@@ -323,6 +324,27 @@ public class SerializeCustomClassTest {
 		assertEquals(obj.getEnumValued(), TestEnum.First);
 		model.setValue(obj, new int[] { 1 }, newVal);
 		assertEquals(obj.getEnumValued(), newVal);
+	}
+	
+	@Test
+	public void inspect_enum_names() {
+		EnumTestClass obj = new EnumTestClass();
+		TestEnum possibleValues[] = TestEnum.class.getEnumConstants();
+		ObjectModelNode model = inspector.inspect(obj.getClass());
+		ObjectModelNode enumModel = model.children.elementAt(0);
+
+		assertEquals(TYPE_ENUM, enumModel.networkType);
+
+		for (int i = 0; i < possibleValues.length; ++i) {
+			// TODO this is a special case for enums, normally we don't do this.
+			// Is this gonna last or not?
+			// I think not. Probably, we'll need a global register for enums and simply reference it.
+			// TYPE_ENUM_DESCRIPTION will be needed then.
+//			ObjectModelNode val = enumModel.children.elementAt(i);
+//			assertEquals(possibleValues[i].name(), val.name);
+			
+			assert(false);
+		}
 	}
 	
 	@Test
