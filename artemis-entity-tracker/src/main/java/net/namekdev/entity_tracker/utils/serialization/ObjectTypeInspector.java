@@ -60,10 +60,10 @@ public class ObjectTypeInspector {
 	public ObjectModelNode inspect(Class<?> type) {
 		assert(NetworkSerialization.determineSimpleType(type) == TYPE_UNKNOWN);
 		
-		return inspectLevels(type, null, null);
+		return inspectLevels(type, null, null, null);
 	}
 
-	private ObjectModelNode inspectLevels(Class<?> type, Class<?> parentType, ObjectModelNode parentOfRoot) {
+	private ObjectModelNode inspectLevels(Class<?> type, Class<?> parentType, ObjectModelNode parentOfRoot, RegisteredModel parentRegisteredModel) {
 		RegisteredModel registeredModel = findModel(type, parentType, parentOfRoot);
 
 		if (registeredModel != null) {
@@ -79,7 +79,8 @@ public class ObjectTypeInspector {
 			model.networkType = TYPE_OBJECT;
 			model.children = new Vector<>(fields.length);
 		
-			root = rememberType(type, parentType, model, registeredModel).model;
+			registeredModel = rememberType(type, parentType, model, parentRegisteredModel);
+			root = registeredModel.model;
 	
 			for (Field field : fields) {
 				Class<?> fieldType = field.getType();
@@ -95,7 +96,7 @@ public class ObjectTypeInspector {
 						RegisteredModel registeredChildModel = findModel(fieldType, type, root);
 						
 						if (registeredChildModel == null) {
-							child = inspectLevels(fieldType, type, root);
+							child = inspectLevels(fieldType, type, root, registeredModel);
 						}
 						else {
 							child = new ObjectModelNode(registeredModelsAsCollection, ++lastId, root).copyFrom(
@@ -162,22 +163,10 @@ public class ObjectTypeInspector {
 
 			if (registered.type.equals(type)) {
 				boolean isCyclicModel = false; 
-				
+
 				RegisteredModel cur = findChildType(registered, type);
 				isCyclicModel = cur != null;
 
-				// TODO this code below searches UP but probably should be searching down to check if this type is a parent of potential parentType (???)
-				//  but top-down would be much less efficient due to BFS algorithm. 
-				
-				// go through parents models to find out a (indirect?) cyclic dependency
-//				RegisteredModel par = registered.parent;
-//				while (par != null) {
-//					if (par.equals(registered)) {
-//						isCyclicModel = true;
-//					}
-//					par = par.parent;
-//				}
-				
 				if (sameParentModel || isCyclicModel) {
 					return registered;
 				}

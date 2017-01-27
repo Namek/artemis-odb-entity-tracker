@@ -377,9 +377,13 @@ public class SerializeCustomClassTest {
 		obj.obj.obj.obj = new CyclicClassIndirectly.OtherClass();
 		
 		ObjectModelNode model = inspector.inspect(obj.getClass());
-		assertEquals(1, model.children.size());
+		assertEquals(2, model.children.size());
 		ObjectModelNode fieldModel = model.children.elementAt(0);
 		assertEquals(model.id, fieldModel.children.elementAt(0).id);
+
+//		assert(fieldModel.children.elementAt(0).isCyclic);
+		// TODO instead of isCyclic field,
+		// it would be best to introduce a TYPE_CYCLIC_REF or just TYPE_REF?
 	}
 	
 	@Test
