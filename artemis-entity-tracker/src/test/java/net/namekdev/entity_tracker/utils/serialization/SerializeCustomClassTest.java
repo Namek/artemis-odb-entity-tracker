@@ -366,7 +366,7 @@ public class SerializeCustomClassTest {
 		obj.other = new CyclicClass();
 		obj.other.other = obj;
 		
-		ObjectModelNode model = inspector.inspect(obj.getClass());	
+		ObjectModelNode model = inspector.inspect(obj.getClass());
 	}
 	
 	@Test
@@ -380,10 +380,6 @@ public class SerializeCustomClassTest {
 		assertEquals(2, model.children.size());
 		ObjectModelNode fieldModel = model.children.elementAt(0);
 		assertEquals(model.id, fieldModel.children.elementAt(0).id);
-
-//		assert(fieldModel.children.elementAt(0).isCyclic);
-		// TODO instead of isCyclic field,
-		// it would be best to introduce a TYPE_CYCLIC_REF or just TYPE_REF?
 	}
 	
 	@Test
@@ -394,9 +390,13 @@ public class SerializeCustomClassTest {
 			obj
 		};
 		
-		serializer.addObject(obj);
-		// TODO
-		assert(false);
+		ObjectModelNode model = inspector.inspect(obj.getClass());
+		assertEquals(2, model.children.size());
+		ObjectModelNode arrFieldModel = model.children.elementAt(1);
+		ObjectModelNode objsFieldModel = arrFieldModel.children.elementAt(0);
+		assert(objsFieldModel.isArray());
+		assertNotEquals(model.id, objsFieldModel.id);
+		assertEquals(model.id, objsFieldModel.arrayType);
 	}
 	
 	@Test
