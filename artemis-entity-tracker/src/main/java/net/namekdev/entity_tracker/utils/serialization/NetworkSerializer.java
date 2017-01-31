@@ -368,7 +368,10 @@ public class NetworkSerializer extends NetworkSerialization {
 	protected void addRawObject(ObjectModelNode model, Object object) {
 		final boolean isArray = model.isArray();
 
-		if (!isArray && model.children != null) {
+		if (tryAddNullable(object)) {
+			// well, null is added here.
+		}
+		else if (!isArray && model.children != null) {
 			addRawByte(TYPE_OBJECT);
 			int n = model.children.size();
 
