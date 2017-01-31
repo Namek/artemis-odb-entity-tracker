@@ -367,6 +367,9 @@ public class SerializeCustomClassTest {
 		obj.other.other = obj;
 		
 		ObjectModelNode model = inspector.inspect(obj.getClass());
+		assertEquals(2, model.children.size());
+		assertEquals(model.id, model.children.elementAt(0).id);
+		assert(model != model.children.elementAt(0));
 	}
 	
 	@Test
