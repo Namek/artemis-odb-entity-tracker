@@ -8,8 +8,14 @@ public class EnumTestClass {
 	}
 	
 	
-	TestEnum enumUndefined;
+	TestEnum enumUndefined = null;
 	TestEnum enumValued = TestEnum.First;
+
+	TestEnum[] enums = new TestEnum[] {
+		TestEnum.First,
+		TestEnum.Second,
+		TestEnum.Third
+	};
 
 	public Object getEnumUndefined() {
 		return enumUndefined;

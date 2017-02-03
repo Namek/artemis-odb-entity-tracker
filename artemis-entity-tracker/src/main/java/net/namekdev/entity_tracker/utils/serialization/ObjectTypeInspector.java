@@ -53,12 +53,22 @@ public class ObjectTypeInspector {
 		return model != null ? model.model : null;
 	}
 	
+	public ObjectModelNode getModelById(int id) {
+		for (RegisteredModel model : registeredModels) {
+			if (model.model.id == id) {
+				return model.model;
+			}
+		}
+		
+		return null;
+	}
+	
 	
 	/**
 	 * Returns tree description of class type.
 	 */
 	public ObjectModelNode inspect(Class<?> type) {
-		assert(NetworkSerialization.determineSimpleType(type) == TYPE_UNKNOWN);
+		assert(NetworkSerialization.determineType(type) == TYPE_UNKNOWN);
 		
 		return inspectLevels(type, null, null, null);
 	}
@@ -87,10 +97,10 @@ public class ObjectTypeInspector {
 				ObjectModelNode child = null;
 	
 				if (fieldType.isArray()) {
-					child = inspectArrayType(fieldType, root);
+					child = inspectArrayType(fieldType, type, parentRegisteredModel);
 				}
 				else {
-					byte networkType = NetworkSerialization.determineSimpleType(fieldType);
+					byte networkType = NetworkSerialization.determineType(fieldType);
 	
 					if (networkType == TYPE_UNKNOWN) {
 						RegisteredModel registeredChildModel = findModel(fieldType, type, root);
@@ -103,13 +113,9 @@ public class ObjectTypeInspector {
 								registeredChildModel.model
 							);
 						}
-						
-						
-						// TODO handle the case when there are two cyclic fields of different names?
-//						child = new ObjectModelNode(++lastId, root);
-//						child.copyFrom(
-//							inspectLevels(fieldType, type, root)
-//						);
+					}
+					else if (networkType == TYPE_ENUM) {
+						 child = inspectEnum((Class<Enum>) fieldType, type, registeredModel);
 					}
 					else {
 						child = new ObjectModelNode(registeredModelsAsCollection, ++lastId, root);
@@ -127,20 +133,28 @@ public class ObjectTypeInspector {
 			return model;
 		}
 		else {
-			return inspectArrayType(type, parentOfRoot);
+			return inspectArrayType(type, parentType, parentRegisteredModel);
 		}
 	}
 
-	private ObjectModelNode inspectArrayType(Class<?> fieldType, ObjectModelNode parent) {
-		ObjectModelNode model = new ObjectModelNode(registeredModelsAsCollection, ++lastId, parent);
-		// TODO rememberType here ? or maybe if arrayElType == TYPE_TREE
+	private ObjectModelNode inspectArrayType(Class<?> fieldType, Class<?> parentType, RegisteredModel parentRegisteredModel) {
+		ObjectModelNode model = new ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel != null ? parentRegisteredModel.model : null);
+		RegisteredModel registeredModel = rememberType(fieldType, parentType, model, parentRegisteredModel);
 		
 		Class<?> arrayElType = fieldType.getComponentType();
-		byte arrayType = determineSimpleType(arrayElType);
+		byte arrayType = determineType(arrayElType);
 
 		
+		if (arrayType == TYPE_ENUM) {
+			// TODO!
+//			throw new RuntimeException("TODO array of enums");
+			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
+			model.children = new Vector<>(1);
+			model.children.addElement(enumFieldModel);
+		}
+		
 		// TODO probably that should inspect deeper anyway!
-		if (!(arrayElType instanceof Object) && !isSimpleType(arrayType)) {
+		else if (!(arrayElType instanceof Object) && !isSimpleType(arrayType)) {
 //			model = inspectLevels(arrayElType, root);
 //
 //			if (model.networkType == TYPE_TREE) {
@@ -151,17 +165,57 @@ public class ObjectTypeInspector {
 		}
 
 		model.networkType = TYPE_ARRAY;
-		model.arrayType = arrayType;
+		model.childType = arrayType;
 
 		return model;
 	}
+	
+	private ObjectModelNode inspectEnum(final Class<Enum> enumType, final Class<?> parentType, final RegisteredModel parentRegisteredModel) {
+		// algorithm: will create enum field definition anyway,
+		// but first check if there is a need to create a model for enum type (list of possible values) 
 
-	private RegisteredModel findModel(final Class<?> type, final Class<?> parentType, ObjectModelNode parent) {
+		RegisteredModel registeredEnumTypeModel = findModel(enumType, null, null);
+		
+		if (registeredEnumTypeModel == null) {
+			ObjectModelNode enumTypeModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, null);
+			enumTypeModel.networkType = TYPE_ENUM_DESCRIPTION;
+			enumTypeModel.name = enumType.getSimpleName();
+			
+			Enum<?>[] possibleValues = enumType.getEnumConstants();
+			enumTypeModel.children = new Vector<>(possibleValues.length);
+			registeredEnumTypeModel = rememberType(enumType, null, enumTypeModel, null);
+			
+			for (int i = 0; i < possibleValues.length; ++i) {
+				ObjectModelNode enumValueModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, enumTypeModel);
+				Enum<?> val = possibleValues[i];
+				
+				// Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
+				enumValueModel.networkType = (byte) val.ordinal();
+				enumValueModel.name = val.name();
+				enumTypeModel.children.addElement(enumValueModel);
+				
+				rememberType(null, enumType, enumValueModel, registeredEnumTypeModel);
+			}
+		}
+		
+		ObjectModelNode enumFieldModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model);
+		enumFieldModel.networkType = TYPE_ENUM;
+		
+		ObjectModelNode enumModelRef = new ObjectModelNode(registeredModelsAsCollection, registeredEnumTypeModel.model.id, enumFieldModel);
+		enumFieldModel.children = new Vector<>(1);
+		enumFieldModel.children.addElement(enumModelRef);
+		
+		rememberType(enumType, parentType, enumFieldModel, parentRegisteredModel);
+		
+		return enumFieldModel;
+	}
+
+	private RegisteredModel findModel(final Class<?> type, final Class<?> parentType, final ObjectModelNode parent) {
 		for (RegisteredModel registered : registeredModels) {
 			boolean sameParentModel = (parent == null && registered.model.parent == null)
 				|| (parent != null && parent.equals(registered.model));
 
-			if (registered.type.equals(type)) {
+			if (registered.type != null && registered.type.equals(type) || registered.type == null && type == null) {
 				boolean isCyclicModel = false; 
 
 				RegisteredModel cur = findChildType(registered, type);

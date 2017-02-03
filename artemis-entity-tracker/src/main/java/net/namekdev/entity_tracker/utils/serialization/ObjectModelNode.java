@@ -27,7 +27,7 @@ public final class ObjectModelNode {
 	public ObjectModelNode parent;
 
 	public byte networkType;
-	public byte arrayType;
+	public byte childType; //arrayType
 	
 
 	public ObjectModelNode(ObjectModelsCollection models, int id, ObjectModelNode parent) {
@@ -37,16 +37,38 @@ public final class ObjectModelNode {
 	}
 
 	public boolean isLeaf() {
-		return !isArray() && children == null && networkType != TYPE_OBJECT;
+		return !isArray() && networkType != TYPE_OBJECT;
 	}
 	
 	public boolean isArray() {
 		return networkType == TYPE_ARRAY;
 	}
+	
+	public boolean isEnum() {
+		return networkType == TYPE_ENUM;
+	}
+	
+	public byte arrayType() {
+		if (!isArray()) {
+			throw new RuntimeException("this is not array!");
+		}
+		
+		return childType;
+	}
+	
+	public int enumModelId() {
+		if (!isEnum()) {
+			throw new RuntimeException("this is not enum field!");
+		}
+		
+		return children.elementAt(0).id;
+	}
 
 	public void setValue(Object targetObj, int[] treePath, Object value) {
 		assert treePath != null && treePath.length >= 1;
-		assert value == null || isSimpleType(determineSimpleType(value.getClass()));
+		
+		Class<?> valueType = value.getClass();
+		assert value == null || isSimpleType(determineType(valueType)) || valueType.isEnum();
 
 		int pathIndex = 0;
 		ObjectModelNode node = this;
@@ -65,7 +87,7 @@ public final class ObjectModelNode {
 					targetObj = ReflectionUtils.getHiddenFieldValue(targetObj.getClass(), fieldName, targetObj);
 				}
 			}
-			else if (isSimpleType(node.networkType)) {
+			else if (isSimpleType(node.networkType) || node.isEnum()) {
 				node = node.children.get(index);
 				assert node.isLeaf();
 
@@ -74,8 +96,9 @@ public final class ObjectModelNode {
 			}
 			else if (node.isArray()) {
 				Object[] array = (Object[]) targetObj;
+				byte arrayType = node.arrayType();
 				
-				if (node.arrayType == TYPE_UNKNOWN) {
+				if (arrayType == TYPE_UNKNOWN) {
 					assert(pathIndex < treePath.length-1);
 					assert(node.children == null);
 					++pathIndex;
@@ -86,7 +109,7 @@ public final class ObjectModelNode {
 					targetObj = arrayEl;
 					node = arrayElModel;
 				}
-				else if (isSimpleType(node.arrayType)) {
+				else if (isSimpleType(arrayType)) {
 					assert(pathIndex == treePath.length-1);
 					++pathIndex;
 					
@@ -168,7 +191,7 @@ public final class ObjectModelNode {
 		this.id = other.id;
 		this.name = other.name;
 		this.networkType = other.networkType;
-		this.arrayType = other.arrayType;
+		this.childType = other.childType;
 		this.children = new Vector<ObjectModelNode>(other.children);
 		return this;
 	}

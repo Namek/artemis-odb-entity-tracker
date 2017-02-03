@@ -233,14 +233,14 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 	}
 
-	public ObjectModelNode readObjectDescription() {
+	public ObjectModelNode readDataDescription() {
 		checkType(TYPE_DESCRIPTION);
-		ObjectModelNode root = readRawObjectDescription(null);
+		ObjectModelNode root = readRawDataDescription(null);
 
 		return root;
 	}
 
-	private ObjectModelNode readRawObjectDescription(ObjectModelNode parent) {
+	private ObjectModelNode readRawDataDescription(ObjectModelNode parent) {
 		int modelId = readRawInt();
 		ObjectModelNode node = new ObjectModelNode(null, modelId, parent);
 		this._models.add(node);
@@ -253,12 +253,23 @@ public class NetworkDeserializer extends NetworkSerialization {
 			node.children = new Vector<>(n);
 
 			for (int i = 0; i < n; ++i) {
-				ObjectModelNode child = readRawObjectDescription(node);
+				ObjectModelNode child = readRawDataDescription(node);
 				node.children.addElement(child);
 			}
 		}
 		else if (nodeType == TYPE_ARRAY) {
-			node.arrayType = readRawByte();
+			node.childType = readRawByte();
+		}
+		else if (nodeType == TYPE_ENUM) {
+			int enumModelId = readRawInt();
+			ObjectModelNode enumModelRef = new ObjectModelNode(null, enumModelId, node);
+			node.children = new Vector<>(1);
+			node.children.addElement(enumModelRef);
+			this._models.add(enumModelRef);
+		}
+		else if (nodeType == TYPE_ENUM_DESCRIPTION) {
+			// TODO TYPE_ENUM_DESCRIPTION
+			throw new RuntimeException("TODO: TYPE_ENUM_DESCRIPTION");
 		}
 		else if (!isSimpleType(nodeType)) {
 			throw new RuntimeException("unsupported type: " + nodeType);
@@ -274,12 +285,12 @@ public class NetworkDeserializer extends NetworkSerialization {
 		ObjectModelNode rootModel = null;
 		
 		if (descrCount > 0) {
-			rootModel = readObjectDescription();
+			rootModel = readDataDescription();
 			_models.add(rootModel);
 			
 			ObjectModelNode previousModel = rootModel;
 			for (int i = 0; i < descrCount-1; ++i) {
-				ObjectModelNode model = readObjectDescription();
+				ObjectModelNode model = readDataDescription();
 				model.parent = previousModel; // TODO is that right???
 	
 				_models.add(model);
@@ -337,24 +348,30 @@ public class NetworkDeserializer extends NetworkSerialization {
 			return value;
 		}
 		else if (isArray) {
-			int n = beginArray(model.arrayType);
+			byte arrayType = model.arrayType();
+			int n = beginArray(arrayType);
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;
 
-			if (model.arrayType == TYPE_UNKNOWN) {
+			if (arrayType == TYPE_UNKNOWN) {
 				for (int i = 0; i < n; ++i) {
 					ValueTree val = readObject();
 					val.parent = tree;
 					tree.values[i] = val;
 				}
 			}
-			else if (isSimpleType(model.arrayType)) {
+			else if (isSimpleType(arrayType)) {
 				for (int i = 0; i < n; ++i) {
-					tree.values[i] = readRawByType(model.arrayType);
+					tree.values[i] = readRawByType(arrayType);
+				}
+			}
+			else if (model.isEnum()) {
+				for (int i = 0; i < n; ++i) {
+					tree.values[i] = readRawInt();
 				}
 			}
 			else {
-				throw new RuntimeException("unsupported array type: " + model.arrayType);
+				throw new RuntimeException("unsupported array type: " + arrayType);
 			}
 
 			if (joinModelToData) {

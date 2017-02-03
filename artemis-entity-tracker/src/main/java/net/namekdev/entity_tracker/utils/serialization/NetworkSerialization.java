@@ -6,10 +6,12 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_UNKNOWN = 1;
 	protected final static byte TYPE_NULL = 3;
 	public final static byte TYPE_ARRAY = 4;
-	public final static byte TYPE_DESCRIPTION = 6;
-	public final static byte TYPE_MULTIPLE_DESCRIPTIONS = 7;
-	public final static byte TYPE_DESCRIPTION_REF = 8;
-	public final static byte TYPE_OBJECT = 9;
+	public final static byte TYPE_DESCRIPTION = 5;
+	public final static byte TYPE_MULTIPLE_DESCRIPTIONS = 6;
+	public final static byte TYPE_DESCRIPTION_REF = 7;
+	public final static byte TYPE_OBJECT = 8;
+	public final static byte TYPE_ENUM = 9;
+	public final static byte TYPE_ENUM_DESCRIPTION = 10;
 
 	public final static byte TYPE_BYTE = 10;
 	public final static byte TYPE_SHORT = 11;
@@ -19,7 +21,6 @@ public abstract class NetworkSerialization {
 	public final static byte TYPE_BOOLEAN = 15;//takes 1 byte
 	public final static byte TYPE_FLOAT = 16;
 	public final static byte TYPE_DOUBLE = 17;
-	public final static byte TYPE_ENUM = 18;
 	public final static byte TYPE_BITVECTOR = 20;//takes minimum 4 bytes
 
 
@@ -31,7 +32,7 @@ public abstract class NetworkSerialization {
 		return new NetworkDeserializer();
 	}
 
-	public static byte determineSimpleType(Class<?> type) {
+	public static byte determineType(Class<?> type) {
 		byte netType = TYPE_UNKNOWN;
 
 		if (type.equals(byte.class) || type.equals(Byte.class)) {
@@ -95,7 +96,6 @@ public abstract class NetworkSerialization {
 			case TYPE_BOOLEAN: return true;
 			case TYPE_FLOAT: return true;
 			case TYPE_DOUBLE: return true;
-			case TYPE_ENUM: return true;
 			case TYPE_BITVECTOR: return true;
 			default: return false;
 		}

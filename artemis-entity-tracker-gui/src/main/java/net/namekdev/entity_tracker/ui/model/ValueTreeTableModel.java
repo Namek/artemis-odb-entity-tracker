@@ -51,7 +51,7 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 			return tree.parent.model.children.size();
 		}
 
-		if (model.isArray) {
+		if (model.isArray()) {
 			return tree.values.length;
 		}
 
@@ -77,7 +77,7 @@ public class ValueTreeTableModel implements TreeTableModel, ICellClassGetter, IS
 		else {
 			assert tree.parent != null;
 
-			if (tree.parent.model.isArray) {
+			if (tree.parent.model.isArray()) {
 				return null;
 			}
 			else {

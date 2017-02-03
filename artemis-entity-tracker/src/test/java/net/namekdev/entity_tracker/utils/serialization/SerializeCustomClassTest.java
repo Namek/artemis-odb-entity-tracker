@@ -189,13 +189,13 @@ public class SerializeCustomClassTest {
 		Vector3 vector = new Vector3(4, 5, 6);
 		ObjectModelNode model = inspector.inspect(vector.getClass());
 
-		serializer.addObjectDescription(model);
+		serializer.addDataDescription(model);
 		serializer.addObject(model, vector);
 
 		byte[] buffer = serializer.getResult().buffer;
 		deserializer.setSource(buffer, 0, serializer.getResult().size);
 
-		ObjectModelNode model2 = deserializer.readObjectDescription();
+		ObjectModelNode model2 = deserializer.readDataDescription();
 		assertEquals(model, model2);
 
 		ValueTree result = deserializer.readObject(model2);
@@ -218,11 +218,11 @@ public class SerializeCustomClassTest {
 	private void testArray(Object[] arr, ObjectTypeInspector inspector) {
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(arr.getClass());
-		serializer.addObjectDescription(model);
+		serializer.addDataDescription(model);
 		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
-		ObjectModelNode model2 = deserializer.readObjectDescription();
+		ObjectModelNode model2 = deserializer.readDataDescription();
 		assertEquals(model, model2);
 	}
 
@@ -238,13 +238,13 @@ public class SerializeCustomClassTest {
 		ObjectModelNode model = inspector.inspect(GameState.class);
 
 
-		serializer.addObjectDescription(model);
+		serializer.addDataDescription(model);
 		serializer.addObject(model, gameState);
 
 		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
-		ObjectModelNode model2 = deserializer.readObjectDescription();
+		ObjectModelNode model2 = deserializer.readDataDescription();
 		assertEquals(model, model2);
 
 		ValueTree result = deserializer.readObject(model2, true);
@@ -319,31 +319,42 @@ public class SerializeCustomClassTest {
 		
 		TestEnum newVal = TestEnum.Third;
 		model.setValue(obj, new int[] { 0 }, newVal);
-		assertEquals(obj.getEnumUndefined(), newVal);
+		assertEquals(newVal, obj.getEnumUndefined());
 		
-		assertEquals(obj.getEnumValued(), TestEnum.First);
+		assertEquals(TestEnum.First, obj.getEnumValued());
 		model.setValue(obj, new int[] { 1 }, newVal);
-		assertEquals(obj.getEnumValued(), newVal);
+		assertEquals(newVal, obj.getEnumValued());
 	}
 	
 	@Test
-	public void inspect_enum_names() {
+	public void inspect_names_of_enum_fields() {
 		EnumTestClass obj = new EnumTestClass();
-		TestEnum possibleValues[] = TestEnum.class.getEnumConstants();
 		ObjectModelNode model = inspector.inspect(obj.getClass());
-		ObjectModelNode enumModel = model.children.elementAt(0);
+		ObjectModelNode enumFieldModel = model.children.elementAt(1);
+		ObjectModelNode enumArrayFieldModel = model.children.elementAt(2);
+		
+		// check valued field
+		checkEnumFieldInspection(enumFieldModel);
 
-		assertEquals(TYPE_ENUM, enumModel.networkType);
-
+		// check array field
+		assert(enumArrayFieldModel.isArray());
+		assertEquals(TYPE_ENUM, enumArrayFieldModel.arrayType());
+		checkEnumFieldInspection(enumArrayFieldModel.children.elementAt(0)); 
+	}
+	
+	private void checkEnumFieldInspection(ObjectModelNode enumFieldModel) {
+		TestEnum possibleValues[] = TestEnum.class.getEnumConstants();
+		
+		assertEquals(TYPE_ENUM, enumFieldModel.networkType);
+		ObjectModelNode enumDescrModel = inspector.getModelById(enumFieldModel.enumModelId());
+		assertEquals(TestEnum.class.getSimpleName(), enumDescrModel.name);
+		
+		assertEquals(possibleValues.length, enumDescrModel.children.size());
 		for (int i = 0; i < possibleValues.length; ++i) {
-			// TODO this is a special case for enums, normally we don't do this.
-			// Is this gonna last or not?
-			// I think not. Probably, we'll need a global register for enums and simply reference it.
-			// TYPE_ENUM_DESCRIPTION will be needed then.
-//			ObjectModelNode val = enumModel.children.elementAt(i);
-//			assertEquals(possibleValues[i].name(), val.name);
-			
-			assert(false);
+			ObjectModelNode valModel = enumDescrModel.children.elementAt(i);
+			TestEnum val = possibleValues[i];
+			assertEquals(val.name(), valModel.name);
+			assertEquals(val.ordinal(), valModel.networkType);
 		}
 	}
 	
@@ -399,7 +410,7 @@ public class SerializeCustomClassTest {
 		ObjectModelNode objsFieldModel = arrFieldModel.children.elementAt(0);
 		assert(objsFieldModel.isArray());
 		assertNotEquals(model.id, objsFieldModel.id);
-		assertEquals(model.id, objsFieldModel.arrayType);
+		assertEquals(model.id, objsFieldModel.arrayType());
 	}
 	
 	@Test
@@ -448,7 +459,7 @@ public class SerializeCustomClassTest {
 		ObjectModelNode model = inspector.inspect(array.getClass());
 		assert(model.isArray());
 		assertEquals(null, model.children);
-		assertEquals(TYPE_UNKNOWN, model.arrayType);
+		assertEquals(TYPE_UNKNOWN, model.arrayType());
 		
 		
 		// Vector2

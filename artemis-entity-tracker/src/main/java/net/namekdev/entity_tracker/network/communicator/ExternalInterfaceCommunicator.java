@@ -69,7 +69,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 
 				ComponentTypeInfo info = new ComponentTypeInfo(name);
 				info.index = index;
-				info.model = _deserializer.readObjectDescription();
+				info.model = _deserializer.readDataDescription();
 				_componentTypes.set(index, info);
 
 				_listener.addedComponentType(index, info);

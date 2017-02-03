@@ -257,43 +257,64 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
-	public NetworkSerializer addObjectDescription(ObjectModelNode model) {
+	public NetworkSerializer addDataDescription(ObjectModelNode model) {
 		_buffer[_pos++] = TYPE_DESCRIPTION;
-		addRawObjectDescription(model);
+		addRawDataDescription(model);
 
 		return this;
 	}
 
-	private void addRawObjectDescription(ObjectModelNode model) {
+	private void addRawDataDescription(ObjectModelNode model) {
 		addRawInt(model.id);
 		addString(model.name);
 
 		if (model.children != null) {
 			addRawByte(TYPE_OBJECT);
 
-			if (model.networkType == TYPE_OBJECT || model.arrayType == TYPE_UNKNOWN) {
+			if (model.networkType == TYPE_OBJECT || model.arrayType() == TYPE_UNKNOWN) {
 				int n = model.children.size();
 				addRawInt(n);
 
 				for (int i = 0; i < n; ++i) {
 					ObjectModelNode node = model.children.get(i);
-					addRawObjectDescription(node);
+					addRawDataDescription(node);
 				}
 			}
 		}
 		else if (isSimpleType(model.networkType)) {
 			addRawByte(model.networkType);
 		}
-		else if (model.isArray()) {
-			addRawByte(TYPE_ARRAY);
-			addRawByte(model.arrayType);
+		else if (model.isEnum()) {
+			addRawByte(TYPE_ENUM);
+			addRawInt(model.enumModelId());
+		}
+		else if (model.networkType == TYPE_ENUM_DESCRIPTION) {
+			// TODO is it alright?!?!
+			
+			addRawByte(TYPE_ENUM_DESCRIPTION);
+			
+			int enumModelId = model.id;
+			addRawInt(enumModelId);
 
-			if (model.arrayType != TYPE_OBJECT && !isSimpleType(model.arrayType)) {
-				if (model.arrayType == TYPE_UNKNOWN) {
+			addRawInt(model.children.size());
+			
+			for (ObjectModelNode enumValueModel : model.children) {
+				addRawInt(enumValueModel.id);
+				addRawInt(enumValueModel.networkType); // this is enum's value
+				addString(enumValueModel.name);
+			}
+		}
+		else if (model.isArray()) {
+			byte arrayType = model.arrayType();
+			addRawByte(TYPE_ARRAY);
+			addRawByte(arrayType);
+
+			if (arrayType != TYPE_OBJECT && !isSimpleType(arrayType)) {
+				if (arrayType == TYPE_UNKNOWN) {
 					// TODO ? model id
 				}
 				else {
-					throw new RuntimeException("unsupported array type: " + model.arrayType);
+					throw new RuntimeException("unsupported array type: " + arrayType);
 				}
 			}
 		}
@@ -322,7 +343,7 @@ public class NetworkSerializer extends NetworkSerialization {
 		
 		if (diff > 0) {
 			for (int i = previousInspectionCount; i < inspectionCount; ++i) {
-				addObjectDescription(
+				addDataDescription(
 					inspector.getRegisteredModelByIndex(i)
 				);
 			}
@@ -333,6 +354,8 @@ public class NetworkSerializer extends NetworkSerialization {
 			addRawInt(model.id);
 		}
 
+		// Note: even though we have inspected as much as we could up to this point,
+		// there could be added more types because of Object Arrays.
 		addObject(model, obj);
 		
 		return this;
@@ -386,35 +409,30 @@ public class NetworkSerializer extends NetworkSerialization {
 			addRawByType(model.networkType, object);
 		}
 		else if (isArray) {
+			// TODO probably this case will be moved to `addArray()`
+			
 			Object[] array = (Object[]) object;
-
 			int n = array.length;
-			beginArray(model.arrayType, n);
+			byte arrayType = model.arrayType();
+			beginArray(arrayType, n);
 
-			if (model.arrayType == TYPE_UNKNOWN) {
+			if (arrayType == TYPE_UNKNOWN) {
 				for (int i = 0; i < n; ++i) {
 					addObject(array[i]);
 				}
 			}
-			/*if (model.arrayType == TYPE_OBJECT || model.arrayType == TYPE_UNKNOWN) {
-				int fieldCount = model.children.size();
-
+			else if (isSimpleType(arrayType)) {
 				for (int i = 0; i < n; ++i) {
-					for (int j = 0; j < fieldCount; ++j) {
-						ObjectModelNode field = model.children.get(j);
-						Object fieldValue = ReflectionUtils.getHiddenFieldValue(array[i].getClass(), field.name, array[i]);
-
-						addRawObject(field, fieldValue);
-					}
+					addRawByType(arrayType, array[i]);
 				}
-			}*/
-			else if (isSimpleType(model.arrayType)) {
+			}
+			else if (model.isEnum()) {
 				for (int i = 0; i < n; ++i) {
-					addRawByType(model.arrayType, array[i]);
+					addRawInt((int)array[i]);
 				}
 			}
 			else {
-				throw new RuntimeException("unsupported array type: " + model.arrayType);
+				throw new RuntimeException("unsupported array type: " + arrayType);
 			}
 		}
 		else {

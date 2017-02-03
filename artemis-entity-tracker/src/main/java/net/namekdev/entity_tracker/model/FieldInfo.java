@@ -28,7 +28,7 @@ public class FieldInfo {
 		info.fieldName = field.getName();
 		info.classType = type.getSimpleName();
 		info.isArray = type.isArray();
-		info.valueType = NetworkSerialization.determineSimpleType(type);
+		info.valueType = NetworkSerialization.determineType(type);
 
 		return info;
 	}
