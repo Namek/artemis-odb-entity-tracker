@@ -45,7 +45,7 @@ public class EntityTrackerCommunicator extends Communicator implements WorldUpda
 				int componentIndex = _deserializer.readInt();
 				Object value = _deserializer.readSomething(true);
 
-				int size = _deserializer.beginArray(TYPE_INT);
+				int size = _deserializer.beginArray(Type.Int);
 				int[] treePath = new int[] { size };
 
 				for (int i = 0; i < size; ++i) {

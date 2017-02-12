@@ -68,7 +68,7 @@ public class ObjectTypeInspector {
 	 * Returns tree description of class type.
 	 */
 	public ObjectModelNode inspect(Class<?> type) {
-		assert(NetworkSerialization.determineType(type) == TYPE_UNKNOWN);
+		assert(NetworkSerialization.determineType(type) == Type.Unknown);
 		
 		return inspectLevels(type, null, null, null);
 	}
@@ -86,7 +86,7 @@ public class ObjectTypeInspector {
 			Field[] fields = ClassReflection.getDeclaredFields(type);
 	
 			ObjectModelNode model = new ObjectModelNode(registeredModelsAsCollection, ++lastId, root);
-			model.networkType = TYPE_OBJECT;
+			model.networkType = Type.Object;
 			model.children = new Vector<>(fields.length);
 		
 			registeredModel = rememberType(type, parentType, model, parentRegisteredModel);
@@ -97,12 +97,12 @@ public class ObjectTypeInspector {
 				ObjectModelNode child = null;
 	
 				if (fieldType.isArray()) {
-					child = inspectArrayType(fieldType, type, parentRegisteredModel);
+					child = inspectArrayType(fieldType, type, registeredModel);
 				}
 				else {
-					byte networkType = NetworkSerialization.determineType(fieldType);
+					Type networkType = NetworkSerialization.determineType(fieldType);
 	
-					if (networkType == TYPE_UNKNOWN) {
+					if (networkType == Type.Unknown) {
 						RegisteredModel registeredChildModel = findModel(fieldType, type, root);
 						
 						if (registeredChildModel == null) {
@@ -114,7 +114,7 @@ public class ObjectTypeInspector {
 							);
 						}
 					}
-					else if (networkType == TYPE_ENUM) {
+					else if (networkType == Type.Enum) {
 						 child = inspectEnum((Class<Enum>) fieldType, type, registeredModel);
 					}
 					else {
@@ -142,10 +142,10 @@ public class ObjectTypeInspector {
 		RegisteredModel registeredModel = rememberType(fieldType, parentType, model, parentRegisteredModel);
 		
 		Class<?> arrayElType = fieldType.getComponentType();
-		byte arrayType = determineType(arrayElType);
+		Type arrayType = determineType(arrayElType);
 
 		
-		if (arrayType == TYPE_ENUM) {
+		if (arrayType == Type.Enum) {
 			// TODO!
 //			throw new RuntimeException("TODO array of enums");
 			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
@@ -154,18 +154,18 @@ public class ObjectTypeInspector {
 		}
 		
 		// TODO probably that should inspect deeper anyway!
-		else if (!(arrayElType instanceof Object) && !isSimpleType(arrayType)) {
+		else if (!isSimpleType(arrayType)) {
 //			model = inspectLevels(arrayElType, root);
 //
 //			if (model.networkType == TYPE_TREE) {
 //				arrayType = TYPE_TREE;
 //			}
 			
-			arrayType = arrayElType.isArray() ? TYPE_ARRAY : TYPE_OBJECT;
+			arrayType = arrayElType.isArray() ? Type.Array : Type.Object;
 		}
 
-		model.networkType = TYPE_ARRAY;
-		model.childType = arrayType;
+		model.networkType = Type.Array;
+		model.childType = (short) arrayType.ordinal();
 
 		return model;
 	}
@@ -178,7 +178,7 @@ public class ObjectTypeInspector {
 		
 		if (registeredEnumTypeModel == null) {
 			ObjectModelNode enumTypeModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, null);
-			enumTypeModel.networkType = TYPE_ENUM_DESCRIPTION;
+			enumTypeModel.networkType = Type.EnumDescription;
 			enumTypeModel.name = enumType.getSimpleName();
 			
 			Enum<?>[] possibleValues = enumType.getEnumConstants();
@@ -190,7 +190,7 @@ public class ObjectTypeInspector {
 				Enum<?> val = possibleValues[i];
 				
 				// Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
-				enumValueModel.networkType = (byte) val.ordinal();
+				enumValueModel.childType = (short) val.ordinal();
 				enumValueModel.name = val.name();
 				enumTypeModel.children.addElement(enumValueModel);
 				
@@ -199,7 +199,7 @@ public class ObjectTypeInspector {
 		}
 		
 		ObjectModelNode enumFieldModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model);
-		enumFieldModel.networkType = TYPE_ENUM;
+		enumFieldModel.networkType = Type.Enum;
 		
 		ObjectModelNode enumModelRef = new ObjectModelNode(registeredModelsAsCollection, registeredEnumTypeModel.model.id, enumFieldModel);
 		enumFieldModel.children = new Vector<>(1);

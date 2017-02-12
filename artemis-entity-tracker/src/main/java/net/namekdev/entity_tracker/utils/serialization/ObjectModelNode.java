@@ -26,8 +26,8 @@ public final class ObjectModelNode {
 	// when it's null it defines a class, otherwise it's field
 	public ObjectModelNode parent;
 
-	public byte networkType;
-	public byte childType; //arrayType
+	public Type networkType;
+	public short childType;
 	
 
 	public ObjectModelNode(ObjectModelsCollection models, int id, ObjectModelNode parent) {
@@ -37,23 +37,23 @@ public final class ObjectModelNode {
 	}
 
 	public boolean isLeaf() {
-		return !isArray() && networkType != TYPE_OBJECT;
+		return !isArray() && networkType != Type.Object;
 	}
 	
 	public boolean isArray() {
-		return networkType == TYPE_ARRAY;
+		return networkType == Type.Array;
 	}
 	
 	public boolean isEnum() {
-		return networkType == TYPE_ENUM;
+		return networkType == Type.Enum;
 	}
 	
-	public byte arrayType() {
+	public Type arrayType() {
 		if (!isArray()) {
 			throw new RuntimeException("this is not array!");
 		}
 		
-		return childType;
+		return Type.values()[childType];
 	}
 	
 	public int enumModelId() {
@@ -96,9 +96,9 @@ public final class ObjectModelNode {
 			}
 			else if (node.isArray()) {
 				Object[] array = (Object[]) targetObj;
-				byte arrayType = node.arrayType();
+				Type arrayType = node.arrayType();
 				
-				if (arrayType == TYPE_UNKNOWN) {
+				if (arrayType == Type.Unknown || arrayType == Type.Object) {
 					assert(pathIndex < treePath.length-1);
 					assert(node.children == null);
 					++pathIndex;
@@ -119,7 +119,7 @@ public final class ObjectModelNode {
 					throw new RuntimeException("unsupported operation");
 				}
 
-//				if (node.arrayType == TYPE_OBJECT || node.arrayType == TYPE_UNKNOWN) {
+//				if (node.arrayType == Type.Object || node.arrayType == TYPE_UNKNOWN) {
 //					assert pathIndex < treePath.length;
 //					targetObj = array[index];
 //					index = treePath[++pathIndex];

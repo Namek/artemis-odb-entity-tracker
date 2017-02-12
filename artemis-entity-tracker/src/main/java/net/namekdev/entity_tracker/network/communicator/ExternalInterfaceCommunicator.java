@@ -142,7 +142,7 @@ public class ExternalInterfaceCommunicator extends Communicator implements World
 			.addInt(componentIndex)
 			.addSomething(value);
 
-		p.beginArray(TYPE_INT, treePath.length);
+		p.beginArray(Type.Int, treePath.length);
 		for (int i = 0; i < treePath.length; ++i) {
 			p.addInt(treePath[i]);
 		}

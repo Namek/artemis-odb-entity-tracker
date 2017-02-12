@@ -48,33 +48,37 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return _sourcePos - _sourceBeginPos;
 	}
 
-	public int beginArray(byte elementType) {
-		checkType(TYPE_ARRAY);
+	public int beginArray(Type elementType) {
+		checkType(Type.Array);
 		checkType(elementType);
 		return readRawInt();
 	}
 
 	public int beginArray() {
-		return beginArray(TYPE_UNKNOWN);
+		return beginArray(Type.Unknown);
+	}
+	
+	public Type readType() {
+		return Type.values()[readRawByte()];
 	}
 
 	public byte readByte() {
-		checkType(TYPE_BYTE);
+		checkType(Type.Byte);
 		return readRawByte();
 	}
 
 	public short readShort() {
-		checkType(TYPE_SHORT);
+		checkType(Type.Short);
 		return readRawShort();
 	}
 
 	public int readInt() {
-		checkType(TYPE_INT);
+		checkType(Type.Int);
 		return readRawInt();
 	}
 
 	public long readLong() {
-		checkType(TYPE_LONG);
+		checkType(Type.Long);
 		return readRawLong();
 	}
 
@@ -91,7 +95,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 			return null;
 		}
 
-		checkType(TYPE_STRING);
+		checkType(Type.String);
 		int length = readRawInt();
 
 		StringBuilder sb = new StringBuilder(length);
@@ -103,7 +107,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public boolean readBoolean() {
-		checkType(TYPE_BOOLEAN);
+		checkType(Type.Boolean);
 		return readRawBoolean();
 	}
 
@@ -113,7 +117,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public float readFloat() {
-		checkType(TYPE_FLOAT);
+		checkType(Type.Float);
 		return readRawFloat();
 	}
 
@@ -122,7 +126,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public double readDouble() {
-		checkType(TYPE_DOUBLE);
+		checkType(Type.Double);
 		return readRawDouble();
 	}
 
@@ -135,7 +139,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 			return null;
 		}
 
-		checkType(TYPE_BITVECTOR);
+		checkType(Type.BitVector);
 
 		final short allBitsCount = readRawShort();
 		final BitVector bitVector = new BitVector(allBitsCount);
@@ -175,66 +179,66 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public Object readSomething(boolean allowUnknown) {
-		byte type = _source[_sourcePos];
+		Type type = Type.values()[_source[_sourcePos]];
 
-		if (type == TYPE_NULL) {
+		if (type == Type.Null) {
 			_sourcePos++;
 			return null;
 		}
-		else if (type == TYPE_BYTE) {
+		else if (type == Type.Byte) {
 			return readByte();
 		}
-		else if (type == TYPE_SHORT) {
+		else if (type == Type.Short) {
 			return readShort();
 		}
-		else if (type == TYPE_INT) {
+		else if (type == Type.Int) {
 			return readInt();
 		}
-		else if (type == TYPE_LONG) {
+		else if (type == Type.Long) {
 			return readLong();
 		}
-		else if (type == TYPE_STRING) {
+		else if (type == Type.String) {
 			return readString();
 		}
-		else if (type == TYPE_BOOLEAN) {
+		else if (type == Type.Boolean) {
 			return readBoolean();
 		}
-		else if (type == TYPE_FLOAT) {
+		else if (type == Type.Float) {
 			return readFloat();
 		}
-		else if (type == TYPE_DOUBLE) {
+		else if (type == Type.Double) {
 			return readDouble();
 		}
-		else if (type == TYPE_BITVECTOR) {
+		else if (type == Type.BitVector) {
 			return readBitVector();
 		}
 		else if (allowUnknown) {
 			_sourcePos++;
-			return TYPE_UNKNOWN;
+			return Type.Unknown;
 		}
 		else {
 			throw new IllegalArgumentException("Can't serialize type: " + type);
 		}
 	}
 
-	public Object readRawByType(byte valueType) {
+	public Object readRawByType(Type valueType) {
 		switch (valueType) {
-			case TYPE_BYTE: return readRawByte();
-			case TYPE_SHORT: return readRawShort();
-			case TYPE_INT: return readRawInt();
-			case TYPE_LONG: return readRawLong();
-			case TYPE_STRING: return readString();
-			case TYPE_BOOLEAN: return readRawBoolean();
-			case TYPE_FLOAT: return readRawFloat();
-			case TYPE_DOUBLE: return readRawDouble();
-			case TYPE_BITVECTOR: return readBitVector();
+			case Byte: return readRawByte();
+			case Short: return readRawShort();
+			case Int: return readRawInt();
+			case Long: return readRawLong();
+			case String: return readString();
+			case Boolean: return readRawBoolean();
+			case Float: return readRawFloat();
+			case Double: return readRawDouble();
+			case BitVector: return readBitVector();
 
 			default: throw new RuntimeException("type not supported" + valueType);
 		}
 	}
 
 	public ObjectModelNode readDataDescription() {
-		checkType(TYPE_DESCRIPTION);
+		checkType(Type.Description);
 		ObjectModelNode root = readRawDataDescription(null);
 
 		return root;
@@ -245,10 +249,10 @@ public class NetworkDeserializer extends NetworkSerialization {
 		ObjectModelNode node = new ObjectModelNode(null, modelId, parent);
 		this._models.add(node);
 		node.name = readString();
-		byte nodeType = readRawByte();
+		Type nodeType = readType();
 		node.networkType = nodeType;
 
-		if (nodeType == TYPE_OBJECT) {
+		if (nodeType == Type.Object) {
 			int n = readRawInt();
 			node.children = new Vector<>(n);
 
@@ -257,17 +261,17 @@ public class NetworkDeserializer extends NetworkSerialization {
 				node.children.addElement(child);
 			}
 		}
-		else if (nodeType == TYPE_ARRAY) {
+		else if (nodeType == Type.Array) {
 			node.childType = readRawByte();
 		}
-		else if (nodeType == TYPE_ENUM) {
+		else if (nodeType == Type.Enum) {
 			int enumModelId = readRawInt();
 			ObjectModelNode enumModelRef = new ObjectModelNode(null, enumModelId, node);
 			node.children = new Vector<>(1);
 			node.children.addElement(enumModelRef);
 			this._models.add(enumModelRef);
 		}
-		else if (nodeType == TYPE_ENUM_DESCRIPTION) {
+		else if (nodeType == Type.EnumDescription) {
 			// TODO TYPE_ENUM_DESCRIPTION
 			throw new RuntimeException("TODO: TYPE_ENUM_DESCRIPTION");
 		}
@@ -279,7 +283,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ValueTree readObject() {
-		checkType(TYPE_MULTIPLE_DESCRIPTIONS);
+		checkType(Type.MultipleDescriptions);
 		int descrCount = readRawInt();
 		
 		ObjectModelNode rootModel = null;
@@ -297,7 +301,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 			}
 		}
 		else {
-			checkType(TYPE_DESCRIPTION_REF);
+			checkType(Type.DescriptionRef);
 			int modelId = readRawInt();
 			for (int i = 0, n = _models.size(); i < n; ++i) {
 				ObjectModelNode model = _models.get(i);
@@ -312,7 +316,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ValueTree readObject(ObjectModelNode model, boolean joinDataToModel) {
-		checkType(TYPE_OBJECT);
+		checkType(Type.Object);
 		ValueTree root = (ValueTree) readRawObject(model, null, joinDataToModel);
 
 		return root;
@@ -326,7 +330,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 		final boolean isArray = model.isArray();
 
 		if (!isArray && model.children != null) {
-			checkType(TYPE_OBJECT);
+			checkType(Type.Object);
 			int n = model.children.size();
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;
@@ -348,12 +352,12 @@ public class NetworkDeserializer extends NetworkSerialization {
 			return value;
 		}
 		else if (isArray) {
-			byte arrayType = model.arrayType();
+			Type arrayType = model.arrayType();
 			int n = beginArray(arrayType);
 			ValueTree tree = new ValueTree(n);
 			tree.parent = parentTree;
 
-			if (arrayType == TYPE_UNKNOWN) {
+			if (arrayType == Type.Object) {
 				for (int i = 0; i < n; ++i) {
 					ValueTree val = readObject();
 					val.parent = tree;
@@ -397,16 +401,16 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return value;
 	}
 
-	protected void checkType(byte type) {
+	protected void checkType(Type type) {
 		byte srcType = _source[_sourcePos++];
 
-		if (srcType != type) {
+		if (srcType != type.ordinal()) {
 			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + srcType);
 		}
 	}
 
 	protected boolean checkNull() {
-		if (_source[_sourcePos] == TYPE_NULL) {
+		if (_source[_sourcePos] == Type.Null.ordinal()) {
 			++_sourcePos;
 			return true;
 		}

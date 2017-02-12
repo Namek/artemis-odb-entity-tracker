@@ -1,10 +1,5 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ARRAY;
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_ENUM;
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_FLOAT;
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_OBJECT;
-import static net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.TYPE_UNKNOWN;
 import static org.junit.Assert.*;
 
 import org.junit.Before;
@@ -19,6 +14,7 @@ import net.namekdev.entity_tracker.utils.sample.GameObject;
 import net.namekdev.entity_tracker.utils.sample.GameState;
 import net.namekdev.entity_tracker.utils.sample.Vector2;
 import net.namekdev.entity_tracker.utils.sample.Vector3;
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type;
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult;
 
 public class SerializeCustomClassTest {
@@ -68,7 +64,7 @@ public class SerializeCustomClassTest {
 		// GameState.objects (GameObject[])
 		ObjectModelNode objects = model.children.elementAt(0);
 		assertEquals("objects", objects.name);
-		assertEquals(TYPE_ARRAY, objects.networkType);
+		assertEquals(Type.Array, objects.networkType);
 		assertTrue(objects.isArray());
 		assertNotNull(objects.children);
 		assertEquals(2, objects.children.size());
@@ -85,7 +81,7 @@ public class SerializeCustomClassTest {
 	
 	private void checkGameStateInspection(ObjectTypeInspector inspector) {
 		int a = 5;
-//		assertEquals(TYPE_OBJECT, model.networkType);
+//		assertEquals(Type.Object, model.networkType);
 		// TODO!
 	}
 	
@@ -151,7 +147,7 @@ public class SerializeCustomClassTest {
 
 	private void assertVector3(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
-		assertEquals(TYPE_OBJECT, node.networkType);
+		assertEquals(Type.Object, node.networkType);
 		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
@@ -163,7 +159,7 @@ public class SerializeCustomClassTest {
 
 	private void assertVector2(ObjectModelNode node, String name) {
 		assertEquals(name, node.name);
-		assertEquals(TYPE_OBJECT, node.networkType);
+		assertEquals(Type.Object, node.networkType);
 		assertFalse(node.isArray());
 		assertNotNull(node.children);
 
@@ -173,7 +169,7 @@ public class SerializeCustomClassTest {
 	}
 
 	private void assertFloat(ObjectModelNode node) {
-		assertEquals(TYPE_FLOAT, node.networkType);
+		assertEquals(Type.Float, node.networkType);
 		assertFalse(node.isArray());
 		assertNull(node.children);
 	}
@@ -338,14 +334,14 @@ public class SerializeCustomClassTest {
 
 		// check array field
 		assert(enumArrayFieldModel.isArray());
-		assertEquals(TYPE_ENUM, enumArrayFieldModel.arrayType());
+		assertEquals(Type.Enum, enumArrayFieldModel.arrayType());
 		checkEnumFieldInspection(enumArrayFieldModel.children.elementAt(0)); 
 	}
 	
 	private void checkEnumFieldInspection(ObjectModelNode enumFieldModel) {
 		TestEnum possibleValues[] = TestEnum.class.getEnumConstants();
 		
-		assertEquals(TYPE_ENUM, enumFieldModel.networkType);
+		assertEquals(Type.Enum, enumFieldModel.networkType);
 		ObjectModelNode enumDescrModel = inspector.getModelById(enumFieldModel.enumModelId());
 		assertEquals(TestEnum.class.getSimpleName(), enumDescrModel.name);
 		
@@ -354,7 +350,7 @@ public class SerializeCustomClassTest {
 			ObjectModelNode valModel = enumDescrModel.children.elementAt(i);
 			TestEnum val = possibleValues[i];
 			assertEquals(val.name(), valModel.name);
-			assertEquals(val.ordinal(), valModel.networkType);
+			assertEquals(val.ordinal(), valModel.childType);
 		}
 	}
 	
@@ -410,7 +406,13 @@ public class SerializeCustomClassTest {
 		ObjectModelNode objsFieldModel = arrFieldModel.children.elementAt(0);
 		assert(objsFieldModel.isArray());
 		assertNotEquals(model.id, objsFieldModel.id);
-		assertEquals(model.id, objsFieldModel.arrayType());
+		assertEquals(Type.Object, objsFieldModel.arrayType());
+		
+		// Note: the dependency is indeed cyclic, however array of `CyclicClassIndirectly`
+		// is just an array, it could contain anything else that inherits this class.
+		// Thus, we can't assume that childType of this filed is a concrete type,
+		// it's rather just an Object.
+		// Therefore, we do NOT assert: model.id == objsFieldModel.arrayType()
 	}
 	
 	@Test
@@ -459,7 +461,7 @@ public class SerializeCustomClassTest {
 		ObjectModelNode model = inspector.inspect(array.getClass());
 		assert(model.isArray());
 		assertEquals(null, model.children);
-		assertEquals(TYPE_UNKNOWN, model.arrayType());
+		assertEquals(Type.Object, model.arrayType());
 		
 		
 		// Vector2
