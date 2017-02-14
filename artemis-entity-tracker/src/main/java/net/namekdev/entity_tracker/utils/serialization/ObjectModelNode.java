@@ -48,6 +48,10 @@ public final class ObjectModelNode {
 		return networkType == Type.Enum;
 	}
 	
+	public boolean isEnumArray() {
+		return isArray() && childType == Type.Enum.ordinal();
+	}
+	
 	public Type arrayType() {
 		if (!isArray()) {
 			throw new RuntimeException("this is not array!");
@@ -57,7 +61,7 @@ public final class ObjectModelNode {
 	}
 	
 	public int enumModelId() {
-		if (!isEnum()) {
+		if (!isEnum() && !isEnumArray()) {
 			throw new RuntimeException("this is not enum field!");
 		}
 		

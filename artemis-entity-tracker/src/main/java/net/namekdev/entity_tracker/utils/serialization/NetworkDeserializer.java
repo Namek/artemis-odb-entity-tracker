@@ -6,6 +6,8 @@ import java.util.Vector;
 
 import com.artemis.utils.BitVector;
 
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type;
+
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
 	private int _sourcePos, _sourceBeginPos;
@@ -27,7 +29,17 @@ public class NetworkDeserializer extends NetworkSerialization {
 		public ObjectModelNode get(Class<?> type) {
 			throw new RuntimeException("deserializer doesn't provide inspection");
 		}
-		
+
+		@Override
+		public ObjectModelNode getById(int id) {
+			for (ObjectModelNode node : models) {
+				if (node.id == id)
+					return node;
+			}
+
+			return null;
+		}
+
 		@Override
 		public void add(ObjectModelNode model) {
 			models.add(model);
@@ -59,7 +71,9 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 	
 	public Type readType() {
-		return Type.values()[readRawByte()];
+		Type val = Type.values()[readRawByte()];
+		System.out.println("read: " + val);
+		return val;
 	}
 
 	public byte readByte() {
@@ -244,15 +258,15 @@ public class NetworkDeserializer extends NetworkSerialization {
 		return root;
 	}
 
-	private ObjectModelNode readRawDataDescription(ObjectModelNode parent) {
+	private ObjectModelNode readRawDataDescription(ObjectModelNode parentNode) {
 		int modelId = readRawInt();
-		ObjectModelNode node = new ObjectModelNode(null, modelId, parent);
+		ObjectModelNode node = new ObjectModelNode(null, modelId, parentNode);
 		this._models.add(node);
 		node.name = readString();
 		Type nodeType = readType();
 		node.networkType = nodeType;
 
-		if (nodeType == Type.Object) {
+		if (nodeType == Type.Object || nodeType == Type.Unknown) {
 			int n = readRawInt();
 			node.children = new Vector<>(n);
 
@@ -263,6 +277,36 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else if (nodeType == Type.Array) {
 			node.childType = readRawByte();
+			System.out.println("read: " + node.childType);
+			
+			if (isSimpleType(Type.values()[node.childType])) {
+				// do nothing
+			}
+			else if (node.childType == Type.Object.ordinal()) {
+//				int objModelId = readRawInt();
+
+				// TODO create model
+//				throw new RuntimeException("TODO array of objects");
+			}
+			else if (node.childType == Type.Enum.ordinal()) {
+				int enumModelId = readRawInt();
+				int enumDescrModelId = readRawInt();
+				
+				ObjectModelNode enumFieldModel = new ObjectModelNode(null, enumModelId, node);
+				ObjectModelNode enumDescrModel = _models.getById(enumDescrModelId);// new ObjectModelNode(null, enumDescrModelId, null);
+				
+				enumFieldModel.networkType = Type.Enum;
+				enumFieldModel.children = new Vector<>(1);
+				enumFieldModel.children.add(enumDescrModel);
+
+				node.children = new Vector<>(1);
+				node.children.add(enumFieldModel);
+
+				this._models.add(enumFieldModel);
+			}
+			else {
+				throw new RuntimeException("unsupported array type: " + node.childType);
+			}
 		}
 		else if (nodeType == Type.Enum) {
 			int enumModelId = readRawInt();
@@ -271,9 +315,25 @@ public class NetworkDeserializer extends NetworkSerialization {
 			node.children.addElement(enumModelRef);
 			this._models.add(enumModelRef);
 		}
+		else if (nodeType == Type.EnumValue) {
+			node.childType = (short) readRawInt();
+			node.name = readString();
+		}
 		else if (nodeType == Type.EnumDescription) {
-			// TODO TYPE_ENUM_DESCRIPTION
-			throw new RuntimeException("TODO: TYPE_ENUM_DESCRIPTION");
+			int id = readRawInt();
+			ObjectModelNode enumModel = new ObjectModelNode(null, id, node);
+
+			int n = readRawInt();
+			enumModel.children = new Vector<>(n);
+			for (int i = 0; i < n; ++i) {
+				int valueId = readRawInt();
+				ObjectModelNode enumValueModel = new ObjectModelNode(null, valueId, null/*TODO here's null! should be?*/);
+				enumValueModel.childType = (short)readRawInt();
+				enumValueModel.name = readString();
+				enumModel.children.add(enumValueModel);
+//				this._models.add(enumValueModel);
+			}
+			this._models.add(enumModel);
 		}
 		else if (!isSimpleType(nodeType)) {
 			throw new RuntimeException("unsupported type: " + nodeType);
@@ -289,16 +349,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 		ObjectModelNode rootModel = null;
 		
 		if (descrCount > 0) {
-			rootModel = readDataDescription();
-			_models.add(rootModel);
-			
-			ObjectModelNode previousModel = rootModel;
 			for (int i = 0; i < descrCount-1; ++i) {
 				ObjectModelNode model = readDataDescription();
-				model.parent = previousModel; // TODO is that right???
-	
 				_models.add(model);
 			}
+
+			rootModel = readDataDescription();
+			_models.add(rootModel);
 		}
 		else {
 			checkType(Type.DescriptionRef);
@@ -328,8 +385,11 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	protected Object readRawObject(ObjectModelNode model, ValueTree parentTree, boolean joinModelToData) {
 		final boolean isArray = model.isArray();
-
-		if (!isArray && model.children != null) {
+		
+		if (checkNull()) {
+			return null;
+		}
+		else if (!isArray && (model.networkType == Type.Object || model.networkType == Type.Unknown)) {
 			checkType(Type.Object);
 			int n = model.children.size();
 			ValueTree tree = new ValueTree(n);
@@ -351,6 +411,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 			return value;
 		}
+		else if (model.isEnum()) {
+			checkType(Type.Enum);
+			int enumVal = readRawInt();
+			// TODO probably no one expected integer here, some Enum<?> is rather expected
+			
+			return enumVal;
+		}
 		else if (isArray) {
 			Type arrayType = model.arrayType();
 			int n = beginArray(arrayType);
@@ -369,7 +436,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 					tree.values[i] = readRawByType(arrayType);
 				}
 			}
-			else if (model.isEnum()) {
+			else if (model.isEnumArray()) {
 				for (int i = 0; i < n; ++i) {
 					tree.values[i] = readRawInt();
 				}
@@ -403,15 +470,17 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	protected void checkType(Type type) {
 		byte srcType = _source[_sourcePos++];
+		System.out.println(" chk: " + type);
 
 		if (srcType != type.ordinal()) {
-			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + srcType);
+			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + Type.values()[srcType]);
 		}
 	}
 
 	protected boolean checkNull() {
 		if (_source[_sourcePos] == Type.Null.ordinal()) {
 			++_sourcePos;
+			System.out.println(" chk: Null");
 			return true;
 		}
 

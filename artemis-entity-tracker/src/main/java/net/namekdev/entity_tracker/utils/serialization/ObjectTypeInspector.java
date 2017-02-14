@@ -28,7 +28,17 @@ public class ObjectTypeInspector {
 		public ObjectModelNode get(Class<?> type) {
 			return inspect(type);
 		}
-		
+
+		@Override
+		public ObjectModelNode getById(int id) {
+			for (RegisteredModel m : registeredModels) {
+				if (m.model.id == id)
+					return m.model;
+			}
+
+			return null;
+		}
+
 		@Override
 		public void add(ObjectModelNode model) {
 			throw new RuntimeException("this implementation shouldn't manually add models. Inspector should do that automatically.");
@@ -187,6 +197,7 @@ public class ObjectTypeInspector {
 			
 			for (int i = 0; i < possibleValues.length; ++i) {
 				ObjectModelNode enumValueModel = new ObjectModelNode(registeredModelsAsCollection, ++lastId, enumTypeModel);
+				enumValueModel.networkType = Type.EnumValue;
 				Enum<?> val = possibleValues[i];
 				
 				// Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
@@ -257,5 +268,63 @@ public class ObjectTypeInspector {
 
 		this.registeredModels.add(newModel);
 		return newModel;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder("[");
+
+		for (RegisteredModel m : this.registeredModels) {
+			sb.append("\n{\n  type: " + toString(m.type));
+			sb.append("\n  parentType:" + toString(m.parentType));
+			sb.append("\n  model:");
+			
+			if (m.model == null) {
+				sb.append(" null\n");
+			}
+			else {
+				sb.append("\n    id: " + m.model.id);
+				sb.append("\n    networkType: " + m.model.networkType);
+				sb.append("\n    childType: " + m.model.childType);
+				sb.append("\n    name: \"" + m.model.name + "\"");
+				sb.append("\n    parent:");
+				
+				if (m.model.parent != null) {
+					sb.append(" (id=" + m.model.parent.id + ")");
+				}
+				else {
+					sb.append(" null");
+				}
+				
+				sb.append("\n    children");
+				
+				if (m.model.children != null) {
+					sb.append(" (" + m.model.children.size() + ")");
+					
+					for (int i = 0, n = m.model.children.size(); i < n; ++i) {
+						ObjectModelNode node = m.model.children.get(i);
+						sb.append("\n    {\n      id: " + node.id);
+						sb.append("\n      name: " + node.name);
+						sb.append("\n    }");
+					}
+				}
+				else {
+					sb.append(": null");
+				}
+			}
+			
+			sb.append("\n}");
+		}
+		
+		sb.append("\n]");
+		
+		return sb.toString();
+	}
+	
+	private String toString(Object obj) {
+		if (obj == null)
+			return "null";
+		
+		return obj.toString();
 	}
 }

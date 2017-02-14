@@ -4,5 +4,6 @@ public interface ObjectModelsCollection {
 	void add(ObjectModelNode model);
 	ObjectModelNode get(Class<?> type);
 	ObjectModelNode get(int index);
+	ObjectModelNode getById(int id);
 	int size();
 }

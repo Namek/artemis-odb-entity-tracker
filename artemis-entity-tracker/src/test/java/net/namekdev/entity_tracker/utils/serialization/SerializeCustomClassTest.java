@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.namekdev.entity_tracker.utils.ReflectionUtils;
 import net.namekdev.entity_tracker.utils.sample.ArrayTestClass;
 import net.namekdev.entity_tracker.utils.sample.CyclicClass;
 import net.namekdev.entity_tracker.utils.sample.CyclicClassIndirectly;
@@ -356,15 +357,22 @@ public class SerializeCustomClassTest {
 	
 	@Test
 	public void serialize_enums() {
-		Object obj = new EnumTestClass();
-		
-		// TODO!!
-		assertTrue(false);
+		EnumTestClass obj = new EnumTestClass();
 
-		// now put it through serializer
-		NetworkSerializer serializer = new NetworkSerializer().reset();
-		// serializer.defineEnums(/*strings and respective values here*/)
-//		serializer.addEnum(/*just the integer?*/)
+		serializer.addObject(obj);
+		
+		SerializationResult res = serializer.getResult();
+		deserializer.setSource(res.buffer, 0, res.size);
+		
+		ValueTree val = deserializer.readObject();
+		assertEquals(obj.getEnumUndefined(), val.values[0]);
+		assertEquals(((TestEnum)obj.getEnumValued()).ordinal(), val.values[1]);
+		assertEquals(((TestEnum)obj.getEnums()[0]).ordinal(), ((ValueTree)val.values[2]).values[0]);
+		assertEquals(((TestEnum)obj.getEnums()[1]).ordinal(), ((ValueTree)val.values[2]).values[1]);
+		assertEquals(((TestEnum)obj.getEnums()[2]).ordinal(), ((ValueTree)val.values[2]).values[2]);
+
+		int deserializedModelCount = ((ObjectModelsCollection)ReflectionUtils.getHiddenFieldValue(deserializer.getClass(), "_models", deserializer)).size();
+		assertEquals(serializer.inspector.getRegisteredModelsCount(), deserializedModelCount);
 	}
 	
 	@Test

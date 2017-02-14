@@ -13,6 +13,7 @@ public abstract class NetworkSerialization {
 		Object,
 		Enum,
 		EnumDescription,
+		EnumValue,
 		
 		Byte,
 		Short,
@@ -78,6 +79,9 @@ public abstract class NetworkSerialization {
 	}
 
 	public static boolean isSimpleType(Type valueType) {
+		if (valueType == null)
+			return false;
+
 		switch (valueType) {
 			case Byte: return true;
 			case Short: return true;

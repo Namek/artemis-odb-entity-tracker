@@ -49,8 +49,8 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer beginArray(Type elementType, int length) {
-		_buffer[_pos++] = (byte) Type.Array.ordinal();
-		_buffer[_pos++] = (byte) elementType.ordinal();
+		addType(Type.Array);
+		addType(elementType);
 		addRawInt(length);
 
 		return this;
@@ -61,11 +61,12 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 	
 	public NetworkSerializer addType(Type type) {
+		System.out.println(" add: " + type);
 		return addRawByte((byte) type.ordinal());
 	}
 
 	public NetworkSerializer addByte(byte value) {
-		_buffer[_pos++] = (byte) Type.Byte.ordinal();
+		addType(Type.Byte);
 		_buffer[_pos++] = value;
 		return this;
 	}
@@ -76,7 +77,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addShort(short value) {
-		_buffer[_pos++] = (byte) Type.Short.ordinal();
+		addType(Type.Short);
 		addRawShort(value);
 		return this;
 	}
@@ -87,7 +88,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addInt(int value) {
-		_buffer[_pos++] = (byte) Type.Int.ordinal();
+		addType(Type.Int);
 		addRawInt(value);
 		return this;
 	}
@@ -100,7 +101,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addLong(long value) {
-		_buffer[_pos++] = (byte) Type.Long.ordinal();
+		addType(Type.Long);
 		addRawLong(value);
 		return this;
 	}
@@ -121,7 +122,7 @@ public class NetworkSerializer extends NetworkSerialization {
 			return this;
 		}
 
-		_buffer[_pos++] = (byte) Type.String.ordinal();
+		addType(Type.String);
 
 		int n = value.length();
 		addRawInt(n);
@@ -134,7 +135,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addBoolean(boolean value) {
-		_buffer[_pos++] = (byte) Type.Boolean.ordinal();
+		addType(Type.Boolean);
 		return addRawBoolean(value);
 	}
 
@@ -143,7 +144,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addFloat(float value) {
-		_buffer[_pos++] = (byte) Type.Float.ordinal();
+		addType(Type.Float);
 		return addRawFloat(value);
 	}
 
@@ -153,7 +154,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addDouble(double value) {
-		_buffer[_pos++] = (byte) Type.Double.ordinal();
+		addType(Type.Double);
 		return addRawDouble(value);
 	}
 
@@ -167,7 +168,7 @@ public class NetworkSerializer extends NetworkSerialization {
 			return this;
 		}
 
-		_buffer[_pos++] = (byte) Type.BitVector.ordinal();
+		addType(Type.BitVector);
 
 		int bitsCount = bitVector.length();
 		addRawShort((short) bitsCount);
@@ -191,7 +192,7 @@ public class NetworkSerializer extends NetworkSerialization {
 
 	protected boolean tryAddNullable(Object data) {
 		if (data == null) {
-			_buffer[_pos++] = (byte) Type.Null.ordinal();
+			addType(Type.Null);
 			return true;
 		}
 
@@ -234,7 +235,7 @@ public class NetworkSerializer extends NetworkSerialization {
 			addBitVector((BitVector) object);
 		}
 		else if (allowUnknown) {
-			_buffer[_pos++] = (byte) Type.Unknown.ordinal();
+			addType(Type.Unknown);
 		}
 		else {
 			throw new IllegalArgumentException("Can't serialize type: " + object.getClass());
@@ -272,17 +273,14 @@ public class NetworkSerializer extends NetworkSerialization {
 		addRawInt(model.id);
 		addString(model.name);
 
-		if (model.children != null) {
+		if (model.networkType == Type.Object || model.networkType == Type.Unknown) {
 			addType(Type.Object);
+			int n = model.children.size();
+			addRawInt(n);
 
-			if (model.networkType == Type.Object || model.arrayType() == Type.Unknown) {
-				int n = model.children.size();
-				addRawInt(n);
-
-				for (int i = 0; i < n; ++i) {
-					ObjectModelNode node = model.children.get(i);
-					addRawDataDescription(node);
-				}
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode node = model.children.get(i);
+				addRawDataDescription(node);
 			}
 		}
 		else if (isSimpleType(model.networkType)) {
@@ -291,6 +289,11 @@ public class NetworkSerializer extends NetworkSerialization {
 		else if (model.isEnum()) {
 			addType(Type.Enum);
 			addRawInt(model.enumModelId());
+		}
+		else if (model.networkType == Type.EnumValue) {
+			addType(Type.EnumValue);
+			addRawInt(model.childType);
+			addString(model.name);
 		}
 		else if (model.networkType == Type.EnumDescription) {
 			// TODO is it alright?!?!
@@ -306,7 +309,7 @@ public class NetworkSerializer extends NetworkSerialization {
 				addRawInt(enumValueModel.id);
 				
 				// TODO FIXME the line below does not fit the types.
-				addRawInt(enumValueModel.networkType.ordinal()); // this is enum's value
+				addRawInt(enumValueModel.childType); // this is enum's value
 				
 				addString(enumValueModel.name);
 			}
@@ -314,15 +317,23 @@ public class NetworkSerializer extends NetworkSerialization {
 		else if (model.isArray()) {
 			Type arrayType = model.arrayType();
 			addType(Type.Array);
-			addType(arrayType);
+			addType(arrayType == Type.Unknown ? Type.Object : arrayType);
 
-			if (arrayType != Type.Object && !isSimpleType(arrayType)) {
-				if (arrayType == Type.Unknown) {
-					// TODO ? model id
-				}
-				else {
-					throw new RuntimeException("unsupported array type: " + arrayType);
-				}
+			if (isSimpleType(arrayType)) {
+				// do nothing
+			}
+			else if (arrayType == Type.Object || arrayType == Type.Unknown) {
+//				int modelId = model.children.get(0).id;
+//				addRawInt(modelId);
+			}
+			else if (arrayType == Type.Enum) {
+				int enumModelId = model.enumModelId();
+				addRawInt(enumModelId); // id of Enum
+				ObjectModelNode enumModel = inspector.getModelById(enumModelId);
+				addRawInt(enumModel.children.get(0).id); // id of EnumDescription
+			}
+			else {
+				throw new RuntimeException("unsupported array type: " + arrayType);
 			}
 		}
 		else {
@@ -349,11 +360,15 @@ public class NetworkSerializer extends NetworkSerialization {
 		addRawInt(diff);
 		
 		if (diff > 0) {
-			for (int i = previousInspectionCount; i < inspectionCount; ++i) {
+			for (int i = previousInspectionCount+1; i < inspectionCount; ++i) {
 				addDataDescription(
 					inspector.getRegisteredModelByIndex(i)
 				);
 			}
+			addDataDescription(
+				inspector.getRegisteredModelByIndex(previousInspectionCount)
+			);
+			
 			_typeCountOnLastCheck = inspectionCount;
 		}
 		else {
@@ -401,7 +416,7 @@ public class NetworkSerializer extends NetworkSerialization {
 		if (tryAddNullable(object)) {
 			// well, null is added here.
 		}
-		else if (!isArray && model.children != null) {
+		else if (!isArray && (model.networkType == Type.Object || model.networkType == Type.Unknown)) {
 			addType(Type.Object);
 			int n = model.children.size();
 
@@ -414,6 +429,12 @@ public class NetworkSerializer extends NetworkSerialization {
 		}
 		else if (isSimpleType(model.networkType)) {
 			addRawByType(model.networkType, object);
+		}
+		else if (model.isEnum()) {
+			addType(Type.Enum);
+			
+			int enumVal = ((Enum<Type>) object).ordinal();
+			addRawInt(enumVal);
 		}
 		else if (isArray) {
 			// TODO probably this case will be moved to `addArray()`
@@ -433,9 +454,10 @@ public class NetworkSerializer extends NetworkSerialization {
 					addRawByType(arrayType, array[i]);
 				}
 			}
-			else if (model.isEnum()) {
+			else if (arrayType == Type.Enum) {
 				for (int i = 0; i < n; ++i) {
-					addRawInt((int)array[i]);
+					int enumVal = ((Enum<Type>) array[i]).ordinal();
+					addRawInt(enumVal);
 				}
 			}
 			else {

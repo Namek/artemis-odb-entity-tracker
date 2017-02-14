@@ -24,4 +24,8 @@ public class EnumTestClass {
 	public Object getEnumValued() {
 		return enumValued;
 	}
+	
+	public TestEnum[] getEnums() {
+		return enums;
+	}
 }
