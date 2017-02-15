@@ -161,6 +161,7 @@ public class ObjectTypeInspector {
 			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
 			model.children = new Vector<>(1);
 			model.children.addElement(enumFieldModel);
+			rememberType(arrayElType, fieldType, enumFieldModel, registeredModel);
 		}
 		
 		// TODO probably that should inspect deeper anyway!

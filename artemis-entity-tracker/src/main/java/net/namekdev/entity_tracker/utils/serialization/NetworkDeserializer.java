@@ -266,7 +266,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 		Type nodeType = readType();
 		node.networkType = nodeType;
 
-		if (nodeType == Type.Object || nodeType == Type.Unknown) {
+		if (nodeType == Type.Object) {
 			int n = readRawInt();
 			node.children = new Vector<>(n);
 
@@ -310,10 +310,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else if (nodeType == Type.Enum) {
 			int enumModelId = readRawInt();
-			ObjectModelNode enumModelRef = new ObjectModelNode(null, enumModelId, node);
+			ObjectModelNode enumModelRef = _models.getById(enumModelId);
+			if (enumModelRef == null) {
+				enumModelRef = new ObjectModelNode(null, enumModelId, node);
+				this._models.add(enumModelRef);
+			}
 			node.children = new Vector<>(1);
 			node.children.addElement(enumModelRef);
-			this._models.add(enumModelRef);
 		}
 		else if (nodeType == Type.EnumValue) {
 			node.childType = (short) readRawInt();
@@ -321,7 +324,12 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else if (nodeType == Type.EnumDescription) {
 			int id = readRawInt();
-			ObjectModelNode enumModel = new ObjectModelNode(null, id, node);
+			
+			ObjectModelNode enumModel = _models.getById(id);
+			if (enumModel == null) {
+				enumModel = new ObjectModelNode(null, id, node);
+				this._models.add(enumModel);
+			}
 
 			int n = readRawInt();
 			enumModel.children = new Vector<>(n);
@@ -333,7 +341,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 				enumModel.children.add(enumValueModel);
 //				this._models.add(enumValueModel);
 			}
-			this._models.add(enumModel);
 		}
 		else if (!isSimpleType(nodeType)) {
 			throw new RuntimeException("unsupported type: " + nodeType);
@@ -351,11 +358,9 @@ public class NetworkDeserializer extends NetworkSerialization {
 		if (descrCount > 0) {
 			for (int i = 0; i < descrCount-1; ++i) {
 				ObjectModelNode model = readDataDescription();
-				_models.add(model);
 			}
 
 			rootModel = readDataDescription();
-			_models.add(rootModel);
 		}
 		else {
 			checkType(Type.DescriptionRef);
