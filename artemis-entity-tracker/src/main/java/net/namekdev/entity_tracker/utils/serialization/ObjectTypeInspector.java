@@ -122,6 +122,10 @@ public class ObjectTypeInspector {
 							child = new ObjectModelNode(registeredModelsAsCollection, ++lastId, root).copyFrom(
 								registeredChildModel.model
 							);
+							child.name = null;
+							
+							// TODO should we remember this model?
+							rememberType(fieldType, type, root, registeredModel);
 						}
 					}
 					else if (networkType == Type.Enum) {
@@ -133,7 +137,8 @@ public class ObjectTypeInspector {
 					}
 				}
 	
-				// TODO because of this we may have to clone what's inside of RegisteredModel
+				// Every object field has is a unique model
+				// so make sure we have a new model here! Then give it a name.
 				assert(child.name == null);
 				child.name = field.getName();
 	
@@ -156,12 +161,12 @@ public class ObjectTypeInspector {
 
 		
 		if (arrayType == Type.Enum) {
-			// TODO!
-//			throw new RuntimeException("TODO array of enums");
-			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
-			model.children = new Vector<>(1);
-			model.children.addElement(enumFieldModel);
-			rememberType(arrayElType, fieldType, enumFieldModel, registeredModel);
+//			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
+//			model.children = new Vector<>(1);
+//			model.children.addElement(enumFieldModel);
+//			rememberType(arrayElType, fieldType, enumFieldModel, registeredModel);
+			
+//			arrayType = Type.Unknown;
 		}
 		
 		// TODO probably that should inspect deeper anyway!

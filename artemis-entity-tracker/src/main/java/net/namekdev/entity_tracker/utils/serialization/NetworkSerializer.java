@@ -327,10 +327,14 @@ public class NetworkSerializer extends NetworkSerialization {
 //				addRawInt(modelId);
 			}
 			else if (arrayType == Type.Enum) {
+				// Note: if we treat array of enums the same way as array of objects
+				// then we do not have to write anything here.
+				/*
 				int enumModelId = model.enumModelId();
 				addRawInt(enumModelId); // id of Enum
 				ObjectModelNode enumModel = inspector.getModelById(enumModelId);
 				addRawInt(enumModel.children.get(0).id); // id of EnumDescription
+				*/
 			}
 			else {
 				throw new RuntimeException("unsupported array type: " + arrayType);

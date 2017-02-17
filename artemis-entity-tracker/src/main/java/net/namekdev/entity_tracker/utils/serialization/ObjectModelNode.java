@@ -37,7 +37,7 @@ public final class ObjectModelNode {
 	}
 
 	public boolean isLeaf() {
-		return !isArray() && networkType != Type.Object;
+		return !isArray() && (isEnum() || networkType != Type.Object);
 	}
 	
 	public boolean isArray() {
@@ -80,7 +80,7 @@ public final class ObjectModelNode {
 		while (pathIndex < treePath.length) {
 			int index = treePath[pathIndex];
 
-			if (!node.isArray() && node.children != null) {
+			if (node.networkType == Type.Object || node.networkType == Type.Unknown /*!node.isArray() && node.children != null*/) {
 				node = node.children.get(index);
 				String fieldName = node.name;
 

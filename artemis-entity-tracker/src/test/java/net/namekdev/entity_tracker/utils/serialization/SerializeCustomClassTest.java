@@ -336,7 +336,13 @@ public class SerializeCustomClassTest {
 		// check array field
 		assert(enumArrayFieldModel.isArray());
 		assertEquals(Type.Enum, enumArrayFieldModel.arrayType());
-		checkEnumFieldInspection(enumArrayFieldModel.children.elementAt(0)); 
+		
+		// Note: since we're treating array of enums as array of objects,
+		// we don't expect this to be true:
+//		checkEnumFieldInspection(enumArrayFieldModel.children.elementAt(0)); 
+		
+		// Instead, this should be true:
+		assertNull(enumArrayFieldModel.children);
 	}
 	
 	private void checkEnumFieldInspection(ObjectModelNode enumFieldModel) {

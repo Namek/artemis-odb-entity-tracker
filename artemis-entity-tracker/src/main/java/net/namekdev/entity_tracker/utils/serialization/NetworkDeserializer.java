@@ -289,7 +289,9 @@ public class NetworkDeserializer extends NetworkSerialization {
 //				throw new RuntimeException("TODO array of objects");
 			}
 			else if (node.childType == Type.Enum.ordinal()) {
-				int enumModelId = readRawInt();
+				// Note: if we treat array of enums the same way as array of objects
+				// then we do not have to write anything here.
+				/*int enumModelId = readRawInt();
 				int enumDescrModelId = readRawInt();
 				
 				ObjectModelNode enumFieldModel = new ObjectModelNode(null, enumModelId, node);
@@ -302,7 +304,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 				node.children = new Vector<>(1);
 				node.children.add(enumFieldModel);
 
-				this._models.add(enumFieldModel);
+				this._models.add(enumFieldModel);*/
 			}
 			else {
 				throw new RuntimeException("unsupported array type: " + node.childType);
