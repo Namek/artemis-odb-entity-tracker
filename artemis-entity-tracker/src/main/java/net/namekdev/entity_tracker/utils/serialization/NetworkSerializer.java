@@ -61,7 +61,6 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 	
 	public NetworkSerializer addType(Type type) {
-		System.out.println(" add: " + type);
 		return addRawByte((byte) type.ordinal());
 	}
 

@@ -72,7 +72,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 	
 	public Type readType() {
 		Type val = Type.values()[readRawByte()];
-		System.out.println("read: " + val);
 		return val;
 	}
 
@@ -277,7 +276,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else if (nodeType == Type.Array) {
 			node.childType = readRawByte();
-			System.out.println("read: " + node.childType);
 			
 			if (isSimpleType(Type.values()[node.childType])) {
 				// do nothing
@@ -477,7 +475,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	protected void checkType(Type type) {
 		byte srcType = _source[_sourcePos++];
-		System.out.println(" chk: " + type);
 
 		if (srcType != type.ordinal()) {
 			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + Type.values()[srcType]);
@@ -487,7 +484,6 @@ public class NetworkDeserializer extends NetworkSerialization {
 	protected boolean checkNull() {
 		if (_source[_sourcePos] == Type.Null.ordinal()) {
 			++_sourcePos;
-			System.out.println(" chk: Null");
 			return true;
 		}
 
