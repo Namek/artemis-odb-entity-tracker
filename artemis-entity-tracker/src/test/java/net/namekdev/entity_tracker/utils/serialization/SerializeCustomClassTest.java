@@ -44,20 +44,18 @@ public class SerializeCustomClassTest {
 		assertEquals("x", model.children.get(0).name);
 		assertEquals("y", model.children.get(1).name);
 	}
-
-	// TODO rename to serialize_gamestate() and create separate inspect_gamestate()
-	// that will serialize only info about basic structure
-	/*@Test
+	
+	@Test
 	public void inspect_gamestate() {
 		GameState gameState = new GameState();
 		gameState.objects = new GameObject[] {
 			new GameObject(), new GameObject()
 		};
-
-		ObjectModelNode model = inspector.inspect(GameState.class);
-
+		ObjectModelNode model = inspector.inspect(gameState.getClass());
+		
+		
 		// GameState
-		assertEquals(TYPE_TREE, model.networkType);
+		assertEquals(Type.Object, model.networkType);
 		assertNotNull(model.children);
 		assertFalse(model.isArray());
 		assertEquals(1, model.children.size());
@@ -67,33 +65,8 @@ public class SerializeCustomClassTest {
 		assertEquals("objects", objects.name);
 		assertEquals(Type.Array, objects.networkType);
 		assertTrue(objects.isArray());
-		assertNotNull(objects.children);
-		assertEquals(2, objects.children.size());
-		assertEquals(TYPE_TREE, objects.arrayType);
-
-		// GameState.objects[i].pos (Vector3)
-		ObjectModelNode pos1 = objects.children.elementAt(0);
-		assertVector3(pos1, "pos");
-
-		// GameState.objects[i].size (Vector2)
-		ObjectModelNode size1 = objects.children.elementAt(1);
-		assertVector2(size1, "size");
-	}*/
-	
-	private void checkGameStateInspection(ObjectTypeInspector inspector) {
-		int a = 5;
-//		assertEquals(Type.Object, model.networkType);
-		// TODO!
-	}
-	
-	@Test
-	public void inspect_gamestate() {
-		GameState gameState = new GameState();
-		gameState.objects = new GameObject[] {
-			new GameObject(), new GameObject()
-		};
-		ObjectModelNode model = inspector.inspect(gameState.getClass());
-		checkGameStateInspection(inspector);
+		assertNull(objects.children);
+		assertEquals(Type.Object, objects.arrayType());
 	}
 	
 	@Test
@@ -104,7 +77,6 @@ public class SerializeCustomClassTest {
 		};
 		
 		serializer.addObject(gameState);
-		checkGameStateInspection(serializer.inspector);
 
 		SerializationResult res = serializer.getResult();
 		deserializer.setSource(res.buffer, 0, res.size);
