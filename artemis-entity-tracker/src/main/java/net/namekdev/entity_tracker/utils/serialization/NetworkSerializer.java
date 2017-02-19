@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
+import java.util.TreeSet;
+
 import com.artemis.utils.BitVector;
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils;
@@ -19,6 +21,7 @@ public class NetworkSerializer extends NetworkSerialization {
 	
 	public final ObjectTypeInspector inspector;
 	private int _typeCountOnLastCheck = 0;
+	private TreeSet<Integer> _modelsMarkedAsSent = new TreeSet<>();
 
 
 	public NetworkSerializer() {
@@ -38,6 +41,7 @@ public class NetworkSerializer extends NetworkSerialization {
 		_pos = 0;
 		_buffer = buffer;
 //		_buffer[_pos++] = PACKET_BEGIN;
+		_modelsMarkedAsSent.clear();
 		return this;
 	}
 
@@ -261,9 +265,17 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
-	public NetworkSerializer addDataDescription(ObjectModelNode model) {
-		addType(Type.Description);
-		addRawDataDescription(model);
+	public NetworkSerializer addDataDescriptionOrRef(ObjectModelNode model) {
+		if (!_modelsMarkedAsSent.contains(model.id)) {
+			addType(Type.Description);
+			addRawDataDescription(model);
+
+			_modelsMarkedAsSent.add(model.id);
+		}
+		else {
+			addType(Type.DescriptionRef);
+			addRawInt(model.id);
+		}
 
 		return this;
 	}
@@ -279,7 +291,7 @@ public class NetworkSerializer extends NetworkSerialization {
 
 			for (int i = 0; i < n; ++i) {
 				ObjectModelNode node = model.children.get(i);
-				addRawDataDescription(node);
+				addDataDescriptionOrRef(node);
 			}
 		}
 		else if (isSimpleType(model.networkType)) {
@@ -364,11 +376,11 @@ public class NetworkSerializer extends NetworkSerialization {
 		
 		if (diff > 0) {
 			for (int i = previousInspectionCount+1; i < inspectionCount; ++i) {
-				addDataDescription(
+				addDataDescriptionOrRef(
 					inspector.getRegisteredModelByIndex(i)
 				);
 			}
-			addDataDescription(
+			addDataDescriptionOrRef(
 				inspector.getRegisteredModelByIndex(previousInspectionCount)
 			);
 			

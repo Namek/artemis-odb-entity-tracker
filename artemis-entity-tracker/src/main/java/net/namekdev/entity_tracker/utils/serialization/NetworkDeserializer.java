@@ -1,12 +1,9 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
-
 import java.util.ArrayList;
 import java.util.Vector;
 
 import com.artemis.utils.BitVector;
-
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type;
 
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
@@ -72,6 +69,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 	
 	public Type readType() {
 		Type val = Type.values()[readRawByte()];
+//		dbgType(val);
 		return val;
 	}
 
@@ -251,10 +249,28 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ObjectModelNode readDataDescription() {
-		checkType(Type.Description);
-		ObjectModelNode root = readRawDataDescription(null);
-
-		return root;
+		return readDataDescription(null);
+	}
+	
+	private ObjectModelNode readDataDescription(ObjectModelNode parentNode) {
+		Type type = readType();
+		
+		ObjectModelNode retModel = null;
+		
+		if (type.equals(Type.Description)) {
+			retModel = readRawDataDescription(null);
+		}
+		else if (type.equals(Type.DescriptionRef)) {
+			int modelId = readRawInt();
+			retModel = _models.getById(modelId);
+		}
+		else {
+			throw new RuntimeException("unexpected type: " + type);
+		}
+		
+		assert(retModel != null);
+		
+		return retModel;
 	}
 
 	private ObjectModelNode readRawDataDescription(ObjectModelNode parentNode) {
@@ -270,12 +286,13 @@ public class NetworkDeserializer extends NetworkSerialization {
 			node.children = new Vector<>(n);
 
 			for (int i = 0; i < n; ++i) {
-				ObjectModelNode child = readRawDataDescription(node);
+				ObjectModelNode child = readDataDescription(node);
 				node.children.addElement(child);
 			}
 		}
 		else if (nodeType == Type.Array) {
 			node.childType = readRawByte();
+//			dbgType(Type.values()[node.childType]);
 			
 			if (isSimpleType(Type.values()[node.childType])) {
 				// do nothing
@@ -350,14 +367,19 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ValueTree readObject() {
+		return readObject(false);
+	}
+	
+	private ValueTree readObject(boolean joinDataToModel) {
 		checkType(Type.MultipleDescriptions);
 		int descrCount = readRawInt();
 		
 		ObjectModelNode rootModel = null;
 		
 		if (descrCount > 0) {
+			ObjectModelNode model = null;
 			for (int i = 0; i < descrCount-1; ++i) {
-				ObjectModelNode model = readDataDescription();
+				model = readDataDescription();
 			}
 
 			rootModel = readDataDescription();
@@ -374,7 +396,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 			}
 		}
 		
-		return readObject(rootModel);
+		return readObject(rootModel, joinDataToModel);
 	}
 
 	public ValueTree readObject(ObjectModelNode model, boolean joinDataToModel) {
@@ -431,7 +453,7 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 			if (arrayType == Type.Object) {
 				for (int i = 0; i < n; ++i) {
-					ValueTree val = readObject();
+					ValueTree val = readObject(joinModelToData);
 					val.parent = tree;
 					tree.values[i] = val;
 				}
@@ -475,18 +497,25 @@ public class NetworkDeserializer extends NetworkSerialization {
 
 	protected void checkType(Type type) {
 		byte srcType = _source[_sourcePos++];
+//		dbgType(type);
 
 		if (srcType != type.ordinal()) {
-			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + Type.values()[srcType]);
+			Type resultType = Type.values()[srcType];
+			throw new RuntimeException("Types are divergent, expected: " + type + ", got: " + resultType);
 		}
 	}
 
 	protected boolean checkNull() {
 		if (_source[_sourcePos] == Type.Null.ordinal()) {
+//			dbgType(Type.Null);
 			++_sourcePos;
 			return true;
 		}
 
 		return false;
+	}
+	
+	private void dbgType(Type t) {
+		System.out.println(t);
 	}
 }

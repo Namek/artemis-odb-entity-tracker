@@ -109,7 +109,7 @@ public class ComponentDataPanel extends JPanel {
 		ObjectModelNode model = inspector.inspect(GameState.class);
 
 
-		serializer.addDataDescription(model);
+		serializer.addDataDescriptionOrRef(model);
 		serializer.addObject(model, gameState);
 
 		SerializationResult serialized = serializer.getResult();

@@ -186,7 +186,7 @@ public class SerializeCustomClassTest {
 		Vector3 vector = new Vector3(4, 5, 6);
 		ObjectModelNode model = inspector.inspect(vector.getClass());
 
-		serializer.addDataDescription(model);
+		serializer.addDataDescriptionOrRef(model);
 		serializer.addObject(model, vector);
 
 		byte[] buffer = serializer.getResult().buffer;
@@ -215,7 +215,7 @@ public class SerializeCustomClassTest {
 	private void testArray(Object[] arr, ObjectTypeInspector inspector) {
 		NetworkSerializer serializer = new NetworkSerializer().reset();
 		ObjectModelNode model = inspector.inspect(arr.getClass());
-		serializer.addDataDescription(model);
+		serializer.addDataDescriptionOrRef(model);
 		SerializationResult serialized = serializer.getResult();
 		deserializer.setSource(serialized.buffer, 0, serialized.size);
 
@@ -231,11 +231,11 @@ public class SerializeCustomClassTest {
 			new GameObject(), new GameObject()
 		};
 
-		NetworkSerializer serializer = new NetworkSerializer().reset();
+		NetworkSerializer serializer = new NetworkSerializer(inspector).reset();
 		ObjectModelNode model = inspector.inspect(GameState.class);
 
 
-		serializer.addDataDescription(model);
+		serializer.addDataDescriptionOrRef(model);
 		serializer.addObject(model, gameState);
 
 		SerializationResult serialized = serializer.getResult();
