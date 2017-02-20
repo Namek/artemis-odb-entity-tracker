@@ -397,26 +397,6 @@ public class NetworkSerializer extends NetworkSerialization {
 		
 		return this;
 	}
-	
-	public NetworkSerializer addArray(Object[] array) {
-		// TODO inspect every element
-		throw new RuntimeException("not implemented");
-//		return this;
-	}
-	
-	public NetworkSerializer addArrayOfSameType(Object[] array) {
-		// TODO inspect first element
-		throw new RuntimeException("not implemented");
-//		return this;
-	}
-	
-	public NetworkSerializer addArrayOfSameType(Object[] array, ObjectModelNode model) {
-		// TODO
-		// simpleType / TYPE_TREE ?
-		// empty array?
-		throw new RuntimeException("not implemented");
-//		return this;
-	}
 
 	public NetworkSerializer addObject(ObjectModelNode model, Object object) {
 		addType(Type.Object);
@@ -455,32 +435,45 @@ public class NetworkSerializer extends NetworkSerialization {
 			// TODO probably this case will be moved to `addArray()`
 			
 			Object[] array = (Object[]) object;
-			int n = array.length;
-			Type arrayType = model.arrayType();
-			beginArray(arrayType, n);
-
-			if (arrayType == Type.Unknown || arrayType == Type.Object) {
-				for (int i = 0; i < n; ++i) {
-					addObject(array[i]);
-				}
-			}
-			else if (isSimpleType(arrayType)) {
-				for (int i = 0; i < n; ++i) {
-					addRawByType(arrayType, array[i]);
-				}
-			}
-			else if (arrayType == Type.Enum) {
-				for (int i = 0; i < n; ++i) {
-					int enumVal = ((Enum<Type>) array[i]).ordinal();
-					addRawInt(enumVal);
-				}
-			}
-			else {
-				throw new RuntimeException("unsupported array type: " + arrayType);
-			}
+			addRawArray(array, model.arrayType());
 		}
 		else {
 			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
+	}
+	
+
+	public NetworkSerializer addArray(Object[] array) {
+		assert(array != null);
+
+		Type arrayType = array.length > 0 ? determineType(array[0].getClass()) : Type.Object;
+		addRawArray(array, arrayType);
+
+		return this;
+	}
+	
+	public void addRawArray(Object[] array, Type arrayType) {
+		int n = array.length;
+		beginArray(arrayType, n);
+
+		if (arrayType == Type.Unknown || arrayType == Type.Object) {
+			for (int i = 0; i < n; ++i) {
+				addObject(array[i]);
+			}
+		}
+		else if (isSimpleType(arrayType)) {
+			for (int i = 0; i < n; ++i) {
+				addRawByType(arrayType, array[i]);
+			}
+		}
+		else if (arrayType == Type.Enum) {
+			for (int i = 0; i < n; ++i) {
+				int enumVal = ((Enum<Type>) array[i]).ordinal();
+				addRawInt(enumVal);
+			}
+		}
+		else {
+			throw new RuntimeException("unsupported array type: " + arrayType);
 		}
 	}
 

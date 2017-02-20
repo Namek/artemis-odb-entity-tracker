@@ -447,30 +447,9 @@ public class NetworkDeserializer extends NetworkSerialization {
 		}
 		else if (isArray) {
 			Type arrayType = model.arrayType();
-			int n = beginArray(arrayType);
-			ValueTree tree = new ValueTree(n);
-			tree.parent = parentTree;
+			ValueTree tree = readRawArray(arrayType, joinModelToData);
 
-			if (arrayType == Type.Object) {
-				for (int i = 0; i < n; ++i) {
-					ValueTree val = readObject(joinModelToData);
-					val.parent = tree;
-					tree.values[i] = val;
-				}
-			}
-			else if (isSimpleType(arrayType)) {
-				for (int i = 0; i < n; ++i) {
-					tree.values[i] = readRawByType(arrayType);
-				}
-			}
-			else if (model.isEnumArray()) {
-				for (int i = 0; i < n; ++i) {
-					tree.values[i] = readRawInt();
-				}
-			}
-			else {
-				throw new RuntimeException("unsupported array type: " + arrayType);
-			}
+			tree.parent = parentTree;
 
 			if (joinModelToData) {
 				tree.model = model;
@@ -481,6 +460,47 @@ public class NetworkDeserializer extends NetworkSerialization {
 		else {
 			throw new RuntimeException("unsupported type: " + model.networkType);
 		}
+	}
+	
+	public ValueTree readArray() {
+		return readRawArray(null, false);
+	}
+	
+	public ValueTree readRawArray(Type arrayType, boolean joinModelToData) {
+		checkType(Type.Array);
+
+		if (arrayType != null) {
+			checkType(arrayType);
+		}
+		else {
+			arrayType = readType();
+		}
+		
+		int n = readRawInt();
+		ValueTree tree = new ValueTree(n);
+
+		if (arrayType == Type.Object || arrayType == Type.Unknown) {
+			for (int i = 0; i < n; ++i) {
+				ValueTree val = readObject(joinModelToData);
+				val.parent = tree;
+				tree.values[i] = val;
+			}
+		}
+		else if (isSimpleType(arrayType)) {
+			for (int i = 0; i < n; ++i) {
+				tree.values[i] = readRawByType(arrayType);
+			}
+		}
+		else if (/*model.isEnumArray()*/ arrayType == Type.Enum) {
+			for (int i = 0; i < n; ++i) {
+				tree.values[i] = readRawInt();
+			}
+		}
+		else {
+			throw new RuntimeException("unsupported array type: " + arrayType);
+		}
+		
+		return tree;
 	}
 
 	protected int readRawInt() {

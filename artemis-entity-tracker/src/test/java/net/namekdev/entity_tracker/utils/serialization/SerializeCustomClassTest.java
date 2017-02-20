@@ -439,9 +439,11 @@ public class SerializeCustomClassTest {
 	
 	@Test
 	public void deserialize_array_of_various_objects() {
+		final Vector2 v2 = new Vector2(5, 6);
+		final Vector3 v3 = new Vector3(7, 8, 9); 
 		Object[] array = new Object[] {
-			new Vector2(5, 6),
-			new Vector3(7, 8, 9)
+			v2,
+			v3
 		};
 
 		ObjectModelNode model = inspector.inspect(array.getClass());
@@ -449,18 +451,51 @@ public class SerializeCustomClassTest {
 		assertEquals(null, model.children);
 		assertEquals(Type.Object, model.arrayType());
 		
+		// it's array of a priori unknown objects so models for Vector2 and Vector3
+		// are not available at this point:
+		assertEquals(1, inspector.getRegisteredModelsCount());
+		ObjectModelNode v2Model = inspector.getModelById(model.id + 1);
+		ObjectModelNode v3Model = inspector.getModelById(model.id + 2);
 		
+		assertNull(v2Model);
+		assertNull(v3Model);
+
+		
+		// but now, we will serialize the array, then check for Vector2/3 models:
+		serializer = new NetworkSerializer(inspector).reset();
+		serializer.addArray(array);
+		assertEquals(3 /*array + Vectors without fields */, inspector.getRegisteredModelsCount());
+
 		// Vector2
-//		ObjectModelNode v2Model = fieldModel.children.elementAt(0);
-//		assertEquals(2, v2Model.children.size());
-//		assertEquals("x", v2Model.children.elementAt(0).name);
-//		assertEquals("y", v2Model.children.elementAt(1).name);
-//		
-//		// Vector3
-//		ObjectModelNode v3Model = fieldModel.children.elementAt(1);
-//		assertEquals(3, v3Model.children.size());
-//		assertEquals("x", v3Model.children.elementAt(0).name);
-//		assertEquals("y", v3Model.children.elementAt(1).name);
-//		assertEquals("z", v3Model.children.elementAt(1).name);
+		v2Model = inspector.inspect(Vector2.class);
+		assertEquals(2, v2Model.children.size());
+		assertEquals("x", v2Model.children.elementAt(0).name);
+		assertEquals("y", v2Model.children.elementAt(1).name);
+
+		// Vector3
+		v3Model = inspector.inspect(Vector3.class);
+		assertEquals(3, v3Model.children.size());
+		assertEquals("x", v3Model.children.elementAt(0).name);
+		assertEquals("y", v3Model.children.elementAt(1).name);
+		assertEquals("z", v3Model.children.elementAt(2).name);
+		
+		// now deserialize the array
+		SerializationResult serialized = serializer.getResult();
+		deserializer.setSource(serialized.buffer, 0, serialized.size);
+
+		ValueTree arr = deserializer.readArray();
+		assertEquals(array.length, arr.values.length);
+		
+		ValueTree v2d = (ValueTree) arr.values[0];
+		ValueTree v3d = (ValueTree) arr.values[1];
+
+		assertEquals(2, v2d.values.length);
+		assertEquals(3, v3d.values.length);
+		
+		assert(v2.x == (float) v2d.values[0]);
+		assert(v2.y == (float) v2d.values[1]);
+		assert(v3.x == (float) v3d.values[0]);
+		assert(v3.y == (float) v3d.values[1]);
+		assert(v3.z == (float) v3d.values[2]);
 	}
 }
