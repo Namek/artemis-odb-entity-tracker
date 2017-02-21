@@ -236,8 +236,8 @@ public class EntityTrackerMainWindow implements WorldUpdateInterfaceListener {
 			public void run() {
 				TableColumnModel columns = entitiesTable.getColumnModel();
 				TableColumn col = new TableColumn(columns.getColumnCount());
-				col.setHeaderValue(info.name);
-				col.setModelIndex(info.index);
+				col.setHeaderValue(info.getName());
+				col.setModelIndex(info.getIndex());
 				columns.addColumn(col);
 
 				entitiesTableModel.setComponentType(index, info);

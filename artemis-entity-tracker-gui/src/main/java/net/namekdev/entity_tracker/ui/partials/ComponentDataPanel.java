@@ -113,7 +113,7 @@ public class ComponentDataPanel extends JPanel {
 		serializer.addObject(model, gameState);
 
 		SerializationResult serialized = serializer.getResult();
-		deserializer.setSource(serialized.buffer, 0, serialized.size);
+		deserializer.setSource(serialized.getBuffer(), 0, serialized.getSize());
 
 		ObjectModelNode model2 = deserializer.readDataDescription();
 //		model.id = id; /??????? TODO
@@ -300,7 +300,7 @@ public class ComponentDataPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				boolean value = checkbox.isSelected();
-				_appContext.worldController.setComponentFieldValue(_entityId, _info.index, treePath, value);
+				_appContext.worldController.setComponentFieldValue(_entityId, _info.getIndex(), treePath, value);
 			}
 		});
 	}
@@ -324,7 +324,7 @@ public class ComponentDataPanel extends JPanel {
 					String text = textField.getText();
 
 					// TODO convert string to appropriate field's type
-					_appContext.worldController.setComponentFieldValue(_entityId, _info.index, treePath, text);
+					_appContext.worldController.setComponentFieldValue(_entityId, _info.getIndex(), treePath, text);
 				}
 			}
 		});
@@ -340,7 +340,7 @@ public class ComponentDataPanel extends JPanel {
 	private final WorldUpdateListener worldListener = new DummyWorldUpdateListener() {
 		@Override
 		public void updatedComponentState(int entityId, int componentIndex, Object valueTree) {
-			if (_info.index != componentIndex || _entityId != entityId) {
+			if (_info.getIndex() != componentIndex || _entityId != entityId) {
 				return;
 			}
 

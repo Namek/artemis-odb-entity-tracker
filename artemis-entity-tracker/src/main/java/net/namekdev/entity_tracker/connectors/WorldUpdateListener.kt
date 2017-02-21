@@ -8,17 +8,17 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo
  * @author Namek
  */
 interface WorldUpdateListener {
-	fun injectWorldController(controller: WorldController?)
+	fun injectWorldController(controller: WorldController)
 	val listeningBitset: Int
-	fun addedSystem(index: Int, name: String?, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?)
-	fun addedManager(name: String?)
-	fun addedComponentType(index: Int, info: ComponentTypeInfo?)
+	fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector)
+	fun addedManager(name: String)
+	fun addedComponentType(index: Int, info: ComponentTypeInfo)
 	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int)
-	fun addedEntity(entityId: Int, components: BitVector?)
+	fun addedEntity(entityId: Int, components: BitVector)
 	//	void changed(Entity e);
 	fun deletedEntity(entityId: Int)
 
-	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Object?)
+	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any)
 
 	companion object {
 		const val ENTITY_ADDED = 1 shl 1

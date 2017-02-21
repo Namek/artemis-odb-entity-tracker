@@ -19,30 +19,30 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult
 
 class SerializeCustomClassTest {
-    internal var serializer: NetworkSerializer = NetworkSerialization.createSerializer()
-    internal var deserializer: NetworkDeserializer = NetworkDeserializer.createDeserializer()
-    internal var inspector: ObjectTypeInspector = ObjectTypeInspector()
+    lateinit var serializer: NetworkSerializer
+    lateinit var deserializer: NetworkDeserializer
+    lateinit var inspector: ObjectTypeInspector
 
 
     @Before
     fun setup() {
         serializer = NetworkSerialization.createSerializer()
-        deserializer = NetworkDeserializer.createDeserializer()
+        deserializer = NetworkDeserializer()
         inspector = ObjectTypeInspector()
     }
 
     @Test
     fun inspect_vectors() {
         var model = inspector.inspect(Vector3::class.java)
-        assertTrue(model.children != null && model.children.size == 3)
-        assertEquals("x", model.children[0].name)
-        assertEquals("y", model.children[1].name)
-        assertEquals("z", model.children[2].name)
+        assertTrue(model.children != null && model.children!!.size == 3)
+        assertEquals("x", model.children!![0].name)
+        assertEquals("y", model.children!![1].name)
+        assertEquals("z", model.children!![2].name)
 
         model = inspector.inspect(Vector2::class.java)
-        assertTrue(model.children != null && model.children.size == 2)
-        assertEquals("x", model.children[0].name)
-        assertEquals("y", model.children[1].name)
+        assertTrue(model.children != null && model.children!!.size == 2)
+        assertEquals("x", model.children!![0].name)
+        assertEquals("y", model.children!![1].name)
     }
 
     @Test
@@ -56,10 +56,10 @@ class SerializeCustomClassTest {
         assertEquals(Type.Object, model.networkType)
         assertNotNull(model.children)
         assertFalse(model.isArray)
-        assertEquals(1, model.children.size.toLong())
+        assertEquals(1, model.children!!.size.toLong())
 
         // GameState.objects (GameObject[])
-        val objects = model.children.elementAt(0)
+        val objects = model.children!!.elementAt(0)
         assertEquals("objects", objects.name)
         assertEquals(Type.Array, objects.networkType)
         assertTrue(objects.isArray)
@@ -121,9 +121,9 @@ class SerializeCustomClassTest {
         assertNotNull(node.children)
 
         // GameState.objects[0].pos -> x, y, z (floats)
-        assertFloat(node.children.elementAt(0))
-        assertFloat(node.children.elementAt(1))
-        assertFloat(node.children.elementAt(2))
+        assertFloat(node.children!!.elementAt(0))
+        assertFloat(node.children!!.elementAt(1))
+        assertFloat(node.children!!.elementAt(2))
     }
 
     private fun assertVector2(node: ObjectModelNode, name: String) {
@@ -133,8 +133,8 @@ class SerializeCustomClassTest {
         assertNotNull(node.children)
 
         // Vector2 -> x, y (floats)
-        assertFloat(node.children.elementAt(0))
-        assertFloat(node.children.elementAt(1))
+        assertFloat(node.children!!.elementAt(0))
+        assertFloat(node.children!!.elementAt(1))
     }
 
     private fun assertFloat(node: ObjectModelNode) {
@@ -292,8 +292,8 @@ class SerializeCustomClassTest {
     fun inspect_names_of_enum_fields() {
         val obj = EnumTestClass()
         val model = inspector.inspect(obj.javaClass)
-        val enumFieldModel = model.children.elementAt(1)
-        val enumArrayFieldModel = model.children.elementAt(2)
+        val enumFieldModel = model.children!!.elementAt(1)
+        val enumArrayFieldModel = model.children!!.elementAt(2)
 
         // check valued field
         checkEnumFieldInspection(enumFieldModel)
@@ -315,11 +315,11 @@ class SerializeCustomClassTest {
 
         assertEquals(Type.Enum, enumFieldModel.networkType)
         val enumDescrModel = inspector.getModelById(enumFieldModel.enumModelId())
-        assertEquals(TestEnum::class.java.simpleName, enumDescrModel.name)
+        assertEquals(TestEnum::class.java.simpleName, enumDescrModel!!.name)
 
-        assertEquals(possibleValues.size.toLong(), enumDescrModel.children.size.toLong())
+        assertEquals(possibleValues.size.toLong(), enumDescrModel!!.children!!.size.toLong())
         for (i in possibleValues.indices) {
-            val valModel = enumDescrModel.children.elementAt(i)
+            val valModel = enumDescrModel!!.children!!.elementAt(i)
             val `val` = possibleValues[i]
             assertEquals(`val`.name, valModel.name)
             assertEquals(`val`.ordinal.toLong(), valModel.childType.toLong())
@@ -353,9 +353,9 @@ class SerializeCustomClassTest {
         obj.other.other = obj
 
         val model = inspector.inspect(obj.javaClass)
-        assertEquals(2, model.children.size.toLong())
-        assertEquals(model.id.toLong(), model.children.elementAt(0).id.toLong())
-        assert(model !== model.children.elementAt(0))
+        assertEquals(2, model.children!!.size.toLong())
+        assertEquals(model.id.toLong(), model.children!!.elementAt(0).id.toLong())
+        assert(model !== model.children!!.elementAt(0))
     }
 
     @Test
@@ -366,9 +366,9 @@ class SerializeCustomClassTest {
         obj.obj.obj.obj = CyclicClassIndirectly.OtherClass()
 
         val model = inspector.inspect(obj.javaClass)
-        assertEquals(2, model.children.size.toLong())
-        val fieldModel = model.children.elementAt(0)
-        assertEquals(model.id.toLong(), fieldModel.children.elementAt(0).id.toLong())
+        assertEquals(2, model.children!!.size.toLong())
+        val fieldModel = model.children!!.elementAt(0)
+        assertEquals(model.id.toLong(), fieldModel.children!!.elementAt(0).id.toLong())
     }
 
     @Test
@@ -378,9 +378,9 @@ class SerializeCustomClassTest {
         obj.arr.objs = arrayOf(obj)
 
         val model = inspector.inspect(obj.javaClass)
-        assertEquals(2, model.children.size.toLong())
-        val arrFieldModel = model.children.elementAt(1)
-        val objsFieldModel = arrFieldModel.children.elementAt(0)
+        assertEquals(2, model.children!!.size.toLong())
+        val arrFieldModel = model.children!!.elementAt(1)
+        val objsFieldModel = arrFieldModel.children!!.elementAt(0)
         assert(objsFieldModel.isArray)
         assertNotEquals(model.id.toLong(), objsFieldModel.id.toLong())
         assertEquals(Type.Object, objsFieldModel.arrayType())
@@ -417,9 +417,9 @@ class SerializeCustomClassTest {
         obj.array = arrayOf(Vector2(5f, 6f), Vector3(7f, 8f, 9f))
         val model = inspector.inspect(obj.javaClass)
         assert(!model.isArray)
-        assertEquals(1, model.children.size.toLong())
+        assertEquals(1, model.children!!.size.toLong())
 
-        val arrayModel = model.children.elementAt(0)
+        val arrayModel = model.children!!.elementAt(0)
         assert(arrayModel.isArray)
         assert(arrayModel.children == null)
         assertEquals("array", arrayModel.name)
@@ -453,16 +453,16 @@ class SerializeCustomClassTest {
 
         // Vector2
         v2Model = inspector.inspect(Vector2::class.java)
-        assertEquals(2, v2Model.children.size.toLong())
-        assertEquals("x", v2Model.children.elementAt(0).name)
-        assertEquals("y", v2Model.children.elementAt(1).name)
+        assertEquals(2, v2Model.children!!.size.toLong())
+        assertEquals("x", v2Model.children!!.elementAt(0).name)
+        assertEquals("y", v2Model.children!!.elementAt(1).name)
 
         // Vector3
         v3Model = inspector.inspect(Vector3::class.java)
-        assertEquals(3, v3Model.children.size.toLong())
-        assertEquals("x", v3Model.children.elementAt(0).name)
-        assertEquals("y", v3Model.children.elementAt(1).name)
-        assertEquals("z", v3Model.children.elementAt(2).name)
+        assertEquals(3, v3Model.children!!.size.toLong())
+        assertEquals("x", v3Model.children!!.elementAt(0).name)
+        assertEquals("y", v3Model.children!!.elementAt(1).name)
+        assertEquals("z", v3Model.children!!.elementAt(2).name)
 
         // now deserialize the array
         val serialized = serializer.result

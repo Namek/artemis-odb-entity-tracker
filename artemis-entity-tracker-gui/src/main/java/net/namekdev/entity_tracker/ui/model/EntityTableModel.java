@@ -26,7 +26,7 @@ public class EntityTableModel extends DefaultTableModel {
 			addColumn("");
 		}
 
-		columnIdentifiers.set(index+1, info.name);
+		columnIdentifiers.set(index+1, info.getName());
 		fireTableStructureChanged();
 	}
 

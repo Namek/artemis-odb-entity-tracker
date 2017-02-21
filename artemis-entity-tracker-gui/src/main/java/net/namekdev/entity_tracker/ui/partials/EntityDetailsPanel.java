@@ -98,7 +98,7 @@ public class EntityDetailsPanel extends JPanel {
 			for (int i = entityComponents.nextSetBit(0), j = 0; i >= 0; i = entityComponents.nextSetBit(i+1), ++j) {
 				ComponentTypeInfo info = _entityTableModel.getComponentTypeInfo(i);
 
-				_componentListModel.addElement(info.name);
+				_componentListModel.addElement(info.getName());
 				_componentIndices.set(j, i);
 			}
 
@@ -108,7 +108,7 @@ public class EntityDetailsPanel extends JPanel {
 		if (componentTypeIndex >= 0) {
 			ComponentTypeInfo info = _entityTableModel.getComponentTypeInfo(componentTypeIndex);
 
-			_componentTitledBorder.setTitle(info.name);
+			_componentTitledBorder.setTitle(info.getName());
 			_componentsPanelContainer.removeAll();
 			_componentsPanelContainer.add(new ComponentDataPanel(_appContext, info, entityId), BorderLayout.PAGE_START);
 
