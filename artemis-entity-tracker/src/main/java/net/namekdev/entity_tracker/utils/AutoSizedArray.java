@@ -2,15 +2,15 @@ package net.namekdev.entity_tracker.utils;
 
 import java.util.ArrayList;
 
-public class Array<T> {
+public class AutoSizedArray<T> {
 	protected final ArrayList<T> _array;
 
 
-	public Array() {
+	public AutoSizedArray() {
 		_array = new ArrayList<T>();
 	}
 
-	public Array(int capacity) {
+	public AutoSizedArray(int capacity) {
 		_array = new ArrayList<T>(capacity);
 	}
 

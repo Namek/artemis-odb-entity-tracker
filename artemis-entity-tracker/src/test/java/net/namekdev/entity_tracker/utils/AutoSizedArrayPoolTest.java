@@ -6,7 +6,7 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 
-public class ArrayPoolTest {
+public class AutoSizedArrayPoolTest {
 
 	@Test
 	public void obtaining_non_exact_sizes() {

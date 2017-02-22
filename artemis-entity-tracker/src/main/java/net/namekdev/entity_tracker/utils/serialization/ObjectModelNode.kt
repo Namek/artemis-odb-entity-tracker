@@ -13,7 +13,7 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils
 
  *
  * It does not describe a structure of a specific object hierarchy.
- * Array fields will be just described as a definition,
+ * AutoSizedArray fields will be just described as a definition,
  * independently of the array's content.
  */
 class ObjectModelNode(

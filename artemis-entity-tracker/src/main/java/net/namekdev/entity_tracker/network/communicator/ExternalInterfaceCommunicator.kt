@@ -10,7 +10,7 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.model.FieldInfo
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.utils.Array
+import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.ArrayPool
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
@@ -25,7 +25,7 @@ class ExternalInterfaceCommunicator(
     private val _listener: WorldUpdateInterfaceListener
 ) : Communicator(), WorldController {
     //	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
-    private val _componentTypes = Array<ComponentTypeInfo>()
+    private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
     override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
         super.connected(remoteAddress, output)

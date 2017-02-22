@@ -63,11 +63,6 @@ class EntityTracker @JvmOverloads constructor(
     protected var typeFactory: ComponentTypeFactory
     protected var allComponentTypes: Bag<ComponentType>
 
-    companion object {
-        init {
-
-        }
-    }
 
     private var _notifiedComponentTypesCount = 0
     private val _objectArrPool = ArrayPool(Any::class.java)
@@ -186,7 +181,11 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun added(e: Entity?) {
-        if (updateListener == null || updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_ADDED == 0) {
+        if (updateListener == null) {
+            return
+        }
+
+        if (updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_ADDED == 0) {
             return
         }
 

@@ -5,7 +5,7 @@ import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.utils.Array
+import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 
 /**
@@ -18,7 +18,7 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
  */
 open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener {
     private lateinit var _worldController: WorldController
-    private val _componentTypes = Array<ComponentTypeInfo>()
+    private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
 
     override fun bytesReceived(bytes: ByteArray, offset: Int, length: Int) {
