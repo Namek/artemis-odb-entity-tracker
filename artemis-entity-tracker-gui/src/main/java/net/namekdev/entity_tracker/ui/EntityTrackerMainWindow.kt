@@ -170,10 +170,10 @@ class EntityTrackerMainWindow(showWindowOnStart: Boolean, exitApplicationOnClose
         val modelRow = entitiesTable!!.convertRowIndexToModel(viewRow)
         val modelCol = entitiesTable!!.convertColumnIndexToModel(viewCol)
 
-        val entityId = entitiesTableModel!!.getValueAt(modelRow, 0) as Int
+        val entityId = entitiesTableModel.getValueAt(modelRow, 0) as Int
         var componentIndex = modelCol - 1
 
-        val entityComponents = entitiesTableModel!!.getEntityComponents(entityId)
+        val entityComponents = entitiesTableModel.getEntityComponents(entityId)
 
         if (componentIndex >= 0 && !entityComponents.get(componentIndex)) {
             componentIndex = -1
@@ -190,7 +190,7 @@ class EntityTrackerMainWindow(showWindowOnStart: Boolean, exitApplicationOnClose
     override val listeningBitset: Int
         get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector) {
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         val hasAspect = allTypes != null || oneTypes != null || notTypes != null
 
         SwingUtilities.invokeLater {

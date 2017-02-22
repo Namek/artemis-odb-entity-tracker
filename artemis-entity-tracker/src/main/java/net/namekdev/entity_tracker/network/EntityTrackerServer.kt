@@ -25,7 +25,7 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
  * @author Namek
  */
 class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.DEFAULT_PORT) : Server(), WorldUpdateListener {
-    private var _worldController: WorldController? = null
+    private lateinit var _worldController: WorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
     private val _managers = Bag<String>()
@@ -44,7 +44,7 @@ class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.
     val listeningBitset: Int
         get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector) {
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         var i = 0
         val n = _listeners.size()
         while (i < n) {
@@ -131,7 +131,7 @@ class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.
             val newCommunicator = object : EntityTrackerCommunicator() {
                 override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
                     super.connected(remoteAddress, output)
-                    injectWorldController(_worldController!!)
+                    injectWorldController(_worldController)
 
 
                     run {

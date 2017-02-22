@@ -10,7 +10,7 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo
 interface WorldUpdateListener {
 	fun injectWorldController(controller: WorldController)
 	val listeningBitset: Int
-	fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector)
+	fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?)
 	fun addedManager(name: String)
 	fun addedComponentType(index: Int, info: ComponentTypeInfo)
 	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int)

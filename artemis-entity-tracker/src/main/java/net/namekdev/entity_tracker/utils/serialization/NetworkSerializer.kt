@@ -22,7 +22,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     private val _modelsMarkedAsSent = TreeSet<Int>()
 
     init {
-        _buffer = ByteArray(10240)
+        _buffer = ByteArray(102400)
         _ourBuffer = _buffer
     }
 
@@ -156,14 +156,14 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         return this
     }
 
-    fun addBitVector(bitVector: BitVector): NetworkSerializer {
+    fun addBitVector(bitVector: BitVector?): NetworkSerializer {
         if (tryAddNullable(bitVector)) {
             return this
         }
 
         addType(NetworkSerialization.Type.BitVector)
 
-        val bitsCount = bitVector.length()
+        val bitsCount = bitVector!!.length()
         addRawShort(bitsCount.toShort())
 
         var i = 0
@@ -355,8 +355,12 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
      * of `addObjectDescription()` and `addObject()`
      * because of the inspection cache.
      */
-    fun addObject(obj: Any): NetworkSerializer {
-        assert(!obj.javaClass.isArray)
+    fun addObject(obj: Any?): NetworkSerializer {
+        if (tryAddNullable(obj)) {
+            return this
+        }
+
+        assert(!obj!!.javaClass.isArray)
         val previousInspectionCount = inspector.registeredModelsCount
         val model = inspector.inspect(obj.javaClass)
         val inspectionCount = inspector.registeredModelsCount

@@ -9,7 +9,7 @@ open abstract class DummyWorldUpdateListener : WorldUpdateListener {
     override val listeningBitset: Int
         get() = 0
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector) {}
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {}
 
     override fun addedManager(name: String) {}
 

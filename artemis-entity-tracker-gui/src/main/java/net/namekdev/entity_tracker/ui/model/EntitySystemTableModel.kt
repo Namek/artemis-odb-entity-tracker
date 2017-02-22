@@ -14,7 +14,7 @@ class EntitySystemTableModel : BaseSystemTableModel() {
 
     override fun getColumnClass(columnIndex: Int): Class<*>? {
         when (columnIndex) {
-            2, 3 -> return Int::class.java
+            2, 3 -> return Int::class.javaObjectType
             else -> return super.getColumnClass(columnIndex)
         }
     }

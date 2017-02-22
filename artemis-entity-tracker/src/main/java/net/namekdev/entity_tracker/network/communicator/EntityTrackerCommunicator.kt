@@ -64,7 +64,7 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener {
     override val listeningBitset: Int
         get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector, oneTypes: BitVector, notTypes: BitVector) {
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         send(
             beginPacket(Communicator.TYPE_ADDED_ENTITY_SYSTEM)
                 .addInt(index)

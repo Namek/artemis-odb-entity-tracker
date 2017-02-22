@@ -59,9 +59,9 @@ class EntityTracker @JvmOverloads constructor(
     val allComponentMappers = Bag<BaseComponentMapper<Component>>()
 
 
-    protected var entity_getComponentBits: Method
-    protected var typeFactory: ComponentTypeFactory
-    protected var allComponentTypes: Bag<ComponentType>
+    protected lateinit var entity_getComponentBits: Method
+    protected lateinit var typeFactory: ComponentTypeFactory
+    protected lateinit var allComponentTypes: Bag<ComponentType>
 
 
     private var _notifiedComponentTypesCount = 0
@@ -70,12 +70,7 @@ class EntityTracker @JvmOverloads constructor(
     constructor(listener: WorldUpdateListener) : this(ObjectTypeInspector(), listener) {}
 
     init {
-        assert(componentInspector != null)
         setUpdateListener(listener)
-
-        entity_getComponentBits = ReflectionUtils.getHiddenMethod(Entity::class.java, "getComponentBits")
-        typeFactory = ReflectionUtils.getHiddenFieldValue(ComponentManager::class.java, "typeFactory", world.componentManager) as ComponentTypeFactory
-        allComponentTypes = ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory::class.java, "types", typeFactory) as Bag<ComponentType>
     }
 
     fun setUpdateListener(listener: WorldUpdateListener?) {
@@ -85,6 +80,10 @@ class EntityTracker @JvmOverloads constructor(
 
 
     override fun initialize() {
+		entity_getComponentBits = ReflectionUtils.getHiddenMethod(Entity::class.java, "getComponentBits")
+        typeFactory = ReflectionUtils.getHiddenFieldValue(ComponentManager::class.java, "typeFactory", world.componentManager) as ComponentTypeFactory
+        allComponentTypes = ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory::class.java, "types", typeFactory) as Bag<ComponentType>
+
         find42UnicornManagers()
     }
 

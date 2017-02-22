@@ -37,7 +37,7 @@ open class BaseSystemTableModel : ExtendedTableModel() {
 
     override fun getColumnClass(columnIndex: Int): Class<*>? {
         when (columnIndex) {
-            0 -> return Boolean::class.java
+            0 -> return Boolean::class.javaObjectType
             1 -> return String::class.java
             else -> return null
         }

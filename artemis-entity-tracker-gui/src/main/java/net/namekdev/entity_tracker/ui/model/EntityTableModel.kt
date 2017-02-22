@@ -47,9 +47,9 @@ class EntityTableModel : DefaultTableModel(arrayOf<Array<Any>>(), arrayOf<Any>("
         var i = 0
         val n = rowCount
         while (i < n) {
-            val `val` = getValueAt(i, 0) as Int
+            val value = getValueAt(i, 0) as Int
 
-            if (`val` === entityId) {
+            if (value === entityId) {
                 removeRow(i)
                 break
             }
@@ -67,7 +67,7 @@ class EntityTableModel : DefaultTableModel(arrayOf<Array<Any>>(), arrayOf<Any>("
     }
 
     override fun getColumnClass(columnIndex: Int): Class<*> {
-        return if (columnIndex == 0) Int::class.java else Boolean::class.java
+        return if (columnIndex == 0) Int::class.javaObjectType else Boolean::class.javaObjectType
     }
 
     override fun isCellEditable(row: Int, column: Int): Boolean {

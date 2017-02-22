@@ -45,9 +45,9 @@ class ExternalInterfaceCommunicator(
             Communicator.TYPE_ADDED_ENTITY_SYSTEM -> {
                 val index = _deserializer.readInt()
                 val name = _deserializer.readString()!!
-                val allTypes = _deserializer.readBitVector()!!
-                val oneTypes = _deserializer.readBitVector()!!
-                val notTypes = _deserializer.readBitVector()!!
+                val allTypes = _deserializer.readBitVector()
+                val oneTypes = _deserializer.readBitVector()
+                val notTypes = _deserializer.readBitVector()
                 _listener.addedSystem(index, name, allTypes, oneTypes, notTypes)
             }
             Communicator.TYPE_ADDED_MANAGER -> {

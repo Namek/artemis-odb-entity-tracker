@@ -18,15 +18,15 @@ open class Client {
 
     protected var socket: Socket? = null
     protected var thread: Thread? = null
-    protected var input: InputStream? = null
-    protected var output: OutputStream? = null
+    protected lateinit var input: InputStream
+    protected lateinit var output: OutputStream
 
     protected var _isRunning: Boolean = false
     private val _buffer = ByteArray(10240)
     private var _incomingSize = -1
     private var _lastHeartbeatTime = System.currentTimeMillis()
 
-    var connectionListener: RawConnectionCommunicator? = null
+    lateinit var connectionListener: RawConnectionCommunicator
 
     /**
      * Time between heartbeats, specified in milliseconds.
@@ -111,7 +111,7 @@ open class Client {
         if (_isRunning && isConnected) {
             var n = 0
             try {
-                n = input!!.available()
+                n = input.available()
 
                 if (n == 0) {
                     val currentTime = System.currentTimeMillis()
@@ -119,26 +119,26 @@ open class Client {
                     if (currentTime - _lastHeartbeatTime > heartbeatDelay) {
                         _lastHeartbeatTime = currentTime
 
-                        output!!.write(heartbeat, 0, heartbeat.size)
-                        output!!.flush()
+                        output.write(heartbeat, 0, heartbeat.size)
+                        output.flush()
                     }
                 }
                 else
                     do {
                         if (_incomingSize <= 0 && n >= IntegerBYTES) {
-                            input!!.read(_buffer, 0, IntegerBYTES)
+                            input.read(_buffer, 0, IntegerBYTES)
                             _incomingSize = readRawInt(_buffer, 0)
                             n -= IntegerBYTES
                             continue
                         }
 
                         if (_incomingSize > 0 && n >= _incomingSize) {
-                            input!!.read(_buffer, 0, _incomingSize)
-                            connectionListener!!.bytesReceived(_buffer, 0, _incomingSize)
+                            input.read(_buffer, 0, _incomingSize)
+                            connectionListener.bytesReceived(_buffer, 0, _incomingSize)
                             _incomingSize = 0
                         }
 
-                        n = input!!.available()
+                        n = input.available()
                     } while (n > 0)
             }
             catch (e: Exception) {
@@ -157,13 +157,13 @@ open class Client {
         _isRunning = false
 
         try {
-            input!!.close()
+            input.close()
         }
         catch (e: Exception) {
         }
 
         try {
-            output!!.close()
+            output.close()
         }
         catch (e: Exception) {
         }
@@ -205,12 +205,12 @@ open class Client {
     private val outputListener = object : RawConnectionOutputListener {
         override fun send(buffer: ByteArray, offset: Int, length: Int) {
             try {
-                output!!.write(length shr 24 and 0xFF)
-                output!!.write(length shr 16 and 0xFF)
-                output!!.write(length shr 8 and 0xFF)
-                output!!.write(length and 0xFF)
-                output!!.write(buffer, offset, length)
-                output!!.flush()
+                output.write(length shr 24 and 0xFF)
+                output.write(length shr 16 and 0xFF)
+                output.write(length shr 8 and 0xFF)
+                output.write(length and 0xFF)
+                output.write(buffer, offset, length)
+                output.flush()
             }
             catch (e: IOException) {
                 throw RuntimeException(e)
@@ -230,13 +230,13 @@ open class Client {
 
         protected fun readRawInt(buffer: ByteArray, offset: Int): Int {
             var offset = offset
-            var value = buffer[offset++] as Int and 0xFF
+            var value = buffer[offset++].toInt() and 0xFF
             value = value shl 8
-            value = value or (buffer[offset++] as Int and 0xFF)
+            value = value or (buffer[offset++].toInt() and 0xFF)
             value = value shl 8
-            value = value or (buffer[offset++] as Int and 0xFF)
+            value = value or (buffer[offset++].toInt() and 0xFF)
             value = value shl 8
-            value = value or (buffer[offset] as Int and 0xFF)
+            value = value or (buffer[offset].toInt() and 0xFF)
 
             return value
         }
