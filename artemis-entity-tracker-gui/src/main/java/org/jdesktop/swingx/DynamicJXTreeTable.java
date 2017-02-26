@@ -70,10 +70,10 @@ public class DynamicJXTreeTable extends JXTreeTable {
 	private void init(ICellClassGetter cellClassGetter) {
 		this.cellClassGetter = cellClassGetter;
 
-		Object renderer = ReflectionUtils.getHiddenFieldValue(JXTreeTable.class, "renderer", this);
+		Object renderer = ReflectionUtils.INSTANCE.getHiddenFieldValue(JXTreeTable.class, "renderer", this);
 		this.renderer = (TableCellRenderer) renderer;
 
-		Object editor = ReflectionUtils.getHiddenFieldValue(JXTreeTable.class, "hierarchicalEditor", this);
+		Object editor = ReflectionUtils.INSTANCE.getHiddenFieldValue(JXTreeTable.class, "hierarchicalEditor", this);
 		this.hierarchicalEditor = (TreeTableCellEditor) editor;
 	}
 

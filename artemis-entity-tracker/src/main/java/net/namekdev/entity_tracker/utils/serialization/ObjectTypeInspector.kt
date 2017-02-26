@@ -9,6 +9,7 @@ import java.util.Vector
 
 import com.artemis.utils.reflect.ClassReflection
 import com.artemis.utils.reflect.Field
+import net.namekdev.entity_tracker.utils.ReflectionUtils
 
 class ObjectTypeInspector {
     private val registeredModels = ArrayList<RegisteredModel>()
@@ -90,7 +91,8 @@ class ObjectTypeInspector {
         var root: ObjectModelNode
 
         if (!type.isArray) {
-            val fields = ClassReflection.getDeclaredFields(type)
+            val fields = ReflectionUtils.getDeclaredFields(type)
+                .filter { !it.name.equals("this$0") } // cover hidden field in non-static inner class
 
             val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, /* TODO: it was: root*/ null)
             model.networkType = Type.Object

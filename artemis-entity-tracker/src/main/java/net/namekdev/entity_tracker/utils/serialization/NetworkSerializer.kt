@@ -412,7 +412,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
             for (i in 0..n - 1) {
                 val child = model.children!![i]
-                val childObject = ReflectionUtils.getHiddenFieldValue(obj!!.javaClass, child.name, obj)
+                val childObject = ReflectionUtils.getHiddenFieldValue(obj!!.javaClass, child.name!!, obj)
 
                 addRawObject(child, childObject)
             }

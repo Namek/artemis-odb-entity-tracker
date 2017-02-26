@@ -64,7 +64,7 @@ class ObjectModelNode(
     }
 
     fun setValue(targetObj: Any, treePath: IntArray?, value: Any?) {
-        var targetObj = targetObj
+        var traverseObj: Any? = targetObj
         assert(treePath != null && treePath.size >= 1)
 
         val valueType = value!!.javaClass
@@ -81,10 +81,10 @@ class ObjectModelNode(
                 val fieldName = node.name
 
                 if (node.isLeaf) {
-                    ReflectionUtils.setHiddenFieldValue(targetObj.javaClass, fieldName, targetObj, value)
+                    ReflectionUtils.setHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj, value)
                 }
                 else {
-                    targetObj = ReflectionUtils.getHiddenFieldValue(targetObj.javaClass, fieldName, targetObj)
+                    traverseObj = ReflectionUtils.getHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj)
                 }
             }
             else if (isSimpleType(node.networkType) || node.isEnum) {
@@ -92,10 +92,10 @@ class ObjectModelNode(
                 assert(node.isLeaf)
 
                 val fieldName = node.name
-                ReflectionUtils.setHiddenFieldValue(targetObj.javaClass, fieldName, targetObj, value)
+                ReflectionUtils.setHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj, value)
             }
             else if (node.isArray) {
-                val array = targetObj as Array<Any>
+                val array = traverseObj as Array<Any>
                 val arrayType = node.arrayType()
 
                 if (arrayType == Type.Unknown || arrayType == Type.Object) {
@@ -106,7 +106,7 @@ class ObjectModelNode(
                     val arrayEl = array[pathIndex]
                     val arrayElModel = _models!!.get(arrayEl.javaClass)
 
-                    targetObj = arrayEl
+                    traverseObj = arrayEl
                     node = arrayElModel
                 }
                 else if (isSimpleType(arrayType)) {

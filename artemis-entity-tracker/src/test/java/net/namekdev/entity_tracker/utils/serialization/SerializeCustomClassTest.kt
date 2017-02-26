@@ -483,4 +483,20 @@ class SerializeCustomClassTest {
         assert(v3.y == v3d.values[1] as Float)
         assert(v3.z == v3d.values[2] as Float)
     }
+
+    @Test
+    fun inspect_class_without_parent_class_this() {
+        val model = inspector.inspect(InnerClass_GameState::class.java)
+        assertEquals(2, model.children!!.size)
+    }
+
+    inner class InnerClass_GameState {
+        var objects: Array<GameObject>? = null
+        var omg: Boolean = false
+    }
+
+    inner class InnerClass_GameObject {
+        var pos = Vector3(1f, 2f, 3f)
+        var size = Vector2(10f, 5f)
+    }
 }

@@ -39,7 +39,7 @@ public class AutoSizedArrayPoolTest {
 	@Test
 	public void no_duplicates() {
 		ArrayPool<Integer> pool = new ArrayPool<>(Integer.class);
-		LinkedList<Integer[]> arrays = (LinkedList<Integer[]>) ReflectionUtils.getHiddenFieldValue(ArrayPool.class, "_arrays", pool);
+		LinkedList<Integer[]> arrays = (LinkedList<Integer[]>) ReflectionUtils.INSTANCE.getHiddenFieldValue(ArrayPool.class, "_arrays", pool);
 
 		int[] sizes = new int[] {
 			1, 2, 3, 2, 3, 1
@@ -54,7 +54,7 @@ public class AutoSizedArrayPoolTest {
 	@Test
 	public void is_internally_sorted() {
 		ArrayPool<Integer> pool = new ArrayPool<>(Integer.class);
-		LinkedList<Integer[]> arrays = (LinkedList<Integer[]>) ReflectionUtils.getHiddenFieldValue(ArrayPool.class, "_arrays", pool);
+		LinkedList<Integer[]> arrays = (LinkedList<Integer[]>) ReflectionUtils.INSTANCE.getHiddenFieldValue(ArrayPool.class, "_arrays", pool);
 
 		int[] sizes = new int[] {
 			1, 2, 3, 2, 3, 1, 4, 1, 5, 8, 7, 6, 7, 2

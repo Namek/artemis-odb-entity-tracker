@@ -86,7 +86,7 @@ public class TreeTableModelAdapterExt extends TreeTableModelAdapter {
 
 	private NodeAdditionalInfo getNodeAdditionalInfo(int row) {
 		BasicTreeUI treeUi = (BasicTreeUI) tree.getUI();
-		VariableHeightLayoutCache treeState = (VariableHeightLayoutCache) ReflectionUtils.getHiddenFieldValue(BasicTreeUI.class, "treeState", treeUi);
+		VariableHeightLayoutCache treeState = (VariableHeightLayoutCache) ReflectionUtils.INSTANCE.getHiddenFieldValue(BasicTreeUI.class, "treeState", treeUi);
 		DefaultMutableTreeNode nodeState = null;
 
 		NodeAdditionalInfo nodeInfo = new NodeAdditionalInfo();
