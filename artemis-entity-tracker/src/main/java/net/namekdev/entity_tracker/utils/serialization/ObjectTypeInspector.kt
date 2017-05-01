@@ -92,7 +92,7 @@ class ObjectTypeInspector {
 
         if (!type.isArray) {
             val fields = ReflectionUtils.getDeclaredFields(type)
-                .filter { !it.name.equals("this$0") } // cover hidden field in non-static inner class
+                .filter { !it.name.startsWith("this$") } // cover hidden field in non-static inner class
 
             val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, /* TODO: it was: root*/ null)
             model.networkType = Type.Object
