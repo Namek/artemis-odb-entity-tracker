@@ -22,23 +22,20 @@ class ObjectModelNode(
     // when it's null it defines a class, otherwise it's field
     var parent: ObjectModelNode?
 ) {
-
-
-    /** Is it primitiveType? Otherwise, it's objectType */
-    var isPrimitive = false
-
-    var dataType: DataType = DataType.Unknown
-    var dataSubType: DataType = DataType.Unknown
-
-
-
     var id = -1
     var name: String? = null
 
     var children: Vector<ObjectModelNode>? = null
 
-//    var networkType: Type = Type.Unknown
-//    var childType: Short = 0
+    var dataType: DataType = DataType.Unknown
+    var dataSubType: DataType = DataType.Unknown
+
+
+    /** Determines [dataType]. Is it primitive type? Otherwise, it's objectType */
+    var isTypePrimitive = false
+
+    /** Determines [dataSubType] Is it primitive type? Otherwise, it's objectType */
+    var isSubTypePrimitive = false
 
 
     init {
@@ -46,13 +43,13 @@ class ObjectModelNode(
     }
 
     val isLeaf: Boolean
-        get() = !isArray && (isEnum || networkType != DataType.Object)
+        get() = !isArray && (isEnum || dataType != DataType.Object)
 
     val isArray: Boolean
-        get() = networkType == Type.Array
+        get() = dataType == DataType.Array
 
     val isEnum: Boolean
-        get() = networkType == Type.Enum
+        get() = dataType == DataType.Enum
 
     val isEnumArray: Boolean
         get() = isArray && dataSubType.equals(DataType.Enum)
@@ -77,8 +74,8 @@ class ObjectModelNode(
         var traverseObj: Any? = targetObj
         assert(treePath != null && treePath.size >= 1)
 
-        val valueType = value!!.javaClass
-        assert(value == null || isSimpleType(determineType(valueType)) || valueType.isEnum)
+        val valueType = value?.javaClass
+        assert(value == null || isSimpleType(determineType(valueType!!)) || valueType.isEnum)
 
         var pathIndex = 0
         var node = this
@@ -86,7 +83,7 @@ class ObjectModelNode(
         while (pathIndex < treePath!!.size) {
             val index = treePath[pathIndex]
 
-            if (node.networkType == DataType.Object || node.networkType == Type.Unknown /*!node.isArray() && node.children != null*/) {
+            if (node.dataType == DataType.Object || node.dataType == DataType.Unknown /*!node.isArray() && node.children != null*/) {
                 node = node.children!![index]
                 val fieldName = node.name
 
@@ -97,7 +94,7 @@ class ObjectModelNode(
                     traverseObj = ReflectionUtils.getHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj)
                 }
             }
-            else if (isSimpleType(node.networkType) || node.isEnum) {
+            else if (isSimpleType(node.dataType) || node.isEnum) {
                 node = node.children!![index]
                 assert(node.isLeaf)
 
@@ -105,16 +102,17 @@ class ObjectModelNode(
                 ReflectionUtils.setHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj, value)
             }
             else if (node.isArray) {
-                val array = traverseObj as Array<Any>
+                val array = traverseObj as Array<Any?>
                 val arrayType = node.arrayType()
 
-                if (arrayType == Type.Unknown || arrayType == Type.Object) {
+                if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
                     assert(pathIndex < treePath.size - 1)
                     assert(node.children == null)
                     ++pathIndex
 
+                    // @Note: This may need some attention. `arrayEl` could be null, then model couldn't be defined.
                     val arrayEl = array[pathIndex]
-                    val arrayElModel = _models!!.get(arrayEl.javaClass)
+                    val arrayElModel = _models!!.get(arrayEl!!.javaClass)
 
                     traverseObj = arrayEl
                     node = arrayElModel

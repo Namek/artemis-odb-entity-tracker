@@ -51,7 +51,7 @@ object ReflectionUtils {
         }
     }
 
-    fun setHiddenFieldValue(type: Class<out Any>, fieldName: String, obj: Any, value: Any) {
+    fun setHiddenFieldValue(type: Class<out Any>, fieldName: String, obj: Any, value: Any?) {
         val field = getHiddenField(type, fieldName)
 
         try {

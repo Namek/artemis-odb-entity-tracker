@@ -7,8 +7,6 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Comp
 import java.util.ArrayList
 import java.util.Vector
 
-import com.artemis.utils.reflect.ClassReflection
-import com.artemis.utils.reflect.Field
 import net.namekdev.entity_tracker.utils.ReflectionUtils
 
 class ObjectTypeInspector {
@@ -31,7 +29,7 @@ class ObjectTypeInspector {
 
         override fun getById(id: Int): ObjectModelNode? {
             for (m in registeredModels) {
-                if (m.model!!.id == id)
+                if (m.model.id == id)
                     return m.model
             }
 
@@ -58,12 +56,12 @@ class ObjectTypeInspector {
 
     fun getRegisteredModelByIndex(index: Int): ObjectModelNode {
         val model = registeredModels[index]
-        return model.model!!
+        return model.model
     }
 
     fun getModelById(id: Int): ObjectModelNode? {
         for (model in registeredModels) {
-            if (model.model!!.id == id) {
+            if (model.model.id == id) {
                 return model.model
             }
         }
@@ -95,7 +93,7 @@ class ObjectTypeInspector {
                 .filter { !it.name.startsWith("this$") } // cover hidden field in non-static inner class
 
             val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, /* TODO: it was: root*/ null)
-            model.networkType = DataType.Object
+            model.dataType = DataType.Object
             model.children = Vector<ObjectModelNode>(fields.size)
 
             registeredModel = rememberType(type, parentType, model, parentRegisteredModel)
@@ -109,9 +107,9 @@ class ObjectTypeInspector {
                     child = inspectArrayType(fieldType, type, registeredModel)
                 }
                 else {
-                    val networkType = NetworkSerialization.determineType(fieldType)
+                    val (dataType, isTypePrimitive) = NetworkSerialization.determineType(fieldType)
 
-                    if (networkType == Type.Unknown) {
+                    if (dataType == DataType.Unknown) {
                         val registeredChildModel = findModel(fieldType, type, root)
 
                         if (registeredChildModel == null) {
@@ -119,7 +117,7 @@ class ObjectTypeInspector {
                         }
                         else {
                             child = ObjectModelNode(registeredModelsAsCollection, ++lastId, root).copyFrom(
-                                registeredChildModel.model!!
+                                registeredChildModel.model
                             )
                             child.name = null
 
@@ -127,12 +125,13 @@ class ObjectTypeInspector {
                             rememberType(fieldType, type, root, registeredModel)
                         }
                     }
-                    else if (networkType == DataType.Enum) {
+                    else if (dataType == DataType.Enum) {
                         child = inspectEnum(fieldType as Class<Enum<*>>, type, registeredModel)
                     }
                     else {
                         child = ObjectModelNode(registeredModelsAsCollection, ++lastId, root)
-                        child.networkType = networkType
+                        child.dataType = dataType
+                        child.isTypePrimitive = isTypePrimitive
                     }
                 }
 
@@ -156,7 +155,7 @@ class ObjectTypeInspector {
         val registeredModel = rememberType(fieldType, parentType, model, parentRegisteredModel)
 
         val arrayElType = fieldType.componentType
-        var arrayType = determineType(arrayElType)
+        var (arrayType, isArrayElTypePrimitive) = determineType(arrayElType)
 
 
         if (arrayType == DataType.Enum) {
@@ -177,8 +176,8 @@ class ObjectTypeInspector {
             arrayType = if (arrayElType.isArray) DataType.Array else DataType.Object
         }// TODO probably that should inspect deeper anyway!
 
-        model.networkType = DataType.Array
-        model.childType = arrayType.ordinal.toShort()
+        model.dataType = DataType.Array
+        model.dataSubType = arrayType
 
         return model
     }
@@ -284,14 +283,14 @@ class ObjectTypeInspector {
                 sb.append(" null\n")
             }
             else {
-                sb.append("\n    id: " + m.model!!.id)
-                sb.append("\n    networkType: " + m.model!!.networkType)
-                sb.append("\n    childType: " + m.model!!.childType)
-                sb.append("\n    name: \"" + m.model!!.name + "\"")
+                sb.append("\n    id: " + m.model.id)
+                sb.append("\n    networkType: " + m.model.networkType)
+                sb.append("\n    childType: " + m.model.childType)
+                sb.append("\n    name: \"" + m.model.name + "\"")
                 sb.append("\n    parent:")
 
-                if (m.model!!.parent != null) {
-                    sb.append(" (id=" + m.model!!.parent!!.id + ")")
+                if (m.model.parent != null) {
+                    sb.append(" (id=" + m.model.parent!!.id + ")")
                 }
                 else {
                     sb.append(" null")
@@ -299,13 +298,13 @@ class ObjectTypeInspector {
 
                 sb.append("\n    children")
 
-                if (m.model!!.children != null) {
-                    sb.append(" (" + m.model!!.children!!.size + ")")
+                if (m.model.children != null) {
+                    sb.append(" (" + m.model.children!!.size + ")")
 
                     var i = 0
-                    val n = m.model!!.children!!.size
+                    val n = m.model.children!!.size
                     while (i < n) {
-                        val node = m.model!!.children!![i]
+                        val node = m.model.children!![i]
                         sb.append("\n    {\n      id: " + node.id)
                         sb.append("\n      name: " + node.name!!)
                         sb.append("\n    }")

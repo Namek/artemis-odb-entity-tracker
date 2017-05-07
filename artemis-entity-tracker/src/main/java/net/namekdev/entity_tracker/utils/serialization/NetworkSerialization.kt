@@ -41,18 +41,32 @@ abstract class NetworkSerialization {
             return NetworkDeserializer()
         }
 
-        fun determineType(type: Class<*>): DataType {
+        /**
+         * @return pair of dataType + isTypePrimitive
+         */
+        fun determineType(type: Class<*>): Pair<DataType, Boolean> {
             return when (type) {
-                Byte::class.javaPrimitiveType, Byte::class.javaObjectType -> DataType.Byte
-                Short::class.javaPrimitiveType, Short::class.javaObjectType -> DataType.Short
-                Int::class.javaPrimitiveType, Int::class.javaObjectType -> DataType.Int
-                Long::class.javaPrimitiveType, Long::class.javaObjectType -> DataType.Long
-                String::class.java -> DataType.String
-                Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> DataType.Boolean
-                Float::class.javaPrimitiveType, Float::class.javaObjectType -> DataType.Float
-                Double::class.javaPrimitiveType, Double::class.javaObjectType -> DataType.Double
-                BitVector::class.java -> DataType.BitVector
-                else -> if (type.isEnum) DataType.Enum else DataType.Unknown
+                Byte::class.javaPrimitiveType -> Pair(DataType.Byte, true)
+                Byte::class.javaObjectType -> Pair(DataType.Byte, false)
+                Short::class.javaPrimitiveType -> Pair(DataType.Short, true)
+                Short::class.javaObjectType -> Pair(DataType.Short, false)
+                Int::class.javaPrimitiveType -> Pair(DataType.Int, true)
+                Int::class.javaObjectType -> Pair(DataType.Int, false)
+                Long::class.javaPrimitiveType -> Pair(DataType.Long, true)
+                Long::class.javaObjectType -> Pair(DataType.Long, false)
+                String::class.java -> Pair(DataType.String, false)
+                Boolean::class.javaPrimitiveType -> Pair(DataType.Boolean, true)
+                Boolean::class.javaObjectType -> Pair(DataType.Boolean, false)
+                Float::class.javaPrimitiveType -> Pair(DataType.Float, true)
+                Float::class.javaObjectType -> Pair(DataType.Float, false)
+                Double::class.javaPrimitiveType -> Pair(DataType.Double, true)
+                Double::class.javaObjectType -> Pair(DataType.Double, false)
+                BitVector::class.java -> Pair(DataType.BitVector, false)
+                else ->
+                    if (type.isEnum)
+                        Pair(DataType.Enum, true)
+                    else
+                        Pair(DataType.Unknown, false)
             }
         }
 
@@ -72,7 +86,7 @@ abstract class NetworkSerialization {
             }
         }
 
-        fun isSimpleType(valueType: DataType?): Boolean {
+        /*fun isSimpleType(valueType: DataType?): Boolean {
             if (valueType == null)
                 return false
 
@@ -88,6 +102,6 @@ abstract class NetworkSerialization {
                 DataType.BitVector -> return true
                 else -> return false
             }
-        }
+        }*/
     }
 }
