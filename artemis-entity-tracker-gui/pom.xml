@@ -42,6 +42,11 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+		<dependency>
+			<groupId>org.jdeferred</groupId>
+			<artifactId>jdeferred-core</artifactId>
+			<version>1.2.5</version>
+		</dependency>
     </dependencies>
 
 	<profiles>

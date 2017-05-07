@@ -31,11 +31,15 @@ import org.jdesktop.swingx.JXTreeTable
 import org.jdesktop.swingx.treetable.AbstractTreeTableModel
 
 
-class ComponentDataPanel(private val _appContext: Context, private val _info: ComponentTypeInfo, private val _entityId: Int) : JPanel() {
+class ComponentDataPanel(
+    private val _appContext: Context,
+    private val _info: ComponentTypeInfo,
+    private val _entityId: Int
+) : JPanel() {
     private val _components: Vector<JComponent>? = null
 
-    private var treeTableModel: ValueTreeTableModel? = null
-    private var treeTable: JXTreeTable? = null
+    private lateinit var treeTableModel: ValueTreeTableModel
+    private lateinit var treeTable: JXTreeTable
 
 
     init {
@@ -49,7 +53,7 @@ class ComponentDataPanel(private val _appContext: Context, private val _info: Co
 
         treeTableModel = testModel
         treeTable = DynamicJXTreeTable(treeTableModel, treeTableModel)
-        add(treeTable!!, "growx")
+        add(treeTable, "growx")
 
         /*
 		MigLayout layout = new MigLayout("wrap", "[right][0:pref,grow]", "");
@@ -94,38 +98,11 @@ class ComponentDataPanel(private val _appContext: Context, private val _info: Co
             val deserializer = NetworkDeserializer()
             val inspector = ObjectTypeInspector()
 
-            val gameState = GameState()
-            gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
-            val serializer = NetworkSerializer().reset()
-            val model = inspector.inspect(GameState::class.java)
-
-
-            serializer.addDataDescriptionOrRef(model)
-            serializer.addObject(model, gameState)
-
-            val serialized = serializer.result
-            deserializer.setSource(serialized.buffer, 0, serialized.size)
-
-            val model2 = deserializer.readDataDescription()
-
-            val result = deserializer.readObject(model2, true)
-
-            return ValueTreeTableModel(result)
+return null!!
+//            return ValueTreeTableModel(result)
         }
 
-    inner class GameState {
-        var objects: Array<GameObject>? = null
-        var omg: Boolean = false
-    }
-
-    inner class GameObject {
-        var pos = Vector3(1f, 2f, 3f)
-        var size = Vector2(10f, 5f)
-    }
-
-    inner class Vector3(var x: Float, var y: Float, var z: Float)
-    inner class Vector2(var x: Float, var y: Float)
     internal inner class MyTreeNode {
         var name: String? = null
         var description: String? = null
@@ -153,19 +130,14 @@ class ComponentDataPanel(private val _appContext: Context, private val _info: Co
         init {
             myroot = MyTreeNode("root", "Root of the tree")
 
-            myroot.getChildren().add(MyTreeNode("Empty Child 1",
-                "This is an empty child"))
+            myroot.getChildren().add(MyTreeNode("Empty Child 1", "This is an empty child"))
 
-            val subtree = MyTreeNode("Sub Tree",
-                "This is a subtree (it has children)")
-            subtree.getChildren().add(MyTreeNode("EmptyChild 1, 1",
-                "This is an empty child of a subtree"))
-            subtree.getChildren().add(MyTreeNode("EmptyChild 1, 2",
-                "This is an empty child of a subtree"))
+            val subtree = MyTreeNode("Sub Tree", "This is a subtree (it has children)")
+            subtree.getChildren().add(MyTreeNode("EmptyChild 1, 1", "This is an empty child of a subtree"))
+            subtree.getChildren().add(MyTreeNode("EmptyChild 1, 2", "This is an empty child of a subtree"))
             myroot.getChildren().add(subtree)
 
-            myroot.getChildren().add(MyTreeNode("Empty Child 2",
-                "This is an empty child"))
+            myroot.getChildren().add(MyTreeNode("Empty Child 2", "This is an empty child"))
 
         }
 
@@ -270,7 +242,7 @@ class ComponentDataPanel(private val _appContext: Context, private val _info: Co
                 return
             }
 
-            treeTableModel!!.setRoot(valueTree as ValueTree)
+            treeTableModel.setRoot(valueTree as ValueTree)
             /*
 			for (int i = 0, n = values.length; i < n; ++i) {
 				Object value = values[i];

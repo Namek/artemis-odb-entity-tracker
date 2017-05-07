@@ -64,17 +64,17 @@ abstract class NetworkSerialization {
 
         fun convertStringToTypedValue(value: String, valueType: Type): Any? {
             when (valueType) {
-                NetworkSerialization.Type.Byte -> return java.lang.Byte.valueOf(value)
-                NetworkSerialization.Type.Short -> return java.lang.Short.valueOf(value)
-                NetworkSerialization.Type.Int -> return Integer.valueOf(value)
-                NetworkSerialization.Type.Long -> return java.lang.Long.valueOf(value)
-                NetworkSerialization.Type.String -> return value
-                NetworkSerialization.Type.Boolean -> return java.lang.Boolean.valueOf(value)
-                NetworkSerialization.Type.Float -> return java.lang.Float.valueOf(value)
-                NetworkSerialization.Type.Double -> return java.lang.Double.valueOf(value)
-                NetworkSerialization.Type.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
-                NetworkSerialization.Type.BitVector -> return BitVector(Integer.valueOf(value)!!)
-                NetworkSerialization.Type.Array -> throw UnsupportedOperationException("arrays are not supported (yet?)")
+                Type.Byte -> return java.lang.Byte.valueOf(value)
+                Type.Short -> return java.lang.Short.valueOf(value)
+                Type.Int -> return Integer.valueOf(value)
+                Type.Long -> return java.lang.Long.valueOf(value)
+                Type.String -> return value
+                Type.Boolean -> return java.lang.Boolean.valueOf(value)
+                Type.Float -> return java.lang.Float.valueOf(value)
+                Type.Double -> return java.lang.Double.valueOf(value)
+                Type.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
+                Type.BitVector -> return BitVector(Integer.valueOf(value)!!)
+                Type.Array -> throw UnsupportedOperationException("arrays are not supported (yet?)")
                 else -> return null
             }
         }
@@ -84,15 +84,15 @@ abstract class NetworkSerialization {
                 return false
 
             when (valueType) {
-                NetworkSerialization.Type.Byte -> return true
-                NetworkSerialization.Type.Short -> return true
-                NetworkSerialization.Type.Int -> return true
-                NetworkSerialization.Type.Long -> return true
-                NetworkSerialization.Type.String -> return true
-                NetworkSerialization.Type.Boolean -> return true
-                NetworkSerialization.Type.Float -> return true
-                NetworkSerialization.Type.Double -> return true
-                NetworkSerialization.Type.BitVector -> return true
+                Type.Byte -> return true
+                Type.Short -> return true
+                Type.Int -> return true
+                Type.Long -> return true
+                Type.String -> return true
+                Type.Boolean -> return true
+                Type.Float -> return true
+                Type.Double -> return true
+                Type.BitVector -> return true
                 else -> return false
             }
         }

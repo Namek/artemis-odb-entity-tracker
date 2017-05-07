@@ -345,7 +345,7 @@ class NetworkDeserializer : NetworkSerialization() {
         return readObject(false)
     }
 
-    private fun readObject(joinDataToModel: Boolean): ValueTree {
+    fun readObject(joinDataToModel: Boolean): ValueTree {
         checkType(Type.MultipleDescriptions)
         val descrCount = readRawInt()
 

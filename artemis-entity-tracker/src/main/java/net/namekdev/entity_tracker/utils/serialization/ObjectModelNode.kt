@@ -10,7 +10,6 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils
 /**
  * Describes a structure of class or class field.
  * Allows to hierarchically get or set a value.
-
  *
  * It does not describe a structure of a specific object hierarchy.
  * AutoSizedArray fields will be just described as a definition,
@@ -18,7 +17,9 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils
  */
 class ObjectModelNode(
     private val _models: ObjectModelsCollection?,
-    id: Int, // when it's null it defines a class, otherwise it's field
+    id: Int,
+
+    // when it's null it defines a class, otherwise it's field
     var parent: ObjectModelNode?
 ) {
 
