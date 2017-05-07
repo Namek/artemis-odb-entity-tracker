@@ -23,13 +23,22 @@ class ObjectModelNode(
     var parent: ObjectModelNode?
 ) {
 
+
+    /** Is it primitiveType? Otherwise, it's objectType */
+    var isPrimitive = false
+
+    var dataType: DataType = DataType.Unknown
+    var dataSubType: DataType = DataType.Unknown
+
+
+
     var id = -1
     var name: String? = null
 
     var children: Vector<ObjectModelNode>? = null
 
-    var networkType: Type = Type.Unknown
-    var childType: Short = 0
+//    var networkType: Type = Type.Unknown
+//    var childType: Short = 0
 
 
     init {
@@ -37,7 +46,7 @@ class ObjectModelNode(
     }
 
     val isLeaf: Boolean
-        get() = !isArray && (isEnum || networkType != Type.Object)
+        get() = !isArray && (isEnum || networkType != DataType.Object)
 
     val isArray: Boolean
         get() = networkType == Type.Array
@@ -46,14 +55,14 @@ class ObjectModelNode(
         get() = networkType == Type.Enum
 
     val isEnumArray: Boolean
-        get() = isArray && childType.toInt() == Type.Enum.ordinal
+        get() = isArray && dataSubType.equals(DataType.Enum)
 
-    fun arrayType(): Type {
+    fun arrayType(): DataType {
         if (!isArray) {
             throw RuntimeException("this is not array!")
         }
 
-        return Type.values()[childType.toInt()]
+        return DataType.values()[dataSubType.ordinal]
     }
 
     fun enumModelId(): Int {
@@ -77,7 +86,7 @@ class ObjectModelNode(
         while (pathIndex < treePath!!.size) {
             val index = treePath[pathIndex]
 
-            if (node.networkType == Type.Object || node.networkType == Type.Unknown /*!node.isArray() && node.children != null*/) {
+            if (node.networkType == DataType.Object || node.networkType == Type.Unknown /*!node.isArray() && node.children != null*/) {
                 node = node.children!![index]
                 val fieldName = node.name
 
@@ -188,8 +197,10 @@ class ObjectModelNode(
     fun copyFrom(other: ObjectModelNode): ObjectModelNode {
         this.id = other.id
         this.name = other.name
-        this.networkType = other.networkType
-        this.childType = other.childType
+//        this.networkType = other.networkType
+//        this.childType = other.childType
+        this.dataType = other.dataType
+        this.dataSubType = other.dataSubType
         this.children = Vector(other.children!!)
         return this
     }

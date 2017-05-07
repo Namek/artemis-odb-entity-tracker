@@ -76,7 +76,7 @@ class ObjectTypeInspector {
      * Returns tree description of class type.
      */
     fun inspect(type: Class<*>): ObjectModelNode {
-        assert(NetworkSerialization.determineType(type) == Type.Unknown)
+        assert(NetworkSerialization.determineType(type) == DataType.Unknown)
 
         return inspectLevels(type, null, null, null)
     }
@@ -95,7 +95,7 @@ class ObjectTypeInspector {
                 .filter { !it.name.startsWith("this$") } // cover hidden field in non-static inner class
 
             val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, /* TODO: it was: root*/ null)
-            model.networkType = Type.Object
+            model.networkType = DataType.Object
             model.children = Vector<ObjectModelNode>(fields.size)
 
             registeredModel = rememberType(type, parentType, model, parentRegisteredModel)
@@ -127,7 +127,7 @@ class ObjectTypeInspector {
                             rememberType(fieldType, type, root, registeredModel)
                         }
                     }
-                    else if (networkType == Type.Enum) {
+                    else if (networkType == DataType.Enum) {
                         child = inspectEnum(fieldType as Class<Enum<*>>, type, registeredModel)
                     }
                     else {
@@ -159,7 +159,7 @@ class ObjectTypeInspector {
         var arrayType = determineType(arrayElType)
 
 
-        if (arrayType == Type.Enum) {
+        if (arrayType == DataType.Enum) {
             //			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
             //			model.children = new Vector<>(1);
             //			model.children.addElement(enumFieldModel);
@@ -174,10 +174,10 @@ class ObjectTypeInspector {
             //				arrayType = TYPE_TREE;
             //			}
 
-            arrayType = if (arrayElType.isArray) Type.Array else Type.Object
+            arrayType = if (arrayElType.isArray) DataType.Array else DataType.Object
         }// TODO probably that should inspect deeper anyway!
 
-        model.networkType = Type.Array
+        model.networkType = DataType.Array
         model.childType = arrayType.ordinal.toShort()
 
         return model

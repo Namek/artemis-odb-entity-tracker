@@ -3,17 +3,19 @@ package net.namekdev.entity_tracker.utils.serialization
 import com.artemis.utils.BitVector
 
 abstract class NetworkSerialization {
-    enum class Type {
-        Unknown,
-        Null,
-        Array,
+    enum class MetaType {
         Description,
         MultipleDescriptions,
         DescriptionRef,
-        Object,
-        Enum,
         EnumDescription,
         EnumValue,
+    }
+
+    enum class DataType {
+        Unknown,
+        Object,
+        Array,
+        Enum,
 
         Byte,
         Short,
@@ -23,7 +25,11 @@ abstract class NetworkSerialization {
         Boolean, //takes 1 byte
         Float,
         Double,
-        BitVector //takes minimum 4 bytes
+        BitVector //takes minimum 4 bytes, BitVector is a type from artemis-odb
+    }
+
+    enum class SpecialValue {
+        Null, //takes 1 byte
     }
 
     companion object {
@@ -35,64 +41,51 @@ abstract class NetworkSerialization {
             return NetworkDeserializer()
         }
 
-        fun determineType(type: Class<*>): Type {
-            var netType = Type.Unknown
-
-            if (type == Byte::class.javaPrimitiveType || type == Byte::class.javaObjectType)
-                netType = Type.Byte
-            else if (type == Short::class.javaPrimitiveType || type == Short::class.javaObjectType)
-                netType = Type.Short
-            else if (type == Int::class.javaPrimitiveType || type == Int::class.javaObjectType)
-                netType = Type.Int
-            else if (type == Long::class.javaPrimitiveType || type == Long::class.javaObjectType)
-                netType = Type.Long
-            else if (type == String::class.java)
-                netType = Type.String
-            else if (type == Boolean::class.javaPrimitiveType || type == Boolean::class.javaObjectType)
-                netType = Type.Boolean
-            else if (type == Float::class.javaPrimitiveType || type == Float::class.javaObjectType)
-                netType = Type.Float
-            else if (type == Double::class.javaPrimitiveType || type == Double::class.javaObjectType)
-                netType = Type.Double
-            else if (type == BitVector::class.java)
-                netType = Type.BitVector
-            else if (type.isEnum)
-                netType = Type.Enum
-
-            return netType
+        fun determineType(type: Class<*>): DataType {
+            return when (type) {
+                Byte::class.javaPrimitiveType, Byte::class.javaObjectType -> DataType.Byte
+                Short::class.javaPrimitiveType, Short::class.javaObjectType -> DataType.Short
+                Int::class.javaPrimitiveType, Int::class.javaObjectType -> DataType.Int
+                Long::class.javaPrimitiveType, Long::class.javaObjectType -> DataType.Long
+                String::class.java -> DataType.String
+                Boolean::class.javaPrimitiveType, Boolean::class.javaObjectType -> DataType.Boolean
+                Float::class.javaPrimitiveType, Float::class.javaObjectType -> DataType.Float
+                Double::class.javaPrimitiveType, Double::class.javaObjectType -> DataType.Double
+                BitVector::class.java -> DataType.BitVector
+                else -> if (type.isEnum) DataType.Enum else DataType.Unknown
+            }
         }
 
-        fun convertStringToTypedValue(value: String, valueType: Type): Any? {
+        fun convertStringToTypedValue(value: String, valueType: DataType): Any? {
             when (valueType) {
-                Type.Byte -> return java.lang.Byte.valueOf(value)
-                Type.Short -> return java.lang.Short.valueOf(value)
-                Type.Int -> return Integer.valueOf(value)
-                Type.Long -> return java.lang.Long.valueOf(value)
-                Type.String -> return value
-                Type.Boolean -> return java.lang.Boolean.valueOf(value)
-                Type.Float -> return java.lang.Float.valueOf(value)
-                Type.Double -> return java.lang.Double.valueOf(value)
-                Type.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
-                Type.BitVector -> return BitVector(Integer.valueOf(value)!!)
-                Type.Array -> throw UnsupportedOperationException("arrays are not supported (yet?)")
+                DataType.Byte -> return java.lang.Byte.valueOf(value)
+                DataType.Short -> return java.lang.Short.valueOf(value)
+                DataType.Int -> return Integer.valueOf(value)
+                DataType.Long -> return java.lang.Long.valueOf(value)
+                DataType.String -> return value
+                DataType.Boolean -> return java.lang.Boolean.valueOf(value)
+                DataType.Float -> return java.lang.Float.valueOf(value)
+                DataType.Double -> return java.lang.Double.valueOf(value)
+                DataType.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
+                DataType.BitVector -> return BitVector(Integer.valueOf(value)!!)
                 else -> return null
             }
         }
 
-        fun isSimpleType(valueType: Type?): Boolean {
+        fun isSimpleType(valueType: DataType?): Boolean {
             if (valueType == null)
                 return false
 
             when (valueType) {
-                Type.Byte -> return true
-                Type.Short -> return true
-                Type.Int -> return true
-                Type.Long -> return true
-                Type.String -> return true
-                Type.Boolean -> return true
-                Type.Float -> return true
-                Type.Double -> return true
-                Type.BitVector -> return true
+                DataType.Byte -> return true
+                DataType.Short -> return true
+                DataType.Int -> return true
+                DataType.Long -> return true
+                DataType.String -> return true
+                DataType.Boolean -> return true
+                DataType.Float -> return true
+                DataType.Double -> return true
+                DataType.BitVector -> return true
                 else -> return false
             }
         }
