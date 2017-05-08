@@ -2,7 +2,6 @@ package net.namekdev.entity_tracker.utils.serialization
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.determineType
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.isSimpleType
 
 import java.util.ArrayList
 import java.util.Vector
@@ -74,7 +73,8 @@ class ObjectTypeInspector {
      * Returns tree description of class type.
      */
     fun inspect(type: Class<*>): ObjectModelNode {
-        assert(NetworkSerialization.determineType(type) == DataType.Unknown)
+        val dataType = NetworkSerialization.determineType(type).first
+        assert(dataType == DataType.Unknown || dataType == DataType.Enum)
 
         return inspectLevels(type, null, null, null)
     }
@@ -166,7 +166,7 @@ class ObjectTypeInspector {
 
             //			arrayType = Type.Unknown;
         }
-        else if (!isSimpleType(arrayType)) {
+//        else if (!isSimpleType(arrayType)) {
             //			model = inspectLevels(arrayElType, root);
             //
             //			if (model.networkType == TYPE_TREE) {
@@ -174,7 +174,7 @@ class ObjectTypeInspector {
             //			}
 
             arrayType = if (arrayElType.isArray) DataType.Array else DataType.Object
-        }// TODO probably that should inspect deeper anyway!
+//        }// TODO probably that should inspect deeper anyway!
 
         model.dataType = DataType.Array
         model.dataSubType = arrayType
@@ -190,7 +190,7 @@ class ObjectTypeInspector {
 
         if (registeredEnumTypeModel == null) {
             val enumTypeModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, null)
-            enumTypeModel.networkType = Type.EnumDescription
+            enumTypeModel.dataType = DataType.EnumDescription
             enumTypeModel.name = enumType.simpleName
 
             val possibleValues = enumType.enumConstants
@@ -199,11 +199,11 @@ class ObjectTypeInspector {
 
             for (i in possibleValues.indices) {
                 val enumValueModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, enumTypeModel)
-                enumValueModel.networkType = Type.EnumValue
+                enumValueModel.dataType = DataType.EnumValue
                 val value = possibleValues[i]
 
                 // Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
-                enumValueModel.childType = value.ordinal.toShort()
+                enumValueModel.enumValue = value.ordinal.toShort()
                 enumValueModel.name = value.name
                 enumTypeModel.children!!.addElement(enumValueModel)
 
@@ -212,7 +212,7 @@ class ObjectTypeInspector {
         }
 
         val enumFieldModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model)
-        enumFieldModel.networkType = Type.Enum
+        enumFieldModel.dataType = DataType.Enum
 
         val enumModelRef = ObjectModelNode(registeredModelsAsCollection, registeredEnumTypeModel.model!!.id, enumFieldModel)
         enumFieldModel.children = Vector<ObjectModelNode>(1)
@@ -225,7 +225,7 @@ class ObjectTypeInspector {
 
     private fun findModel(type: Class<*>?, parentType: Class<*>?, parent: ObjectModelNode?): RegisteredModel? {
         for (registered in registeredModels) {
-            val sameParentModel = parent == null && registered.model!!.parent == null || parent != null && parent == registered.model
+            val sameParentModel = parent == null && registered.model.parent == null || parent != null && parent == registered.model
 
             if (registered.type != null && registered.type == type || registered.type == null && type == null) {
                 var isCyclicModel = false
@@ -284,8 +284,8 @@ class ObjectTypeInspector {
             }
             else {
                 sb.append("\n    id: " + m.model.id)
-                sb.append("\n    networkType: " + m.model.networkType)
-                sb.append("\n    childType: " + m.model.childType)
+                sb.append("\n    dataType: " + m.model.dataType)
+                sb.append("\n    dataSubType: " + m.model.dataSubType)
                 sb.append("\n    name: \"" + m.model.name + "\"")
                 sb.append("\n    parent:")
 

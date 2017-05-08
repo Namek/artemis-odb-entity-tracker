@@ -15,7 +15,7 @@ import net.namekdev.entity_tracker.utils.sample.GameObject
 import net.namekdev.entity_tracker.utils.sample.GameState
 import net.namekdev.entity_tracker.utils.sample.Vector2
 import net.namekdev.entity_tracker.utils.sample.Vector3
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult
 
 class SerializeCustomClassTest {
@@ -53,7 +53,7 @@ class SerializeCustomClassTest {
 
 
         // GameState
-        assertEquals(Type.Object, model.networkType)
+        assertEquals(DataType.Object, model.dataType)
         assertNotNull(model.children)
         assertFalse(model.isArray)
         assertEquals(1, model.children!!.size.toLong())
@@ -61,10 +61,10 @@ class SerializeCustomClassTest {
         // GameState.objects (GameObject[])
         val objects = model.children!!.elementAt(0)
         assertEquals("objects", objects.name)
-        assertEquals(Type.Array, objects.networkType)
+        assertEquals(DataType.Array, objects.dataType)
         assertTrue(objects.isArray)
         assertNull(objects.children)
-        assertEquals(Type.Object, objects.arrayType())
+        assertEquals(DataType.Object, objects.arrayType())
     }
 
     @Test
@@ -116,7 +116,7 @@ class SerializeCustomClassTest {
 
     private fun assertVector3(node: ObjectModelNode, name: String) {
         assertEquals(name, node.name)
-        assertEquals(Type.Object, node.networkType)
+        assertEquals(DataType.Object, node.dataType)
         assertFalse(node.isArray)
         assertNotNull(node.children)
 
@@ -128,7 +128,7 @@ class SerializeCustomClassTest {
 
     private fun assertVector2(node: ObjectModelNode, name: String) {
         assertEquals(name, node.name)
-        assertEquals(Type.Object, node.networkType)
+        assertEquals(DataType.Object, node.dataType)
         assertFalse(node.isArray)
         assertNotNull(node.children)
 
@@ -138,7 +138,7 @@ class SerializeCustomClassTest {
     }
 
     private fun assertFloat(node: ObjectModelNode) {
-        assertEquals(Type.Float, node.networkType)
+        assertEquals(DataType.Float, node.dataType)
         assertFalse(node.isArray)
         assertNull(node.children)
     }
@@ -300,7 +300,7 @@ class SerializeCustomClassTest {
 
         // check array field
         assert(enumArrayFieldModel.isArray)
-        assertEquals(Type.Enum, enumArrayFieldModel.arrayType())
+        assertEquals(DataType.Enum, enumArrayFieldModel.arrayType())
 
         // Note: since we're treating array of enums as array of objects,
         // we don't expect this to be true:
@@ -313,16 +313,16 @@ class SerializeCustomClassTest {
     private fun checkEnumFieldInspection(enumFieldModel: ObjectModelNode) {
         val possibleValues = TestEnum::class.java.enumConstants
 
-        assertEquals(Type.Enum, enumFieldModel.networkType)
+        assertEquals(DataType.Enum, enumFieldModel.dataType)
         val enumDescrModel = inspector.getModelById(enumFieldModel.enumModelId())
         assertEquals(TestEnum::class.java.simpleName, enumDescrModel!!.name)
 
-        assertEquals(possibleValues.size.toLong(), enumDescrModel!!.children!!.size.toLong())
+        assertEquals(possibleValues.size.toLong(), enumDescrModel.children!!.size.toLong())
         for (i in possibleValues.indices) {
-            val valModel = enumDescrModel!!.children!!.elementAt(i)
-            val `val` = possibleValues[i]
-            assertEquals(`val`.name, valModel.name)
-            assertEquals(`val`.ordinal.toLong(), valModel.childType.toLong())
+            val valModel = enumDescrModel.children!!.elementAt(i)
+            val value = possibleValues[i]
+            assertEquals(value.name, valModel.name)
+            assertEquals(value.ordinal, valModel.dataSubType.ordinal)
         }
     }
 
@@ -383,7 +383,7 @@ class SerializeCustomClassTest {
         val objsFieldModel = arrFieldModel.children!!.elementAt(0)
         assert(objsFieldModel.isArray)
         assertNotEquals(model.id.toLong(), objsFieldModel.id.toLong())
-        assertEquals(Type.Object, objsFieldModel.arrayType())
+        assertEquals(DataType.Object, objsFieldModel.arrayType())
 
         // Note: the dependency is indeed cyclic, however array of `CyclicClassIndirectly`
         // is just an array, it could contain anything else that inherits this class.
@@ -434,7 +434,7 @@ class SerializeCustomClassTest {
         val model = inspector.inspect(array.javaClass)
         assert(model.isArray)
         assertEquals(null, model.children)
-        assertEquals(Type.Object, model.arrayType())
+        assertEquals(DataType.Object, model.arrayType())
 
         // it's array of a priori unknown objects so models for Vector2 and Vector3
         // are not available at this point:

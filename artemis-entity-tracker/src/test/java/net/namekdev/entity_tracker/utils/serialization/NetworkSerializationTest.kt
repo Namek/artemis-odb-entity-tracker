@@ -6,7 +6,7 @@ import org.junit.Assert.*
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.determineType
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.isSimpleType
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import org.junit.Before
 import org.junit.Test
 
@@ -104,13 +104,13 @@ class NetworkSerializationTest {
 
     @Test
     fun determine_simple_types() {
-        assertEquals(Type.Byte, determineType(2.toByte().javaClass))
-        assertEquals(Type.Short, determineType(2.toShort().javaClass))
-        assertEquals(Type.Int, determineType(2.javaClass))
-        assertEquals(Type.Long, determineType(2.toLong().javaClass))
-        assertEquals(Type.Boolean, determineType(true.javaClass))
-        assertEquals(Type.Double, determineType(2.toDouble().javaClass))
-        assertEquals(Type.Float, determineType(2.toFloat().javaClass))
+        assertEquals(DataType.Byte, determineType(2.toByte().javaClass).first)
+        assertEquals(DataType.Short, determineType(2.toShort().javaClass).first)
+        assertEquals(DataType.Int, determineType(2.javaClass).first)
+        assertEquals(DataType.Long, determineType(2.toLong().javaClass).first)
+        assertEquals(DataType.Boolean, determineType(true.javaClass).first)
+        assertEquals(DataType.Double, determineType(2.toDouble().javaClass).first)
+        assertEquals(DataType.Float, determineType(2.toFloat().javaClass).first)
 
     }
 }

@@ -3,7 +3,7 @@ package net.namekdev.entity_tracker.ui.utils
 import net.miginfocom.swing.MigLayout
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Type
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
@@ -89,7 +89,7 @@ class InspectionTreeNode(
         if (nodeModel.isArray) {
 
         }
-        else if (nodeModel.networkType == Type.Object) {
+        else if (nodeModel.dataType == DataType.Object) {
             nodeModel.children!!.forEachIndexed { i, field ->
                 add(JLabel(field.name), "span 2")
 
@@ -101,17 +101,17 @@ class InspectionTreeNode(
                 }
                 else if (field.isLeaf) {
                     val value = node.values.get(i)
-                    when (field.networkType) {
-                        Type.String -> {
+                    when (field.dataType) {
+                        DataType.String -> {
                             add(JTextField(value.toString()))
                         }
-                        Type.Int, Type.Short, Type.Long -> {
+                        DataType.Int, DataType.Short, DataType.Long -> {
 
                         }
-                        Type.Float, Type.Double -> {
+                        DataType.Float, DataType.Double -> {
 
                         }
-                        Type.Boolean -> {
+                        DataType.Boolean -> {
                             val el = JCheckBox()
                             el.isSelected = value as Boolean
                             add(el)

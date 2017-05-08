@@ -3,20 +3,14 @@ package net.namekdev.entity_tracker.utils.serialization
 import com.artemis.utils.BitVector
 
 abstract class NetworkSerialization {
-    enum class MetaType {
+    enum class DataType {
+        // meta data
         Description,
         MultipleDescriptions,
-        DescriptionRef,
         EnumDescription,
         EnumValue,
-    }
 
-    enum class DataType {
-        Unknown,
-        Object,
-        Array,
-        Enum,
-
+        // simple timpes
         Byte,
         Short,
         Int,
@@ -25,12 +19,19 @@ abstract class NetworkSerialization {
         Boolean, //takes 1 byte
         Float,
         Double,
-        BitVector //takes minimum 4 bytes, BitVector is a type from artemis-odb
+        BitVector, //takes minimum 4 bytes, BitVector is a type from artemis-odb
+
+        // more complicated data types
+        Unknown,
+        Object,
+        Array,
+        Enum,
+
+        // special values
+        Null, //takes 1 byte
+        DescriptionRef,
     }
 
-    enum class SpecialValue {
-        Null, //takes 1 byte
-    }
 
     companion object {
         fun createSerializer(): NetworkSerializer {
@@ -86,7 +87,7 @@ abstract class NetworkSerialization {
             }
         }
 
-        /*fun isSimpleType(valueType: DataType?): Boolean {
+        fun isSimpleType(valueType: DataType?): Boolean {
             if (valueType == null)
                 return false
 
@@ -102,6 +103,6 @@ abstract class NetworkSerialization {
                 DataType.BitVector -> return true
                 else -> return false
             }
-        }*/
+        }
     }
 }

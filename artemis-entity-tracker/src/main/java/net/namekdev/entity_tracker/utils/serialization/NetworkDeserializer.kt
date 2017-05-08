@@ -49,35 +49,35 @@ class NetworkDeserializer : NetworkSerialization() {
     val consumedBytesCount: Int
         get() = _sourcePos - _sourceBeginPos
 
-    @JvmOverloads fun beginArray(elementType: Type = Type.Unknown): Int {
-        checkType(Type.Array)
+    @JvmOverloads fun beginArray(elementType: DataType = DataType.Unknown): Int {
+        checkType(DataType.Array)
         checkType(elementType)
         return readRawInt()
     }
 
-    fun readType(): Type {
-        val value = Type.values()[readRawByte().toInt()]
+    fun readType(): DataType {
+        val value = DataType.values()[readRawByte().toInt()]
         //		dbgType(value);
         return value
     }
 
     fun readByte(): Byte {
-        checkType(Type.Byte)
+        checkType(DataType.Byte)
         return readRawByte()
     }
 
     fun readShort(): Short {
-        checkType(Type.Short)
+        checkType(DataType.Short)
         return readRawShort()
     }
 
     fun readInt(): Int {
-        checkType(Type.Int)
+        checkType(DataType.Int)
         return readRawInt()
     }
 
     fun readLong(): Long {
-        checkType(Type.Long)
+        checkType(DataType.Long)
         return readRawLong()
     }
 
@@ -94,7 +94,7 @@ class NetworkDeserializer : NetworkSerialization() {
             return null
         }
 
-        checkType(Type.String)
+        checkType(DataType.String)
         val length = readRawInt()
 
         val sb = StringBuilder(length)
@@ -106,7 +106,7 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readBoolean(): Boolean {
-        checkType(Type.Boolean)
+        checkType(DataType.Boolean)
         return readRawBoolean()
     }
 
@@ -116,7 +116,7 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readFloat(): Float {
-        checkType(Type.Float)
+        checkType(DataType.Float)
         return readRawFloat()
     }
 
@@ -125,7 +125,7 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readDouble(): Double {
-        checkType(Type.Double)
+        checkType(DataType.Double)
         return readRawDouble()
     }
 
@@ -138,7 +138,7 @@ class NetworkDeserializer : NetworkSerialization() {
             return null
         }
 
-        checkType(Type.BitVector)
+        checkType(DataType.BitVector)
 
         val allBitsCount = readRawShort()
         val bitVector = BitVector(allBitsCount.toInt())
@@ -177,49 +177,49 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     @JvmOverloads fun readSomething(allowUnknown: Boolean = false): Any? {
-        val type = Type.values()[_source!![_sourcePos].toInt()]
+        val type = DataType.values()[_source!![_sourcePos].toInt()]
 
-        if (type == Type.Null) {
+        if (type == DataType.Null) {
             _sourcePos++
             return null
         }
-        else if (type == Type.Byte)
+        else if (type == DataType.Byte)
             return readByte()
-        else if (type == Type.Short)
+        else if (type == DataType.Short)
             return readShort()
-        else if (type == Type.Int)
+        else if (type == DataType.Int)
             return readInt()
-        else if (type == Type.Long)
+        else if (type == DataType.Long)
             return readLong()
-        else if (type == Type.String)
+        else if (type == DataType.String)
             return readString()
-        else if (type == Type.Boolean)
+        else if (type == DataType.Boolean)
             return readBoolean()
-        else if (type == Type.Float)
+        else if (type == DataType.Float)
             return readFloat()
-        else if (type == Type.Double)
+        else if (type == DataType.Double)
             return readDouble()
-        else if (type == Type.BitVector)
+        else if (type == DataType.BitVector)
             return readBitVector()
         else if (allowUnknown) {
             _sourcePos++
-            return Type.Unknown
+            return DataType.Unknown
         }
         else
             throw IllegalArgumentException("Can't serialize type: " + type)
     }
 
-    fun readRawByType(valueType: Type): Any {
+    fun readRawByType(valueType: DataType): Any {
         when (valueType) {
-            Type.Byte -> return readRawByte()
-            Type.Short -> return readRawShort()
-            Type.Int -> return readRawInt()
-            Type.Long -> return readRawLong()
-            Type.String -> return readString() as Any
-            Type.Boolean -> return readRawBoolean()
-            Type.Float -> return readRawFloat()
-            Type.Double -> return readRawDouble()
-            Type.BitVector -> return readBitVector() as Any
+            DataType.Byte -> return readRawByte()
+            DataType.Short -> return readRawShort()
+            DataType.Int -> return readRawInt()
+            DataType.Long -> return readRawLong()
+            DataType.String -> return readString() as Any
+            DataType.Boolean -> return readRawBoolean()
+            DataType.Float -> return readRawFloat()
+            DataType.Double -> return readRawDouble()
+            DataType.BitVector -> return readBitVector() as Any
 
             else -> throw RuntimeException("type not supported" + valueType)
         }
@@ -234,10 +234,10 @@ class NetworkDeserializer : NetworkSerialization() {
 
         var retModel: ObjectModelNode? = null
 
-        if (type == Type.Description) {
+        if (type == DataType.Description) {
             retModel = readRawDataDescription(null)
         }
-        else if (type == Type.DescriptionRef) {
+        else if (type == DataType.DescriptionRef) {
             val modelId = readRawInt()
             retModel = _models.getById(modelId)
         }
@@ -253,10 +253,12 @@ class NetworkDeserializer : NetworkSerialization() {
         val node = ObjectModelNode(null, modelId, parentNode)
         this._models.add(node)
         node.name = readString()
+        node.isTypePrimitive = readBoolean()
         val nodeType = readType()
-        node.networkType = nodeType
+        node.dataType = nodeType
 
-        if (nodeType == Type.Object) {
+
+        if (nodeType == DataType.Object) {
             val n = readRawInt()
             node.children = Vector<ObjectModelNode>(n)
 
@@ -265,20 +267,20 @@ class NetworkDeserializer : NetworkSerialization() {
                 node.children!!.addElement(child)
             }
         }
-        else if (nodeType == Type.Array) {
-            node.childType = readRawByte().toShort()
+        else if (nodeType == DataType.Array) {
+            node.dataSubType = readType()
             //			dbgType(Type.values()[node.childType]);
 
-            if (NetworkSerialization.isSimpleType(Type.values()[node.childType.toInt()])) {
+            if (isSimpleType(node.dataSubType)) {
                 // do nothing
             }
-            else if (node.childType.toInt() == Type.Object.ordinal) {
+            else if (node.dataSubType == DataType.Object) {
                 //				int objModelId = readRawInt();
 
                 // TODO create model
                 //				throw new RuntimeException("TODO array of objects");
             }
-            else if (node.childType.toInt() == Type.Enum.ordinal) {
+            else if (node.dataSubType == DataType.Enum) {
                 // Note: if we treat array of enums the same way as array of objects
                 // then we do not have to write anything here.
                 /*int enumModelId = readRawInt();
@@ -297,10 +299,10 @@ class NetworkDeserializer : NetworkSerialization() {
 				this._models.add(enumFieldModel);*/
             }
             else {
-                throw RuntimeException("unsupported array type: " + node.childType)
+                throw RuntimeException("unsupported array type: " + node.dataSubType)
             }
         }
-        else if (nodeType == Type.Enum) {
+        else if (nodeType == DataType.Enum) {
             val enumModelId = readRawInt()
             var enumModelRef: ObjectModelNode? = _models.getById(enumModelId)
             if (enumModelRef == null) {
@@ -310,11 +312,11 @@ class NetworkDeserializer : NetworkSerialization() {
             node.children = Vector<ObjectModelNode>(1)
             node.children!!.addElement(enumModelRef)
         }
-        else if (nodeType == Type.EnumValue) {
-            node.childType = readRawInt().toShort()
+        else if (nodeType == DataType.EnumValue) {
+            node.enumValue = readRawShort()
             node.name = readString()
         }
-        else if (nodeType == Type.EnumDescription) {
+        else if (nodeType == DataType.EnumDescription) {
             val id = readRawInt()
 
             var enumModel: ObjectModelNode? = _models.getById(id)
@@ -328,7 +330,7 @@ class NetworkDeserializer : NetworkSerialization() {
             for (i in 0..n - 1) {
                 val valueId = readRawInt()
                 val enumValueModel = ObjectModelNode(null, valueId, null/*TODO here's null! should be?*/)
-                enumValueModel.childType = readRawInt().toShort()
+                enumValueModel.enumValue = readRawShort()
                 enumValueModel.name = readString()
                 enumModel.children!!.add(enumValueModel)
                 //				this._models.add(enumValueModel);
@@ -346,7 +348,7 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readObject(joinDataToModel: Boolean): ValueTree {
-        checkType(Type.MultipleDescriptions)
+        checkType(DataType.MultipleDescriptions)
         val descrCount = readRawInt()
 
         var rootModel: ObjectModelNode? = null
@@ -360,7 +362,7 @@ class NetworkDeserializer : NetworkSerialization() {
             rootModel = readDataDescription()
         }
         else {
-            checkType(Type.DescriptionRef)
+            checkType(DataType.DescriptionRef)
             val modelId = readRawInt()
             var i = 0
             val n = _models.size()
@@ -378,20 +380,18 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     @JvmOverloads fun readObject(model: ObjectModelNode, joinDataToModel: Boolean = false): ValueTree {
-        checkType(Type.Object)
+        checkType(DataType.Object)
         val root = readRawObject(model, null, joinDataToModel) as ValueTree?
 
         return root!!
     }
 
     protected fun readRawObject(model: ObjectModelNode, parentTree: ValueTree?, joinModelToData: Boolean): Any? {
-        val isArray = model.isArray
-
         if (checkNull()) {
             return null
         }
-        else if (!isArray && (model.networkType == Type.Object || model.networkType == Type.Unknown)) {
-            checkType(Type.Object)
+        else if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
+            checkType(DataType.Object)
             val n = model.children!!.size
             val tree = ValueTree(n)
             tree.parent = parentTree
@@ -407,19 +407,20 @@ class NetworkDeserializer : NetworkSerialization() {
 
             return tree
         }
-        else if (NetworkSerialization.isSimpleType(model.networkType)) {
-            val value = readRawByType(model.networkType)
+        else if (NetworkSerialization.isSimpleType(model.dataType)) {
+            assert(model.isTypePrimitive)
+            val value = readRawByType(model.dataType)
 
             return value
         }
         else if (model.isEnum) {
-            checkType(Type.Enum)
+            checkType(DataType.Enum)
             val enumVal = readRawInt()
             // TODO probably no one expected integer here, some Enum<?> is rather expected
 
             return enumVal
         }
-        else if (isArray) {
+        else if (model.isArray) {
             val arrayType = model.arrayType()
             val tree = readRawArray(arrayType, joinModelToData)
 
@@ -432,7 +433,7 @@ class NetworkDeserializer : NetworkSerialization() {
             return tree
         }
         else {
-            throw RuntimeException("unsupported type: " + model.networkType)
+            throw RuntimeException("unsupported type: " + model.dataType + ", subtype: " + model.dataSubType)
         }
     }
 
@@ -440,9 +441,9 @@ class NetworkDeserializer : NetworkSerialization() {
         return readRawArray(null, false)
     }
 
-    fun readRawArray(arrayType: Type?, joinModelToData: Boolean): ValueTree {
+    fun readRawArray(arrayType: DataType?, joinModelToData: Boolean): ValueTree {
         var arrayType = arrayType
-        checkType(Type.Array)
+        checkType(DataType.Array)
 
         if (arrayType != null) {
             checkType(arrayType)
@@ -454,7 +455,7 @@ class NetworkDeserializer : NetworkSerialization() {
         val n = readRawInt()
         val tree = ValueTree(n)
 
-        if (arrayType == Type.Object || arrayType == Type.Unknown) {
+        if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
             for (i in 0..n - 1) {
                 val value = readObject(joinModelToData)
                 value.parent = tree
@@ -466,7 +467,7 @@ class NetworkDeserializer : NetworkSerialization() {
                 tree.values[i] = readRawByType(arrayType)
             }
         }
-        else if (/*model.isEnumArray()*/ arrayType == Type.Enum) {
+        else if (/*model.isEnumArray()*/ arrayType == DataType.Enum) {
             for (i in 0..n - 1) {
                 tree.values[i] = readRawInt()
             }
@@ -490,18 +491,18 @@ class NetworkDeserializer : NetworkSerialization() {
         return value
     }
 
-    protected fun checkType(type: Type) {
+    protected fun checkType(type: DataType) {
         val srcType = _source!![_sourcePos++]
         //		dbgType(type);
 
         if (srcType.toInt() != type.ordinal) {
-            val resultType = Type.values()[srcType.toInt()]
+            val resultType = DataType.values()[srcType.toInt()]
             throw RuntimeException("Types are divergent, expected: $type, got: $resultType")
         }
     }
 
     protected fun checkNull(): Boolean {
-        if (_source!![_sourcePos].toInt() == Type.Null.ordinal) {
+        if (_source!![_sourcePos].toInt() == DataType.Null.ordinal) {
             //			dbgType(Type.Null);
             ++_sourcePos
             return true
@@ -510,7 +511,7 @@ class NetworkDeserializer : NetworkSerialization() {
         return false
     }
 
-    private fun dbgType(t: Type) {
+    private fun dbgType(t: DataType) {
         println(t)
     }
 }

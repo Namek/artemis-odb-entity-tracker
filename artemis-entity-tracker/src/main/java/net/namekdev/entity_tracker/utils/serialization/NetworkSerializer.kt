@@ -42,8 +42,8 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             return diff
         }
 
-    fun beginArray(elementType: NetworkSerialization.Type, length: Int): NetworkSerializer {
-        addType(NetworkSerialization.Type.Array)
+    fun beginArray(elementType: DataType, length: Int): NetworkSerializer {
+        addType(DataType.Array)
         addType(elementType)
         addRawInt(length)
 
@@ -51,15 +51,15 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun beginArray(length: Int): NetworkSerializer {
-        return beginArray(NetworkSerialization.Type.Unknown, length)
+        return beginArray(DataType.Unknown, length)
     }
 
-    fun addType(type: NetworkSerialization.Type): NetworkSerializer {
+    fun addType(type: DataType): NetworkSerializer {
         return addRawByte(type.ordinal.toByte())
     }
 
     fun addByte(value: Byte): NetworkSerializer {
-        addType(NetworkSerialization.Type.Byte)
+        addType(DataType.Byte)
         _buffer[_pos++] = value
         return this
     }
@@ -70,7 +70,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addShort(value: Short): NetworkSerializer {
-        addType(NetworkSerialization.Type.Short)
+        addType(DataType.Short)
         addRawShort(value)
         return this
     }
@@ -81,7 +81,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addInt(value: Int): NetworkSerializer {
-        addType(NetworkSerialization.Type.Int)
+        addType(DataType.Int)
         addRawInt(value)
         return this
     }
@@ -94,7 +94,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addLong(value: Long): NetworkSerializer {
-        addType(NetworkSerialization.Type.Long)
+        addType(DataType.Long)
         addRawLong(value)
         return this
     }
@@ -115,7 +115,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             return this
         }
 
-        addType(NetworkSerialization.Type.String)
+        addType(DataType.String)
 
         val n = value!!.length
         addRawInt(n)
@@ -128,7 +128,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addBoolean(value: Boolean): NetworkSerializer {
-        addType(NetworkSerialization.Type.Boolean)
+        addType(DataType.Boolean)
         return addRawBoolean(value)
     }
 
@@ -137,7 +137,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addFloat(value: Float): NetworkSerializer {
-        addType(NetworkSerialization.Type.Float)
+        addType(DataType.Float)
         return addRawFloat(value)
     }
 
@@ -147,7 +147,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addDouble(value: Double): NetworkSerializer {
-        addType(NetworkSerialization.Type.Double)
+        addType(DataType.Double)
         return addRawDouble(value)
     }
 
@@ -161,7 +161,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             return this
         }
 
-        addType(NetworkSerialization.Type.BitVector)
+        addType(DataType.BitVector)
 
         val bitsCount = bitVector!!.length()
         addRawShort(bitsCount.toShort())
@@ -189,7 +189,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
     protected fun tryAddNullable(data: Any?): Boolean {
         if (data == null) {
-            addType(NetworkSerialization.Type.Null)
+            addType(DataType.Null)
             return true
         }
 
@@ -228,7 +228,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             addBitVector(obj as BitVector)
         }
         else if (allowUnknown) {
-            addType(NetworkSerialization.Type.Unknown)
+            addType(DataType.Unknown)
         }
         else {
             throw IllegalArgumentException("Can't serialize type: " + obj.javaClass)
@@ -237,17 +237,17 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         return this
     }
 
-    fun addRawByType(valueType: NetworkSerialization.Type, value: Any): NetworkSerializer {
+    fun addRawByType(valueType: DataType, value: Any): NetworkSerializer {
         when (valueType) {
-            NetworkSerialization.Type.Byte -> addRawByte(value as Byte)
-            NetworkSerialization.Type.Short -> addRawShort(value as Short)
-            NetworkSerialization.Type.Int -> addRawInt(value as Int)
-            NetworkSerialization.Type.Long -> addRawLong(value as Long)
-            NetworkSerialization.Type.String -> addString(value as String)
-            NetworkSerialization.Type.Boolean -> addRawBoolean(value as Boolean)
-            NetworkSerialization.Type.Float -> addRawFloat(value as Float)
-            NetworkSerialization.Type.Double -> addRawDouble(value as Double)
-            NetworkSerialization.Type.BitVector -> addBitVector(value as BitVector)
+            DataType.Byte -> addRawByte(value as Byte)
+            DataType.Short -> addRawShort(value as Short)
+            DataType.Int -> addRawInt(value as Int)
+            DataType.Long -> addRawLong(value as Long)
+            DataType.String -> addString(value as String)
+            DataType.Boolean -> addRawBoolean(value as Boolean)
+            DataType.Float -> addRawFloat(value as Float)
+            DataType.Double -> addRawDouble(value as Double)
+            DataType.BitVector -> addBitVector(value as BitVector)
 
             else -> throw RuntimeException("type not supported: " + valueType)
         }
@@ -257,13 +257,13 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
     fun addDataDescriptionOrRef(model: ObjectModelNode): NetworkSerializer {
         if (!_modelsMarkedAsSent.contains(model.id)) {
-            addType(NetworkSerialization.Type.Description)
+            addType(DataType.Description)
             addRawDataDescription(model)
 
             _modelsMarkedAsSent.add(model.id)
         }
         else {
-            addType(NetworkSerialization.Type.DescriptionRef)
+            addType(DataType.DescriptionRef)
             addRawInt(model.id)
         }
 
@@ -273,9 +273,10 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     private fun addRawDataDescription(model: ObjectModelNode) {
         addRawInt(model.id)
         addString(model.name)
+        addBoolean(model.isTypePrimitive)
 
-        if (model.networkType == NetworkSerialization.Type.Object || model.networkType == NetworkSerialization.Type.Unknown) {
-            addType(NetworkSerialization.Type.Object)
+        if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
+            addType(DataType.Object)
             val n = model.children!!.size
             addRawInt(n)
 
@@ -284,22 +285,22 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                 addDataDescriptionOrRef(node)
             }
         }
-        else if (NetworkSerialization.isSimpleType(model.networkType)) {
-            addType(model.networkType)
+        else if (NetworkSerialization.isSimpleType(model.dataType)) {
+            addType(model.dataType)
         }
         else if (model.isEnum) {
-            addType(NetworkSerialization.Type.Enum)
+            addType(DataType.Enum)
             addRawInt(model.enumModelId())
         }
-        else if (model.networkType == NetworkSerialization.Type.EnumValue) {
-            addType(NetworkSerialization.Type.EnumValue)
-            addRawInt(model.childType.toInt())
+        else if (model.dataType == DataType.EnumValue) {
+            addType(DataType.EnumValue)
+            addRawShort(model.enumValue)
             addString(model.name!!)
         }
-        else if (model.networkType == NetworkSerialization.Type.EnumDescription) {
+        else if (model.dataType == DataType.EnumDescription) {
             // TODO is it alright?!?!
 
-            addType(NetworkSerialization.Type.EnumDescription)
+            addType(DataType.EnumDescription)
 
             val enumModelId = model.id
             addRawInt(enumModelId)
@@ -308,26 +309,23 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
             for (enumValueModel in model.children!!) {
                 addRawInt(enumValueModel.id)
-
-                // TODO FIXME the line below does not fit the types.
-                addRawInt(enumValueModel.childType.toInt()) // this is enum's value
-
+                addRawShort(enumValueModel.enumValue)
                 addString(enumValueModel.name!!)
             }
         }
         else if (model.isArray) {
             val arrayType = model.arrayType()
-            addType(NetworkSerialization.Type.Array)
-            addType(if (arrayType == NetworkSerialization.Type.Unknown) NetworkSerialization.Type.Object else arrayType)
+            addType(DataType.Array)
+            addType(if (arrayType == DataType.Unknown) DataType.Object else arrayType)
 
             if (NetworkSerialization.isSimpleType(arrayType)) {
                 // do nothing
             }
-            else if (arrayType == NetworkSerialization.Type.Object || arrayType == NetworkSerialization.Type.Unknown) {
+            else if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
                 //				int modelId = model.children.get(0).id;
                 //				addRawInt(modelId);
             }
-            else if (arrayType == NetworkSerialization.Type.Enum) {
+            else if (arrayType == DataType.Enum) {
                 // Note: if we treat array of enums the same way as array of objects
                 // then we do not have to write anything here.
                 /*
@@ -342,7 +340,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             }
         }
         else {
-            throw RuntimeException("unsupported type: " + model.networkType)
+            throw RuntimeException("unsupported type: " + model.dataType)
         }
     }
 
@@ -365,7 +363,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         val model = inspector.inspect(obj.javaClass)
         val inspectionCount = inspector.registeredModelsCount
 
-        addType(NetworkSerialization.Type.MultipleDescriptions)
+        addType(DataType.MultipleDescriptions)
         val diff = inspectionCount - previousInspectionCount
         addRawInt(diff)
 
@@ -382,7 +380,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             _typeCountOnLastCheck = inspectionCount
         }
         else {
-            addType(NetworkSerialization.Type.DescriptionRef)
+            addType(DataType.DescriptionRef)
             addRawInt(model.id)
         }
 
@@ -394,20 +392,18 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addObject(model: ObjectModelNode, obj: Any): NetworkSerializer {
-        addType(NetworkSerialization.Type.Object)
+        addType(DataType.Object)
         addRawObject(model, obj)
 
         return this
     }
 
     protected fun addRawObject(model: ObjectModelNode, obj: Any?) {
-        val isArray = model.isArray
-
         if (tryAddNullable(obj)) {
             // well, null is added here.
         }
-        else if (!isArray && (model.networkType == NetworkSerialization.Type.Object || model.networkType == NetworkSerialization.Type.Unknown)) {
-            addType(NetworkSerialization.Type.Object)
+        else if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
+            addType(DataType.Object)
             val n = model.children!!.size
 
             for (i in 0..n - 1) {
@@ -417,23 +413,24 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                 addRawObject(child, childObject)
             }
         }
-        else if (NetworkSerialization.isSimpleType(model.networkType)) {
-            addRawByType(model.networkType, obj!!)
+        else if (isSimpleType(model.dataType)) {
+            assert(model.isTypePrimitive)
+            addRawByType(model.dataType, obj!!)
         }
         else if (model.isEnum) {
-            addType(NetworkSerialization.Type.Enum)
+            addType(DataType.Enum)
 
-            val enumVal = (obj as Enum<NetworkSerialization.Type>).ordinal
+            val enumVal = (obj as Enum<DataType>).ordinal
             addRawInt(enumVal)
         }
-        else if (isArray) {
+        else if (model.isArray) {
             // TODO probably this case will be moved to `addArray()`
 
             val array = obj as Array<Any>
             addRawArray(array, model.arrayType())
         }
         else {
-            throw RuntimeException("unsupported type: " + model.networkType)
+            throw RuntimeException("unsupported type: " + model.dataType)
         }
     }
 
@@ -441,29 +438,29 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     fun addArray(array: Array<Any>?): NetworkSerializer {
         assert(array != null)
 
-        val arrayType = if (array!!.size > 0) NetworkSerialization.determineType(array[0].javaClass) else NetworkSerialization.Type.Object
+        val arrayType = if (array!!.isNotEmpty()) determineType(array[0].javaClass).first else DataType.Object
         addRawArray(array, arrayType)
 
         return this
     }
 
-    fun addRawArray(array: Array<Any>, arrayType: NetworkSerialization.Type) {
+    fun addRawArray(array: Array<Any>, arrayType: DataType) {
         val n = array.size
         beginArray(arrayType, n)
 
-        if (arrayType == NetworkSerialization.Type.Unknown || arrayType == NetworkSerialization.Type.Object) {
+        if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
             for (i in 0..n - 1) {
                 addObject(array[i])
             }
         }
-        else if (NetworkSerialization.isSimpleType(arrayType)) {
+        else if (isSimpleType(arrayType)) {
             for (i in 0..n - 1) {
                 addRawByType(arrayType, array[i])
             }
         }
-        else if (arrayType == NetworkSerialization.Type.Enum) {
+        else if (arrayType == DataType.Enum) {
             for (i in 0..n - 1) {
-                val enumVal = (array[i] as Enum<NetworkSerialization.Type>).ordinal
+                val enumVal = (array[i] as Enum<DataType>).ordinal
                 addRawInt(enumVal)
             }
         }

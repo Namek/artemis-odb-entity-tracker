@@ -37,6 +37,8 @@ class ObjectModelNode(
     /** Determines [dataSubType] Is it primitive type? Otherwise, it's objectType */
     var isSubTypePrimitive = false
 
+    var enumValue: Short = 0
+
 
     init {
         this.id = id
@@ -52,7 +54,7 @@ class ObjectModelNode(
         get() = dataType == DataType.Enum
 
     val isEnumArray: Boolean
-        get() = isArray && dataSubType.equals(DataType.Enum)
+        get() = isArray && dataSubType == DataType.Enum
 
     fun arrayType(): DataType {
         if (!isArray) {
@@ -75,7 +77,7 @@ class ObjectModelNode(
         assert(treePath != null && treePath.size >= 1)
 
         val valueType = value?.javaClass
-        assert(value == null || isSimpleType(determineType(valueType!!)) || valueType.isEnum)
+        assert(value == null || isSimpleType(determineType(valueType!!).first) || valueType.isEnum)
 
         var pathIndex = 0
         var node = this
@@ -195,11 +197,12 @@ class ObjectModelNode(
     fun copyFrom(other: ObjectModelNode): ObjectModelNode {
         this.id = other.id
         this.name = other.name
-//        this.networkType = other.networkType
-//        this.childType = other.childType
         this.dataType = other.dataType
         this.dataSubType = other.dataSubType
+        this.isTypePrimitive = other.isTypePrimitive
+        this.isSubTypePrimitive = other.isSubTypePrimitive
         this.children = Vector(other.children!!)
+        this.enumValue = other.enumValue
         return this
     }
 }
