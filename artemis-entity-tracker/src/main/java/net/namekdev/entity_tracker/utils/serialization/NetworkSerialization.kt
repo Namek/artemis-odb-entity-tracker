@@ -9,7 +9,7 @@ abstract class NetworkSerialization {
         // meta data
         Description,
         MultipleDescriptions,
-        EnumDescription,
+        EnumDescription,  //defines a list of possible values in enum
         EnumValue,
 
         // simple timpes

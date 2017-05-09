@@ -298,8 +298,6 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             addString(model.name!!)
         }
         else if (model.dataType == DataType.EnumDescription) {
-            // TODO is it alright?!?!
-
             addType(DataType.EnumDescription)
 
             val enumModelId = model.id
@@ -368,7 +366,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         addRawInt(diff)
 
         if (diff > 0) {
-            for (i in previousInspectionCount + 1..inspectionCount - 1) {
+            for (i in previousInspectionCount + 1 until inspectionCount) {
                 addDataDescriptionOrRef(
                     inspector.getRegisteredModelByIndex(i)
                 )

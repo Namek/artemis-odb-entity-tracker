@@ -38,6 +38,7 @@ class ObjectModelNode(
     var isSubTypePrimitive = false
 
     var enumValue: Int = 0
+    var modelRefId: Int = -1
 
 
     init {
@@ -69,7 +70,7 @@ class ObjectModelNode(
             throw RuntimeException("this is not enum field!")
         }
 
-        return children!!.elementAt(0).id
+        return modelRefId
     }
 
     fun setValue(targetObj: Any, treePath: IntArray?, value: Any?) {

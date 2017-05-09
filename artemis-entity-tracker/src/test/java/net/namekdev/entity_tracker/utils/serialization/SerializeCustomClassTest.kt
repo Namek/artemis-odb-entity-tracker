@@ -312,12 +312,7 @@ class SerializeCustomClassTest {
         assert(enumArrayFieldModel.isArray)
         assertEquals(DataType.Enum, enumArrayFieldModel.arrayType())
 
-        // Note: since we're treating array of enums as array of objects,
-        // we don't expect this to be true:
-        //		checkEnumFieldInspection(enumArrayFieldModel.children.elementAt(0));
-
-        // Instead, this should be true:
-        assertNull(enumArrayFieldModel.children)
+        checkEnumFieldInspection(enumArrayFieldModel.children!!.elementAt(0))
     }
 
     private fun checkEnumFieldInspection(enumFieldModel: ObjectModelNode) {
@@ -350,9 +345,9 @@ class SerializeCustomClassTest {
         val obj = EnumArrayTestClass()
         val value = serializeAndDeserialize(obj)
 
-        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[2] as ValueTree).values[0])
-        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[2] as ValueTree).values[1])
-        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[2] as ValueTree).values[2])
+        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[0] as ValueTree).values[0])
+        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[0] as ValueTree).values[1])
+        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[0] as ValueTree).values[2])
     }
 
     @Test
@@ -366,7 +361,8 @@ class SerializeCustomClassTest {
         assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[2] as ValueTree).values[1])
         assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[2] as ValueTree).values[2])
 
-        val deserializedModelCount = (ReflectionUtils.getHiddenFieldValue(deserializer.javaClass, "_models", deserializer) as ObjectModelsCollection).size()
+        val deserializedModels = ReflectionUtils.getHiddenFieldValue(deserializer.javaClass, "_models", deserializer) as ObjectModelsCollection
+        val deserializedModelCount = deserializedModels.size()
         assertEquals(serializer.inspector.registeredModelsCount, deserializedModelCount)
     }
 

@@ -48,6 +48,10 @@ class ObjectTypeInspector {
 
         var parent: RegisteredModel? = null
         var children = ArrayList<RegisteredModel>()
+
+        override fun toString(): String {
+            return model.name ?: "null"
+        }
     }
 
     val registeredModelsCount: Int
@@ -159,13 +163,13 @@ class ObjectTypeInspector {
 
 
         if (arrayType == DataType.Enum) {
-            //			ObjectModelNode enumFieldModel = inspectEnum((Class<Enum>) arrayElType, fieldType, registeredModel);
-            //			model.children = new Vector<>(1);
-            //			model.children.addElement(enumFieldModel);
-            //			rememberType(arrayElType, fieldType, enumFieldModel, registeredModel);
-
-            //			arrayType = Type.Unknown;
+            val enumFieldModel = inspectEnum(arrayElType as Class<Enum<*>>, fieldType, registeredModel)
+            model.children = Vector<ObjectModelNode>(1)
+            model.children!!.addElement(enumFieldModel)
+            model.isTypePrimitive = true
+//            rememberType(arrayElType, fieldType, enumFieldModel, registeredModel)
         }
+        else {
 //        else if (!isSimpleType(arrayType)) {
             //			model = inspectLevels(arrayElType, root);
             //
@@ -174,7 +178,7 @@ class ObjectTypeInspector {
             //			}
 
             arrayType = if (arrayElType.isArray) DataType.Array else DataType.Object
-//        }// TODO probably that should inspect deeper anyway!
+        }// TODO probably that should inspect deeper anyway!
 
         model.dataType = DataType.Array
         model.dataSubType = arrayType
@@ -183,8 +187,8 @@ class ObjectTypeInspector {
     }
 
     private fun inspectEnum(enumType: Class<Enum<*>>, parentType: Class<*>, parentRegisteredModel: RegisteredModel): ObjectModelNode {
-        // algorithm: will create enum field definition anyway,
-        // but first check if there is a need to create a model for enum type (list of possible values)
+        // algorithm: always create enum field definition,
+        // but first check if there is a need to create a model for enum type (with list of possible values)
 
         var registeredEnumTypeModel = findModel(enumType, null, null)
 
@@ -213,10 +217,7 @@ class ObjectTypeInspector {
 
         val enumFieldModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model)
         enumFieldModel.dataType = DataType.Enum
-
-        val enumModelRef = ObjectModelNode(registeredModelsAsCollection, registeredEnumTypeModel.model!!.id, enumFieldModel)
-        enumFieldModel.children = Vector<ObjectModelNode>(1)
-        enumFieldModel.children!!.addElement(enumModelRef)
+        enumFieldModel.modelRefId = registeredEnumTypeModel.model.id
 
         rememberType(enumType, parentType, enumFieldModel, parentRegisteredModel)
 
@@ -257,6 +258,12 @@ class ObjectTypeInspector {
     }
 
     private fun rememberType(type: Class<*>?, parentType: Class<*>?, model: ObjectModelNode, parentRegisteredModel: RegisteredModel?): RegisteredModel {
+        val found = this.registeredModels.find { m-> m.model.id == model.id }
+
+        if (found != null) {
+            return found
+        }
+
         val newModel = RegisteredModel()
         newModel.type = type
         newModel.model = model
