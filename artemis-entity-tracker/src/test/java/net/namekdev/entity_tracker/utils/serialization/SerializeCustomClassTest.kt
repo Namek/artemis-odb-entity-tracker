@@ -9,14 +9,15 @@ import net.namekdev.entity_tracker.utils.ReflectionUtils
 import net.namekdev.entity_tracker.utils.sample.ArrayTestClass
 import net.namekdev.entity_tracker.utils.sample.CyclicClass
 import net.namekdev.entity_tracker.utils.sample.CyclicClassIndirectly
-import net.namekdev.entity_tracker.utils.sample.EnumTestClass
-import net.namekdev.entity_tracker.utils.sample.EnumTestClass.TestEnum
+import net.namekdev.entity_tracker.utils.sample.EnumArrayTestClass
+import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
+import net.namekdev.entity_tracker.utils.sample.EnumFieldTestClass
 import net.namekdev.entity_tracker.utils.sample.GameObject
 import net.namekdev.entity_tracker.utils.sample.GameState
+import net.namekdev.entity_tracker.utils.sample.TestEnum
 import net.namekdev.entity_tracker.utils.sample.Vector2
 import net.namekdev.entity_tracker.utils.sample.Vector3
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer.SerializationResult
 
 class SerializeCustomClassTest {
     lateinit var serializer: NetworkSerializer
@@ -29,6 +30,15 @@ class SerializeCustomClassTest {
         serializer = NetworkSerialization.createSerializer()
         deserializer = NetworkDeserializer()
         inspector = ObjectTypeInspector()
+    }
+
+    private fun serializeAndDeserialize(obj: Any): ValueTree {
+        serializer.addObject(obj)
+        val res = serializer.result
+        deserializer.setSource(res.buffer, 0, res.size)
+        val value = deserializer.readObject()
+
+        return value
     }
 
     @Test
@@ -276,7 +286,7 @@ class SerializeCustomClassTest {
 
     @Test
     fun inspect_and_update_enum_fields() {
-        val obj = EnumTestClass()
+        val obj = EnumFullTestClass()
         val model = inspector.inspect(obj.javaClass)
 
         val newVal = TestEnum.Third
@@ -290,7 +300,7 @@ class SerializeCustomClassTest {
 
     @Test
     fun inspect_names_of_enum_fields() {
-        val obj = EnumTestClass()
+        val obj = EnumFullTestClass()
         val model = inspector.inspect(obj.javaClass)
         val enumFieldModel = model.children!!.elementAt(1)
         val enumArrayFieldModel = model.children!!.elementAt(2)
@@ -322,28 +332,42 @@ class SerializeCustomClassTest {
             val valModel = enumDescrModel.children!!.elementAt(i)
             val value = possibleValues[i]
             assertEquals(value.name, valModel.name)
-            assertEquals(value.ordinal, valModel.dataSubType.ordinal)
+            assertEquals(value.ordinal, valModel.enumValue)
         }
     }
 
     @Test
-    fun serialize_enums() {
-        val obj = EnumTestClass()
+    fun serialize_enum_fields() {
+        val obj = EnumFieldTestClass()
+        val value = serializeAndDeserialize(obj)
 
-        serializer.addObject(obj)
+        assertEquals(obj.enumUndefined, value.values[0])
+        assertEquals((obj.enumValued as TestEnum).ordinal, value.values[1])
+    }
 
-        val res = serializer.result
-        deserializer.setSource(res.buffer, 0, res.size)
+    @Test
+    fun serialize_enum_array() {
+        val obj = EnumArrayTestClass()
+        val value = serializeAndDeserialize(obj)
 
-        val `val` = deserializer.readObject()
-        assertEquals(obj.enumUndefined, `val`.values[0])
-        assertEquals((obj.enumValued as TestEnum).ordinal, `val`.values[1])
-        assertEquals((obj.enums[0] as TestEnum).ordinal, (`val`.values[2] as ValueTree).values[0])
-        assertEquals((obj.enums[1] as TestEnum).ordinal, (`val`.values[2] as ValueTree).values[1])
-        assertEquals((obj.enums[2] as TestEnum).ordinal, (`val`.values[2] as ValueTree).values[2])
+        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[2] as ValueTree).values[0])
+        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[2] as ValueTree).values[1])
+        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[2] as ValueTree).values[2])
+    }
+
+    @Test
+    fun serialize_all_enums() {
+        val obj = EnumFullTestClass()
+        val value = serializeAndDeserialize(obj)
+
+        assertEquals(obj.enumUndefined, value.values[0])
+        assertEquals((obj.enumValued as TestEnum).ordinal, value.values[1])
+        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[2] as ValueTree).values[0])
+        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[2] as ValueTree).values[1])
+        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[2] as ValueTree).values[2])
 
         val deserializedModelCount = (ReflectionUtils.getHiddenFieldValue(deserializer.javaClass, "_models", deserializer) as ObjectModelsCollection).size()
-        assertEquals(serializer.inspector.registeredModelsCount.toLong(), deserializedModelCount.toLong())
+        assertEquals(serializer.inspector.registeredModelsCount, deserializedModelCount)
     }
 
     @Test

@@ -313,7 +313,7 @@ class NetworkDeserializer : NetworkSerialization() {
             node.children!!.addElement(enumModelRef)
         }
         else if (nodeType == DataType.EnumValue) {
-            node.enumValue = readRawShort()
+            node.enumValue = readRawInt()
             node.name = readString()
         }
         else if (nodeType == DataType.EnumDescription) {
@@ -330,7 +330,7 @@ class NetworkDeserializer : NetworkSerialization() {
             for (i in 0..n - 1) {
                 val valueId = readRawInt()
                 val enumValueModel = ObjectModelNode(null, valueId, null/*TODO here's null! should be?*/)
-                enumValueModel.enumValue = readRawShort()
+                enumValueModel.enumValue = readRawInt()
                 enumValueModel.name = readString()
                 enumModel.children!!.add(enumValueModel)
                 //				this._models.add(enumValueModel);

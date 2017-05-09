@@ -27,8 +27,8 @@ class ObjectModelNode(
 
     var children: Vector<ObjectModelNode>? = null
 
-    var dataType: DataType = DataType.Unknown
-    var dataSubType: DataType = DataType.Unknown
+    var dataType: DataType = DataType.Undefined
+    var dataSubType: DataType = DataType.Undefined
 
 
     /** Determines [dataType]. Is it primitive type? Otherwise, it's objectType */
@@ -37,7 +37,7 @@ class ObjectModelNode(
     /** Determines [dataSubType] Is it primitive type? Otherwise, it's objectType */
     var isSubTypePrimitive = false
 
-    var enumValue: Short = 0
+    var enumValue: Int = 0
 
 
     init {
@@ -61,7 +61,7 @@ class ObjectModelNode(
             throw RuntimeException("this is not array!")
         }
 
-        return DataType.values()[dataSubType.ordinal]
+        return dataSubType
     }
 
     fun enumModelId(): Int {

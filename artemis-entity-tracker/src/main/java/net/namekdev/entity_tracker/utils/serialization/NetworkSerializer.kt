@@ -294,7 +294,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
         else if (model.dataType == DataType.EnumValue) {
             addType(DataType.EnumValue)
-            addRawShort(model.enumValue)
+            addRawInt(model.enumValue)
             addString(model.name!!)
         }
         else if (model.dataType == DataType.EnumDescription) {
@@ -309,7 +309,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
             for (enumValueModel in model.children!!) {
                 addRawInt(enumValueModel.id)
-                addRawShort(enumValueModel.enumValue)
+                addRawInt(enumValueModel.enumValue)
                 addString(enumValueModel.name!!)
             }
         }

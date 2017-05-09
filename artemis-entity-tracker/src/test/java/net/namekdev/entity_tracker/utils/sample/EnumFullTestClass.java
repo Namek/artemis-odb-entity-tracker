@@ -1,13 +1,6 @@
 package net.namekdev.entity_tracker.utils.sample;
 
-public class EnumTestClass {
-	public static enum TestEnum {
-		First,
-		Second,
-		Third
-	}
-	
-	
+public class EnumFullTestClass {
 	TestEnum enumUndefined = null;
 	TestEnum enumValued = TestEnum.First;
 
@@ -24,7 +17,7 @@ public class EnumTestClass {
 	public Object getEnumValued() {
 		return enumValued;
 	}
-	
+
 	public TestEnum[] getEnums() {
 		return enums;
 	}

@@ -203,7 +203,7 @@ class ObjectTypeInspector {
                 val value = possibleValues[i]
 
                 // Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
-                enumValueModel.enumValue = value.ordinal.toShort()
+                enumValueModel.enumValue = value.ordinal
                 enumValueModel.name = value.name
                 enumTypeModel.children!!.addElement(enumValueModel)
 

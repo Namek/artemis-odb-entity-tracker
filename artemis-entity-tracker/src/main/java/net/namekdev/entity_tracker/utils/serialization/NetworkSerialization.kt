@@ -4,6 +4,8 @@ import com.artemis.utils.BitVector
 
 abstract class NetworkSerialization {
     enum class DataType {
+        Undefined,
+
         // meta data
         Description,
         MultipleDescriptions,
