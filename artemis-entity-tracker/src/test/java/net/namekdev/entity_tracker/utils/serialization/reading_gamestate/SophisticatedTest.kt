@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.utils.serialization.reading_gamestate
 
+import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
@@ -27,7 +28,24 @@ class SophisticatedTest {
     }
 
     @Test
-    fun deserializeInnerGameState() {
+    fun compare_two_enum_class_models() {
+        // create first model, serialize it and retrieve a potential copy of it
+        val model = inspector.inspect(EnumFullTestClass::class.java)
+        serializer.addDataDescriptionOrRef(model)
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+        val model2 = deserializer.readDataDescription()
+
+        // that should be equal
+        assertTrue(model2.equals(model))
+
+        // now, let's modify one of them and compare again, should be different
+//        model2.children[]
+        assertFalse(model2.equals(model))
+    }
+
+    @Test
+    fun deserialize_inner_game_state() {
         val gameState = GameState()
         gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 

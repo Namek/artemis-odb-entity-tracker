@@ -3,9 +3,9 @@ package net.namekdev.entity_tracker.utils.serialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.determineType
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.Companion.isSimpleType
-import java.util.Vector
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils
+import java.util.*
 
 /**
  * Describes a structure of class or class field.
@@ -155,19 +155,7 @@ class ObjectModelNode(
         if (obj !is ObjectModelNode) {
             return false
         }
-
-        if (id != obj.id || isArray != obj.isArray) {
-            return false
-        }
-
-        if (name == null && obj.name != null || name != null && obj.name == null) {
-            return false
-        }
-
-        if (name != null && name != obj.name) {
-            return false
-        }
-
+        return equals(obj, null)
         /*
 		if (networkType != model.networkType || arrayType != model.arrayType) {
 			return false;
@@ -191,6 +179,59 @@ class ObjectModelNode(
 				}
 			}
 		}*/
+
+        return true
+    }
+
+    private fun equals(obj: ObjectModelNode, passedVisitedNodes: ArrayList<ObjectModelNode>?): Boolean {
+        if (id != obj.id || isArray != obj.isArray)
+            return false
+
+        if (name == null && obj.name != null || name != null && obj.name == null)
+            return false
+
+        if (name != null && name != obj.name)
+            return false
+
+        if (dataType != obj.dataType || dataSubType != obj.dataSubType)
+            return false
+
+        if (isTypePrimitive != obj.isTypePrimitive || isSubTypePrimitive != obj.isSubTypePrimitive)
+            return false
+
+        if (children == null && obj.children != null || children != null && obj.children == null)
+            return false
+
+        val children = this.children
+        if (children != null) {
+            val otherChildren = obj.children!!
+
+            if (children.size != otherChildren.size) {
+                return false
+            }
+
+            val visitedNodes = passedVisitedNodes ?: ArrayList()
+            for (i in 0..children.size-1) {
+                val a = children[i]
+                val b = otherChildren[i]
+
+                val hasA = visitedNodes.contains(a)
+                val hasB = visitedNodes.contains(b)
+
+                if (!hasA) {
+                    visitedNodes.add(a)
+                }
+
+                if (!hasB) {
+                    visitedNodes.add(b)
+                }
+
+                if (!hasA || !hasB) {
+                    if (!a.equals(b, visitedNodes))
+                        return false
+                }
+            }
+        }
 
         return true
     }
