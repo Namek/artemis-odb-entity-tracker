@@ -4,6 +4,7 @@ import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 import org.junit.Assert.*
 
@@ -40,7 +41,12 @@ class SophisticatedTest {
         assertTrue(model2.equals(model))
 
         // now, let's modify one of them and compare again, should be different
-//        model2.children[]
+        val enumDescrModel = model2.children!![2].children!![0].children!![0]
+        val thirdEnumValue = enumDescrModel.children!![2]
+        val newThirdEnumValue = ObjectModelNode(null, 0, null).copyFrom(thirdEnumValue)
+        newThirdEnumValue.enumValue = 999
+        enumDescrModel.children!!.set(2, newThirdEnumValue)
+
         assertFalse(model2.equals(model))
     }
 

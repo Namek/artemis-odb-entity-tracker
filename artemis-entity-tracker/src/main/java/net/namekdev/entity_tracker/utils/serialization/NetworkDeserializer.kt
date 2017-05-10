@@ -281,30 +281,18 @@ class NetworkDeserializer : NetworkSerialization() {
                 //				throw new RuntimeException("TODO array of objects");
             }
             else if (node.dataSubType == DataType.Enum) {
-                // Note: if we treat array of enums the same way as array of objects
-                // then we do not have to write anything here.
-                /*int enumModelId = readRawInt();
-				int enumDescrModelId = readRawInt();
-
-				ObjectModelNode enumFieldModel = new ObjectModelNode(null, enumModelId, node);
-				ObjectModelNode enumDescrModel = _models.getById(enumDescrModelId);// new ObjectModelNode(null, enumDescrModelId, null);
-
-				enumFieldModel.networkType = Type.Enum;
-				enumFieldModel.children = new Vector<>(1);
-				enumFieldModel.children.add(enumDescrModel);
-
-				node.children = new Vector<>(1);
-				node.children.add(enumFieldModel);
-
-				this._models.add(enumFieldModel);*/
+                val enumModel = readDataDescription()
+                node.children = Vector(1)
+                node.children!!.addElement(enumModel)
             }
             else {
                 throw RuntimeException("unsupported array type: " + node.dataSubType)
             }
         }
         else if (nodeType == DataType.Enum) {
-            val enumModelId = readRawInt()
-            node.modelRefId = enumModelId
+            val enumModel = readDataDescription()
+            node.children = Vector(1)
+            node.children!!.addElement(enumModel)
         }
         else if (nodeType == DataType.EnumValue) {
             node.enumValue = readRawInt()
@@ -324,6 +312,7 @@ class NetworkDeserializer : NetworkSerialization() {
             for (i in 0..n - 1) {
                 val valueId = readRawInt()
                 val enumValueModel = ObjectModelNode(null, valueId, null/*TODO here's null! should be?*/)
+                enumValueModel.dataType = DataType.EnumValue
                 enumValueModel.enumValue = readRawInt()
                 enumValueModel.name = readString()
                 enumModel.children!!.add(enumValueModel)

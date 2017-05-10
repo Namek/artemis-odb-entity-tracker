@@ -290,7 +290,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
         else if (model.isEnum) {
             addType(DataType.Enum)
-            addRawInt(model.enumModelId())
+            addDataDescriptionOrRef(model.enumModel())
         }
         else if (model.dataType == DataType.EnumValue) {
             addType(DataType.EnumValue)
@@ -324,14 +324,8 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                 //				addRawInt(modelId);
             }
             else if (arrayType == DataType.Enum) {
-                // Note: if we treat array of enums the same way as array of objects
-                // then we do not have to write anything here.
-                /*
-				int enumModelId = model.enumModelId();
-				addRawInt(enumModelId); // id of Enum
-				ObjectModelNode enumModel = inspector.getModelById(enumModelId);
-				addRawInt(enumModel.children.get(0).id); // id of EnumDescription
-				*/
+                val enumModel = model.arrayElTypeModel()
+                addDataDescriptionOrRef(enumModel)
             }
             else {
                 throw RuntimeException("unsupported array type: " + arrayType)

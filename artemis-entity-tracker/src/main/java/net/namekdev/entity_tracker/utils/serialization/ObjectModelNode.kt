@@ -38,7 +38,6 @@ class ObjectModelNode(
     var isSubTypePrimitive = false
 
     var enumValue: Int = 0
-    var modelRefId: Int = -1
 
 
     init {
@@ -65,12 +64,24 @@ class ObjectModelNode(
         return dataSubType
     }
 
-    fun enumModelId(): Int {
+    fun arrayElTypeModel(): ObjectModelNode {
+        if (!isArray) {
+            throw RuntimeException("this is not array!")
+        }
+
+        return children!![0]
+    }
+
+    fun enumModel(): ObjectModelNode {
         if (!isEnum && !isEnumArray) {
             throw RuntimeException("this is not enum field!")
         }
 
-        return modelRefId
+        return children!![0]
+    }
+
+    fun enumModelId(): Int {
+       return enumModel().id
     }
 
     fun setValue(targetObj: Any, treePath: IntArray?, value: Any?) {
@@ -155,55 +166,29 @@ class ObjectModelNode(
         if (obj !is ObjectModelNode) {
             return false
         }
+
         return equals(obj, null)
-        /*
-		if (networkType != model.networkType || arrayType != model.arrayType) {
-			return false;
-		}
-
-		if (children == null && model.children != null || children != null && model.children == null) {
-			return false;
-		}
-
-		if (children != null) {
-			if (children.size() != model.children.size()) {
-				return false;
-			}
-
-			for (int i = 0, n = children.size(); i < n; ++i) {
-				// TODO handle cyclic checks here!
-//				if (children.get(i) != model.children.get(i)) {
-//				if (!children.get(i).equals(model.children.get(i))) {
-				if (children.get(i).id != model.children.get(i).id) {
-					return false;
-				}
-			}
-		}*/
-
-        return true
     }
 
     private fun equals(obj: ObjectModelNode, passedVisitedNodes: ArrayList<ObjectModelNode>?): Boolean {
+        var ret = true
+
         if (id != obj.id || isArray != obj.isArray)
-            return false
-
-        if (name == null && obj.name != null || name != null && obj.name == null)
-            return false
-
-        if (name != null && name != obj.name)
-            return false
-
-        if (dataType != obj.dataType || dataSubType != obj.dataSubType)
-            return false
-
-        if (isTypePrimitive != obj.isTypePrimitive || isSubTypePrimitive != obj.isSubTypePrimitive)
-            return false
-
-        if (children == null && obj.children != null || children != null && obj.children == null)
-            return false
-
-        val children = this.children
-        if (children != null) {
+            ret = false
+        else if (name == null && obj.name != null || name != null && obj.name == null)
+            ret = false
+        else if (name != null && !name.equals(obj.name))
+            ret = false
+        else if (dataType != obj.dataType || dataSubType != obj.dataSubType)
+            ret = false
+        else if (isTypePrimitive != obj.isTypePrimitive || isSubTypePrimitive != obj.isSubTypePrimitive)
+            ret = false
+        else if (children == null && obj.children != null || children != null && obj.children == null)
+            ret = false
+        else if (enumValue != obj.enumValue)
+            ret = false
+        else if (this.children != null) {
+            val children = this.children!!
             val otherChildren = obj.children!!
 
             if (children.size != otherChildren.size) {
@@ -211,12 +196,18 @@ class ObjectModelNode(
             }
 
             val visitedNodes = passedVisitedNodes ?: ArrayList()
+
             for (i in 0..children.size-1) {
                 val a = children[i]
                 val b = otherChildren[i]
 
-                val hasA = visitedNodes.contains(a)
-                val hasB = visitedNodes.contains(b)
+                if (a == null && b != null || a != null && b == null) {
+                    ret = false
+                    break
+                }
+
+                val hasA = visitedNodes.find { node -> node === a } != null
+                val hasB = visitedNodes.find { node -> node === b } != null
 
                 if (!hasA) {
                     visitedNodes.add(a)
@@ -227,13 +218,15 @@ class ObjectModelNode(
                 }
 
                 if (!hasA || !hasB) {
-                    if (!a.equals(b, visitedNodes))
-                        return false
+                    if (!a.equals(b, visitedNodes)) {
+                        ret = false
+                        break
+                    }
                 }
             }
         }
 
-        return true
+        return ret
     }
 
     fun copyFrom(other: ObjectModelNode): ObjectModelNode {
@@ -243,7 +236,7 @@ class ObjectModelNode(
         this.dataSubType = other.dataSubType
         this.isTypePrimitive = other.isTypePrimitive
         this.isSubTypePrimitive = other.isSubTypePrimitive
-        this.children = Vector(other.children!!)
+        this.children = if (other.children != null) Vector(other.children) else null
         this.enumValue = other.enumValue
         return this
     }

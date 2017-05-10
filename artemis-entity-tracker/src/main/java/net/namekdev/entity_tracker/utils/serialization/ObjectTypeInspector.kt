@@ -166,7 +166,6 @@ class ObjectTypeInspector {
             val enumFieldModel = inspectEnum(arrayElType as Class<Enum<*>>, fieldType, registeredModel)
             model.children = Vector<ObjectModelNode>(1)
             model.children!!.addElement(enumFieldModel)
-            model.isTypePrimitive = true
 //            rememberType(arrayElType, fieldType, enumFieldModel, registeredModel)
         }
         else {
@@ -182,13 +181,15 @@ class ObjectTypeInspector {
 
         model.dataType = DataType.Array
         model.dataSubType = arrayType
+        model.isSubTypePrimitive = isArrayElTypePrimitive
 
         return model
     }
 
     private fun inspectEnum(enumType: Class<Enum<*>>, parentType: Class<*>, parentRegisteredModel: RegisteredModel): ObjectModelNode {
         // algorithm: always create enum field definition,
-        // but first check if there is a need to create a model for enum type (with list of possible values)
+        // but first check if there is a need to create
+        // a model for enum type (with list of possible values)
 
         var registeredEnumTypeModel = findModel(enumType, null, null)
 
@@ -202,11 +203,9 @@ class ObjectTypeInspector {
             registeredEnumTypeModel = rememberType(enumType, null, enumTypeModel, null)
 
             for (i in possibleValues.indices) {
+                val value = possibleValues[i]
                 val enumValueModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, enumTypeModel)
                 enumValueModel.dataType = DataType.EnumValue
-                val value = possibleValues[i]
-
-                // Note: we cut bytes here, it's not nice but let's believe that no one creates enums greater than 127.
                 enumValueModel.enumValue = value.ordinal
                 enumValueModel.name = value.name
                 enumTypeModel.children!!.addElement(enumValueModel)
@@ -217,7 +216,8 @@ class ObjectTypeInspector {
 
         val enumFieldModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model)
         enumFieldModel.dataType = DataType.Enum
-        enumFieldModel.modelRefId = registeredEnumTypeModel.model.id
+        enumFieldModel.children = Vector<ObjectModelNode>(1)
+        enumFieldModel.children!!.addElement(registeredEnumTypeModel.model)
 
         rememberType(enumType, parentType, enumFieldModel, parentRegisteredModel)
 
