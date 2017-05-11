@@ -67,7 +67,7 @@ abstract class NetworkSerialization {
                 BitVector::class.java -> Pair(DataType.BitVector, false)
                 else ->
                     if (type.isEnum)
-                        Pair(DataType.Enum, true)
+                        Pair(DataType.Enum, false)
                     else
                         Pair(DataType.Unknown, false)
             }
