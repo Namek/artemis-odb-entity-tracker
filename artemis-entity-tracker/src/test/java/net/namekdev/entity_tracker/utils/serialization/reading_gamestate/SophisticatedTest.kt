@@ -24,7 +24,7 @@ class SophisticatedTest {
     fun setup() {
         serializer = NetworkSerialization.createSerializer()
         deserializer = NetworkDeserializer()
-        inspector = ObjectTypeInspector()
+        inspector = serializer.inspector
     }
 
     @Test
@@ -50,6 +50,7 @@ class SophisticatedTest {
         gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
         val serializer = NetworkSerializer().reset()
+        val inspector = serializer.inspector
         val model = inspector.inspect(GameState::class.java)
 
 
@@ -65,8 +66,6 @@ class SophisticatedTest {
         val result = deserializer.readObject(model2, true)
         assertTrue(result.model!!.equals(model))
         assertTrue(result.model!!.equals(model2))
-
-//        val reading = deserializer.startReadingData(model2)
     }
 
     @Test

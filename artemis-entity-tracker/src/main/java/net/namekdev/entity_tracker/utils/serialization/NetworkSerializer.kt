@@ -342,21 +342,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
     }
 
-    /**
-     * Inspects object, adds it's definition or cached ID if it was already inspected.
-     * Then serializes the object.
-
-     *
-     * It is not the same as manual subsequent calls
-     * of `addObjectDescription()` and `addObject()`
-     * because of the inspection cache.
-     */
-    fun addObject(obj: Any?): NetworkSerializer {
-        if (tryAddNullable(obj)) {
-            return this
-        }
-
-        assert(!obj!!.javaClass.isArray)
+    private fun inspectThenAddDescriptionOrRef(obj: Any): ObjectModelNode {
         val previousInspectionCount = inspector.registeredModelsCount
         val model = inspector.inspect(obj.javaClass)
         val inspectionCount = inspector.registeredModelsCount
@@ -381,6 +367,26 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             addType(DataType.DescriptionRef)
             addRawInt(model.id)
         }
+
+        return model
+    }
+
+    /**
+     * Inspects object, adds it's definition or cached ID if it was already inspected.
+     * Then serializes the object.
+
+     *
+     * It is not the same as manual subsequent calls
+     * of `addObjectDescription()` and `addObject()`
+     * because of the inspection cache.
+     */
+    fun addObject(obj: Any?): NetworkSerializer {
+        if (tryAddNullable(obj)) {
+            return this
+        }
+
+        assert(!obj!!.javaClass.isArray)
+        val model = inspectThenAddDescriptionOrRef(obj)
 
         // Note: even though we have inspected as much as we could up to this point,
         // there could be added more types because of Object Arrays.
@@ -412,6 +418,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             }
         }
         else if (isSimpleType(model.dataType)) {
+            // TODO handle non-primitive fields. This assertion may fail? or not
             assert(model.isTypePrimitive)
             addRawByType(model.dataType, obj!!)
         }
@@ -436,6 +443,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     fun addArray(array: Array<Any>?): NetworkSerializer {
         assert(array != null)
 
+        // TODO replace array[0].javaClass with reflection data. Array could be empty!
         val arrayType = if (array!!.isNotEmpty()) determineType(array[0].javaClass).first else DataType.Object
         addRawArray(array, arrayType)
 

@@ -247,4 +247,18 @@ class ObjectModelNode(
         this.enumValue = other.enumValue
         return this
     }
+
+    override fun toString(): String {
+        val type: String = (
+            if (this.dataType == DataType.Array) {
+                var subType = dataSubType.toString()
+                if (isSubTypePrimitive)
+                    subType = subType.toLowerCase()
+
+                "Array<" + subType + ">"
+            }
+            else this.dataType.toString()
+        )
+        return "id=" + this.id.toString() + ": " + type + ":: name=" + this.name ?: ""
+    }
 }
