@@ -226,7 +226,7 @@ class ObjectTypeInspector {
 
     private fun findModel(type: Class<*>?, parentType: Class<*>?, parent: ObjectModelNode?): RegisteredModel? {
         for (registered in registeredModels) {
-            val sameParentModel = parent == null && registered.model.parent == null || parent != null && parent == registered.model
+            val sameParentModel = parent === null && registered.model.parent === null || parent !== null && parent === registered.model
 
             if (registered.type != null && registered.type == type || registered.type == null && type == null) {
                 var isCyclicModel = false
