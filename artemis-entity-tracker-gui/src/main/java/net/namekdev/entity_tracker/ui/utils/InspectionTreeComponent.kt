@@ -9,18 +9,13 @@ import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.jdeferred.Promise
 import org.jdeferred.impl.DeferredObject
 import java.awt.BorderLayout
-import java.awt.Color
 import java.awt.Dimension
 import java.awt.Insets
 import java.awt.event.MouseEvent
-import javax.swing.AbstractButton
-import javax.swing.DefaultButtonModel
 import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.JTextField
-import javax.swing.JToggleButton
 
 
 interface TreeDataProvider {
@@ -177,41 +172,8 @@ class InspectionTreeNode(
                 }
             }
         }
-        System.out.println(System.getProperty("file.encoding"));
 
         add_row(0, node.model!!, init_panel(this, true))
-
-        // expand everything
-        for (btn in toggleBtns) {
-            val model = (btn.model as DefaultButtonModel)
-//            model.isPressed = true
-            //model.isPressed = false
-        }
-
-//        nodeModel.children!!.forEachIndexed { i, model ->
-//            add_row(i, model)
-//        }
-
-
-
-//        val layout = MigLayout("fillx, wrap 3", "[]5[right]10[left, 0:pref:100%, grow]", "")
-//        setLayout(layout)
-//
-//        repeat(10) {
-//            val btnToggle = JButton("+")
-//            val label = JLabel("fieldNam asd a asd e")
-//            val value: JComponent = JTextField("valu dfg dfgfd g dfgdf fgde")
-//
-//            add(btnToggle)
-//            add(label)
-//            add(value, "wrap")
-//
-//            val childPanel = JPanel()
-//            add(childPanel, "span 3")
-//
-//            // add children here and some left margin
-//            childPanel.add(JLabel("asd asdas dsa dasd sad asdsad sd sdf dsfds sf asd as asd asdsa ads "))
-//        }
     }
 }
 
@@ -254,84 +216,3 @@ internal class GameObject {
 internal class Vector3(var x: Float, var y: Float, var z: Float)
 
 internal class Vector2(var x: Float, var y: Float)
-
-
-/*
-class InspectionTreeNode(
-    model: ObjectModelNode, value: ValueTree?
-)
-    : JComponent() {
-    init {
-
-
-    }
-}
-/*
-
-class InspectionTreeTableModel : TreeTableModel {
-    val modelListeners = ArrayList<TreeModelListener>()
-
-
-    override fun removeTreeModelListener(l: TreeModelListener?) {
-        modelListeners.remove(l)
-    }
-    override fun addTreeModelListener(l: TreeModelListener?) {
-        if (l != null)
-            modelListeners.add(l)
-    }
-
-
-    override fun getHierarchicalColumn(): Int = 0
-
-    override fun getColumnClass(columnIndex: Int): Class<*> {
-        when (columnIndex) {
-            1 -> String.javaClass // TODO it depends on the value type!
-        }
-    }
-
-    override fun getChild(parent: Any?, index: Int): Any {
-        TODO("not implemented")
-    }
-
-    override fun getRoot(): Any {
-        TODO("not implemented")
-    }
-
-    override fun isLeaf(node: Any?): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun getChildCount(parent: Any?): Int {
-        TODO("not implemented")
-    }
-
-    override fun getColumnName(column: Int): String {
-        TODO("not implemented")
-    }
-
-    override fun isCellEditable(node: Any?, column: Int): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun valueForPathChanged(path: TreePath?, newValue: Any?) {
-        TODO("not implemented")
-    }
-
-    override fun getIndexOfChild(parent: Any?, child: Any?): Int {
-        TODO("not implemented")
-    }
-
-    override fun setValueAt(value: Any?, node: Any?, column: Int) {
-        TODO("not implemented")
-    }
-
-    override fun getColumnCount(): Int {
-        TODO("not implemented")
-    }
-
-    override fun getValueAt(node: Any?, column: Int): Any {
-        TODO("not implemented")
-    }
-
-
-}*/
