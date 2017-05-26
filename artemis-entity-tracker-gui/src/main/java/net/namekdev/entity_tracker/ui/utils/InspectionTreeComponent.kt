@@ -12,7 +12,9 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Insets
+import java.awt.event.MouseEvent
 import javax.swing.AbstractButton
+import javax.swing.DefaultButtonModel
 import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JLabel
@@ -81,6 +83,7 @@ class InspectionTreeNode(
     val depth: Int
 ) : JPanel() {
     init {
+        val toggleBtns = mutableListOf<ExpandCollapseButton>()
 
 
         fun init_panel(panel: JPanel, isRoot: Boolean = false): JPanel {
@@ -90,23 +93,38 @@ class InspectionTreeNode(
                 leftGap + "[]5[left]10[left, 0:pref:100%, grow]", // column constraints
                 ""                                                // row constraints
             )
-            panel.setLayout(layout)
+            panel.layout = layout
             return panel
         }
 
-        fun new_panel(parent: JPanel): JPanel {
+        fun new_collapsable_panel(parent: JPanel, btnExpand: ExpandCollapseButton): JPanel {
             val panel = init_panel(JPanel())
-            parent.add(panel, "span 3")
+            parent.add(panel, "span 3, growx")
+
+            val origMaxSize = panel.maximumSize
+            val invisibleSize = Dimension(0, 0)
+
+            fun refresh() {
+                val isExpanded = btnExpand.isExpanded
+                panel.maximumSize = if (isExpanded) origMaxSize else invisibleSize
+                panel.isVisible = isExpanded
+                panel.repaint()
+            }
+
+            refresh()
+            btnExpand.addActionListener { refresh() }
+
             return panel
         }
 
         fun add_row(i: Int, model: ObjectModelNode, parentPanel: JPanel) {
-            if (node.values.get(i) == null) {
+            if (node.values[i] == null) {
                 parentPanel.add(JLabel(model.name), "span 2")
                 parentPanel.add(JLabel("null"))
             }
             if (model.isArray) {
                 val btnExpand = ExpandCollapseButton()
+                toggleBtns.add(btnExpand)
                 parentPanel.add(btnExpand)
 
                 val arrSuffix = (
@@ -118,16 +136,18 @@ class InspectionTreeNode(
                 parentPanel.add(JLabel(model.name + ' ' + arrSuffix))
                 parentPanel.add(JLabel("size=" + node.values.size.toString()))
 
-                val panel = new_panel(parentPanel)
+                val panel = new_collapsable_panel(parentPanel, btnExpand)
 
+                // TODO
             }
             else if (model.dataType == DataType.Object) {
                 val btnExpand = ExpandCollapseButton()
+                toggleBtns.add(btnExpand)
                 parentPanel.add(btnExpand)
 
                 parentPanel.add(JLabel(model.toString()), "span 2")
 
-                val panel = new_panel(parentPanel)
+                val panel = new_collapsable_panel(parentPanel, btnExpand)
                 model.children!!.forEachIndexed { i, model ->
                     add_row(i, model, panel)
                 }
@@ -161,6 +181,13 @@ class InspectionTreeNode(
 
         add_row(0, node.model!!, init_panel(this, true))
 
+        // expand everything
+        for (btn in toggleBtns) {
+            val model = (btn.model as DefaultButtonModel)
+//            model.isPressed = true
+            //model.isPressed = false
+        }
+
 //        nodeModel.children!!.forEachIndexed { i, model ->
 //            add_row(i, model)
 //        }
@@ -189,20 +216,27 @@ class InspectionTreeNode(
 }
 
 class ExpandCollapseButton : JButton() {
-    var isExpanded: Boolean = false
+    var isExpanded: Boolean = true
 
     init {
-        this.addActionListener { evt ->
-            isExpanded = !isExpanded
-            text = if (isExpanded) "▼" else "▶"
-        }
-        text = "▶"
-
         margin = Insets(0,0,0,0)
         border = null
         preferredSize = Dimension(15, 15)
         isOpaque = true
         isBorderPainted = false
+        refresh()
+    }
+
+    private fun refresh() {
+        text = if (isExpanded) "▼" else "▶"
+    }
+
+    override fun processMouseEvent(evt: MouseEvent?) {
+        if (evt!!.id == MouseEvent.MOUSE_RELEASED) {
+            isExpanded = !isExpanded
+            refresh()
+        }
+        super.processMouseEvent(evt)
     }
 }
 
