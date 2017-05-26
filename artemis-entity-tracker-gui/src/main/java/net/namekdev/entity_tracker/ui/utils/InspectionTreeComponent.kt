@@ -2,21 +2,23 @@ package net.namekdev.entity_tracker.ui.utils
 
 import net.miginfocom.swing.MigLayout
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
-import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.jdeferred.Promise
 import org.jdeferred.impl.DeferredObject
 import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Dimension
+import java.awt.Insets
+import javax.swing.AbstractButton
 import javax.swing.JButton
 import javax.swing.JCheckBox
-import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
+import javax.swing.JToggleButton
 
 
 interface TreeDataProvider {
@@ -79,50 +81,90 @@ class InspectionTreeNode(
     val depth: Int
 ) : JPanel() {
     init {
-        val layout = MigLayout("fillx, wrap 3", "[]5[right]10[left, 0:pref:100%, grow]", "")
-        setLayout(layout)
 
 
-
-        val nodeModel = node.model!!
-
-        if (nodeModel.isArray) {
-
+        fun init_panel(panel: JPanel, isRoot: Boolean = false): JPanel {
+            val leftGap = if (isRoot) "5" else "15"
+            val layout = MigLayout(
+                "fillx, wrap 3, debug",                           // layout constraints
+                leftGap + "[]5[left]10[left, 0:pref:100%, grow]", // column constraints
+                ""                                                // row constraints
+            )
+            panel.setLayout(layout)
+            return panel
         }
-        else if (nodeModel.dataType == DataType.Object) {
-            nodeModel.children!!.forEachIndexed { i, field ->
-                add(JLabel(field.name), "span 2")
 
-                if (node.values.get(i) == null) {
-                    add(JLabel("null"))
+        fun new_panel(parent: JPanel): JPanel {
+            val panel = init_panel(JPanel())
+            parent.add(panel, "span 3")
+            return panel
+        }
+
+        fun add_row(i: Int, model: ObjectModelNode, parentPanel: JPanel) {
+            if (node.values.get(i) == null) {
+                parentPanel.add(JLabel(model.name), "span 2")
+                parentPanel.add(JLabel("null"))
+            }
+            if (model.isArray) {
+                val btnExpand = ExpandCollapseButton()
+                parentPanel.add(btnExpand)
+
+                val arrSuffix = (
+                    if (model.isSubTypePrimitive)
+                        '[' + model.dataSubType.toString() + ']'
+                    else
+                        "[]"
+                )
+                parentPanel.add(JLabel(model.name + ' ' + arrSuffix))
+                parentPanel.add(JLabel("size=" + node.values.size.toString()))
+
+                val panel = new_panel(parentPanel)
+
+            }
+            else if (model.dataType == DataType.Object) {
+                val btnExpand = ExpandCollapseButton()
+                parentPanel.add(btnExpand)
+
+                parentPanel.add(JLabel(model.toString()), "span 2")
+
+                val panel = new_panel(parentPanel)
+                model.children!!.forEachIndexed { i, model ->
+                    add_row(i, model, panel)
                 }
-                else if (field.isArray) {
-
-                }
-                else if (field.isLeaf) {
-                    val value = node.values.get(i)
-                    when (field.dataType) {
-                        DataType.String -> {
-                            add(JTextField(value.toString()))
-                        }
-                        DataType.Int, DataType.Short, DataType.Long -> {
-
-                        }
-                        DataType.Float, DataType.Double -> {
-
-                        }
-                        DataType.Boolean -> {
-                            val el = JCheckBox()
-                            el.isSelected = value as Boolean
-                            add(el)
-                        }
-                        else -> {
-                            // TODO
-                        }
+            }
+            else if (model.isLeaf) {
+                parentPanel.add(JLabel(""))
+                parentPanel.add(JLabel(model.name))
+                val value = node.values.get(i)
+                when (model.dataType) {
+                    DataType.String -> {
+                        parentPanel.add(JLabel(value.toString()))
+                    }
+                    DataType.Int, DataType.Short, DataType.Long -> {
+                        parentPanel.add(JLabel(value.toString()))
+                    }
+                    DataType.Float, DataType.Double -> {
+                        parentPanel.add(JLabel(value.toString()))
+                    }
+                    DataType.Boolean -> {
+                        val el = JCheckBox()
+                        el.isSelected = value as Boolean
+                        parentPanel.add(el)
+                    }
+                    else -> {
+                        // TODO
                     }
                 }
             }
         }
+        System.out.println(System.getProperty("file.encoding"));
+
+        add_row(0, node.model!!, init_panel(this, true))
+
+//        nodeModel.children!!.forEachIndexed { i, model ->
+//            add_row(i, model)
+//        }
+
 
 
 //        val layout = MigLayout("fillx, wrap 3", "[]5[right]10[left, 0:pref:100%, grow]", "")
@@ -143,6 +185,24 @@ class InspectionTreeNode(
 //            // add children here and some left margin
 //            childPanel.add(JLabel("asd asdas dsa dasd sad asdsad sd sdf dsfds sf asd as asd asdsa ads "))
 //        }
+    }
+}
+
+class ExpandCollapseButton : JButton() {
+    var isExpanded: Boolean = false
+
+    init {
+        this.addActionListener { evt ->
+            isExpanded = !isExpanded
+            text = if (isExpanded) "▼" else "▶"
+        }
+        text = "▶"
+
+        margin = Insets(0,0,0,0)
+        border = null
+        preferredSize = Dimension(15, 15)
+        isOpaque = true
+        isBorderPainted = false
     }
 }
 
