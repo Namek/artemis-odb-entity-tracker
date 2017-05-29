@@ -28,7 +28,7 @@ object TreeDataProviderTestImpl : TreeDataProvider {
 
     init {
         val gameState = GameState()
-        gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
+        gameState.objects = arrayOf(GameNode(), GameNode(arrayOf(GameNode())))
 
         val serializer = NetworkSerializer()
         val deserializer = NetworkDeserializer()
@@ -150,7 +150,7 @@ class InspectionTreeNode(
 
             val model = model!!
 
-            if (node == null/* || node.values[i] == null*/) {
+            if (node == null) {
                 parentPanel.add(JLabel(model.name), "span 2")
                 parentPanel.add(JLabel("null"))
             }
@@ -222,10 +222,22 @@ class ExpandCollapseButton : JButton() {
 
 internal class GameState {
     var objects: Array<Any>? = null
-    var omg = true
+    var bool = true
+    var float = 0.5f
+    var double = 0.5
+    var byte = 5.toByte()
+    var short = 5.toShort()
+    var int = 5.toInt()
+    var long = 5.toLong()
+    var string = "5"
+    var nullableObj: Object? = null
+    var enum: Direction = Direction.SOUTH
+    var enumNullable: Direction? = null
+
+    // TODO: array of arrays, enums, cyclic references
 }
 
-internal class GameObject {
+internal class GameNode(val children: Array<GameNode>? = null) {
     var pos = Vector3(1f, 2f, 3f)
     var size = Vector2(10f, 5f)
 }
@@ -233,3 +245,7 @@ internal class GameObject {
 internal class Vector3(var x: Float, var y: Float, var z: Float)
 
 internal class Vector2(var x: Float, var y: Float)
+
+internal enum class Direction {
+    NORTH, SOUTH, WEST, EAST
+}

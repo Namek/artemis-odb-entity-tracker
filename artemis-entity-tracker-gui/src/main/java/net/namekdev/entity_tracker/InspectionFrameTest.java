@@ -15,8 +15,8 @@ public class InspectionFrameTest {
 
     public static void main(String[] args) {
         final JFrame frame = new JFrame();
-        frame.setSize(800, 600);
-        frame.setLocation(400, 300);
+        frame.setSize(800, 1100);
+        frame.setLocation(400, 50);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         InspectionTreeComponent inspectionFrame = new InspectionTreeComponent();
