@@ -1,9 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization
 
-import java.util.ArrayList
-import java.util.Vector
-
 import com.artemis.utils.BitVector
+import java.util.*
 
 
 class NetworkDeserializer : NetworkSerialization() {
@@ -331,6 +329,10 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readObject(joinDataToModel: Boolean): ValueTree {
+        return readObject(joinDataToModel, ObjectReadSession())
+    }
+
+    private fun readObject(joinDataToModel: Boolean, session: ObjectReadSession): ValueTree {
         checkType(DataType.MultipleDescriptions)
         val descrCount = readRawInt()
 
@@ -359,36 +361,55 @@ class NetworkDeserializer : NetworkSerialization() {
             }
         }
 
-        return readObject(rootModel!!, joinDataToModel)
+        return readObject(rootModel!!, session, joinDataToModel)
     }
 
-    @JvmOverloads fun readObject(model: ObjectModelNode, joinDataToModel: Boolean = false): ValueTree {
+
+    @JvmOverloads
+    fun readObject(model: ObjectModelNode, joinDataToModel: Boolean = false): ValueTree {
+        return readObject(model, ObjectReadSession(), joinDataToModel)
+    }
+
+    @JvmOverloads
+    private fun readObject(model: ObjectModelNode, session: ObjectReadSession, joinDataToModel: Boolean = false): ValueTree {
         checkType(DataType.Object)
-        val root = readRawObject(model, null, joinDataToModel) as ValueTree?
+        val root = readRawObject(model, null, session, joinDataToModel) as ValueTree?
 
         return root!!
     }
 
-    protected fun readRawObject(model: ObjectModelNode, parentTree: ValueTree?, joinModelToData: Boolean): Any? {
+    private fun readRawObject(model: ObjectModelNode, parentTree: ValueTree?, session: ObjectReadSession, joinModelToData: Boolean): Any? {
         if (checkNull()) {
             return null
         }
         else if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
-            checkType(DataType.Object)
-            val n = model.children!!.size
-            val tree = ValueTree(n)
-            tree.parent = parentTree
+            val dataType = readType()
+            val id = readRawShort()
 
-            for (i in 0..n - 1) {
-                val child = model.children!![i]
-                tree.values[i] = readRawObject(child, tree, joinModelToData)
+            if (dataType == DataType.Object) {
+                val n = model.children!!.size
+                val tree = ValueTree(n)
+                tree.parent = parentTree
+
+                session.remember(id, tree, model)
+
+                for (i in 0..n - 1) {
+                    val child = model.children!![i]
+                    tree.values[i] = readRawObject(child, tree, session, joinModelToData)
+                }
+
+                if (joinModelToData) {
+                    tree.model = model
+                }
+
+                return tree
             }
-
-            if (joinModelToData) {
-                tree.model = model
+            else if (dataType == DataType.ObjectRef) {
+                return session.find(id)!!.tree
             }
-
-            return tree
+            else {
+                throw RuntimeException("Types are divergent, expected: ${DataType.Object} or ${DataType.ObjectRef}, got: $dataType")
+            }
         }
         else if (NetworkSerialization.isSimpleType(model.dataType)) {
             assert(model.isTypePrimitive)
@@ -405,7 +426,7 @@ class NetworkDeserializer : NetworkSerialization() {
         }
         else if (model.isArray) {
             val arrayType = model.arrayType()
-            val tree = readRawArray(arrayType, joinModelToData)
+            val tree = readRawArray(arrayType, session, joinModelToData)
 
             tree.parent = parentTree
 
@@ -425,6 +446,10 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readRawArray(arrayType: DataType?, joinModelToData: Boolean): ValueTree {
+        return readRawArray(arrayType, ObjectReadSession(), joinModelToData)
+    }
+
+    private fun readRawArray(arrayType: DataType?, session: ObjectReadSession, joinModelToData: Boolean): ValueTree {
         var arrayType = arrayType
         checkType(DataType.Array)
 
@@ -440,7 +465,7 @@ class NetworkDeserializer : NetworkSerialization() {
 
         if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
             for (i in 0..n - 1) {
-                val value = readObject(joinModelToData)
+                val value = readObject(joinModelToData, session)
                 value.parent = tree
                 tree.values[i] = value
             }
@@ -498,3 +523,26 @@ class NetworkDeserializer : NetworkSerialization() {
         println(t)
     }
 }
+
+internal class ObjectReadSession {
+    val trees = ArrayList<TreeContainer>()
+    val treesMap = TreeMap<Int, TreeContainer>()
+
+    fun find(id: Short): TreeContainer? {
+        var container = treesMap.get(id.toInt())
+
+        if (container == null) {
+            container = trees.find { it.id == id }
+        }
+
+        return container
+    }
+
+    fun remember(id: Short, tree: ValueTree, model: ObjectModelNode) {
+        val container = TreeContainer(id, tree, model)
+        trees.add(container)
+        treesMap.put(id.toInt(), container)
+    }
+}
+
+data class TreeContainer(val id: Short, val tree: ValueTree, val model: ObjectModelNode)

@@ -28,7 +28,10 @@ object TreeDataProviderTestImpl : TreeDataProvider {
 
     init {
         val gameState = GameState()
-        gameState.objects = arrayOf(GameNode(), GameNode(arrayOf(GameNode())))
+        val cyclicNode = GameNode()
+        val cyclicNodeChildren = arrayOf(cyclicNode)
+        cyclicNode.children = cyclicNodeChildren
+        gameState.objects = arrayOf(GameNode(), GameNode(arrayOf(GameNode())), cyclicNode)
 
         val serializer = NetworkSerializer()
         val deserializer = NetworkDeserializer()
@@ -237,7 +240,7 @@ internal class GameState {
     // TODO: array of arrays, enums, cyclic references
 }
 
-internal class GameNode(val children: Array<GameNode>? = null) {
+internal class GameNode(var children: Array<GameNode>? = null) {
     var pos = Vector3(1f, 2f, 3f)
     var size = Vector2(10f, 5f)
 }

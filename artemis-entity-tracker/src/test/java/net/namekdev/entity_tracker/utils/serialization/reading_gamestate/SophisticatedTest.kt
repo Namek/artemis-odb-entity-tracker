@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.utils.serialization.reading_gamestate
 
+import net.namekdev.entity_tracker.utils.sample.CyclicReferencesHidden
 import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
@@ -94,7 +95,18 @@ class SophisticatedTest {
 //        val reading = deserializer.startReadingData(model2)
     }
 
+    @Test
+    fun serialize_cyclic_reference() {
+        val node = CyclicReferencesHidden()
+        node.children = arrayOf(node)
 
+        serializer.addObject(node)
+
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+
+        val result = deserializer.readObject(true)
+    }
 
 
 

@@ -26,6 +26,7 @@ abstract class NetworkSerialization {
         // more complicated data types
         Unknown,
         Object,
+        ObjectRef, // a reference by id
         Array,
         Enum,
 

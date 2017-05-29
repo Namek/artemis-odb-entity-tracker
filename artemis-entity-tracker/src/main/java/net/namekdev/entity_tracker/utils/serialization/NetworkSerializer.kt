@@ -1,10 +1,9 @@
 package net.namekdev.entity_tracker.utils.serialization
 
-import java.util.TreeSet
-
 import com.artemis.utils.BitVector
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils
+import java.util.*
 
 /**
  * This network serializer may seem indeterministic however it is not the case.
@@ -375,6 +374,10 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
      * because of the inspection cache.
      */
     fun addObject(obj: Any?): NetworkSerializer {
+        return addObject(obj, ObjectSerializationSession())
+    }
+
+    private fun addObject(obj: Any?, session: ObjectSerializationSession): NetworkSerializer {
         if (tryAddNullable(obj)) {
             return this
         }
@@ -384,37 +387,55 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
         // Note: even though we have inspected as much as we could up to this point,
         // there could be added more types because of Object Arrays.
-        addObject(model, obj)
+        addObject(model, obj, session)
 
         return this
     }
 
     fun addObject(model: ObjectModelNode, obj: Any): NetworkSerializer {
         addType(DataType.Object)
-        addRawObject(model, obj)
+        addRawObject(model, obj, ObjectSerializationSession())
 
         return this
     }
 
-    protected fun addRawObject(model: ObjectModelNode, obj: Any?) {
+    private fun addObject(model: ObjectModelNode, obj: Any, session: ObjectSerializationSession): NetworkSerializer {
+        addType(DataType.Object)
+        addRawObject(model, obj, session)
+
+        return this
+    }
+
+    private fun addRawObject(model: ObjectModelNode, obj: Any?, session: ObjectSerializationSession) {
         if (tryAddNullable(obj)) {
             // well, null is added here.
+            return
+        }
+
+        val obj = obj!!
+        val remembered = session.hasOrRemember(obj)
+
+        if (remembered.first) {
+            // add reference to cyclic dependency
+            addType(DataType.ObjectRef)
+            addRawShort(remembered.second.id)
         }
         else if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
             addType(DataType.Object)
+            addRawShort(remembered.second.id)
             val n = model.children!!.size
 
             for (i in 0..n - 1) {
                 val child = model.children!![i]
-                val childObject = ReflectionUtils.getHiddenFieldValue(obj!!.javaClass, child.name!!, obj)
+                val childObject = ReflectionUtils.getHiddenFieldValue(obj.javaClass, child.name!!, obj)
 
-                addRawObject(child, childObject)
+                addRawObject(child, childObject, session)
             }
         }
         else if (isSimpleType(model.dataType)) {
             // TODO handle non-primitive fields. This assertion may fail? or not
             assert(model.isTypePrimitive)
-            addRawByType(model.dataType, obj!!)
+            addRawByType(model.dataType, obj)
         }
         else if (model.isEnum) {
             addType(DataType.Enum)
@@ -426,31 +447,38 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             // TODO probably this case will be moved to `addArray()`
 
             val array = obj as Array<Any>
-            addRawArray(array, model.arrayType())
+            addRawArray(array, model.arrayType(), session)
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType)
         }
     }
 
-
     fun addArray(array: Array<Any>?): NetworkSerializer {
+        return addArray(array, ObjectSerializationSession())
+    }
+
+    private fun addArray(array: Array<Any>?, session: ObjectSerializationSession): NetworkSerializer {
         assert(array != null)
 
         // TODO replace array[0].javaClass with reflection data. Array could be empty!
         val arrayType = if (array!!.isNotEmpty()) determineType(array[0].javaClass).first else DataType.Object
-        addRawArray(array, arrayType)
+        addRawArray(array, arrayType, session)
 
         return this
     }
 
     fun addRawArray(array: Array<Any>, arrayType: DataType) {
+        addRawArray(array, arrayType, ObjectSerializationSession())
+    }
+
+    private fun addRawArray(array: Array<Any>, arrayType: DataType, session: ObjectSerializationSession) {
         val n = array.size
         beginArray(arrayType, n)
 
         if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
             for (i in 0..n - 1) {
-                addObject(array[i])
+                addObject(array[i], session)
             }
         }
         else if (isSimpleType(arrayType)) {
@@ -495,3 +523,34 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
     }
 }
+
+internal class ObjectSerializationSession {
+    val objs = ArrayList<ObjectContainer>()
+    val objsMap = TreeMap<Int, ObjectContainer>()
+    var lastId = 0.toShort()
+
+    fun hasOrRemember(obj: Any): Pair<Boolean, ObjectContainer> {
+        val hashCode: Int = obj.hashCode()
+        var container = objsMap.get(hashCode)
+
+        if (container == null) {
+            container = objs.find { it.obj == obj }
+        }
+
+        val found = container != null
+
+        if (container == null) {
+            container = ObjectContainer(obj, createId())
+            objs.add(container)
+            objsMap.put(hashCode, container)
+        }
+
+        return Pair(found, container)
+    }
+
+    fun createId(): Short {
+        return ++lastId
+    }
+}
+
+data class ObjectContainer(val obj: Any, val id: Short) { }
