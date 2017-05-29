@@ -84,7 +84,7 @@ class InspectionTreeNode(
         fun init_panel(panel: JPanel, isRoot: Boolean = false): JPanel {
             val leftGap = if (isRoot) "5" else "15"
             val layout = MigLayout(
-                "fillx, wrap 3, debug",                           // layout constraints
+                "fillx, wrap 3",                                  // layout constraints
                 leftGap + "[]5[left]10[left, 0:pref:100%, grow]", // column constraints
                 ""                                                // row constraints
             )
@@ -112,12 +112,49 @@ class InspectionTreeNode(
             return panel
         }
 
-        fun add_row(i: Int, model: ObjectModelNode, parentPanel: JPanel) {
-            if (node.values[i] == null) {
+        fun add_row(i: Int, node: Any?, model: ObjectModelNode?, parentPanel: JPanel) {
+            if (node !is ValueTree) {
+                if (model != null && model.isLeaf) {
+                    parentPanel.add(JLabel(""))
+                    parentPanel.add(JLabel(model.name))
+                    val value = node
+                    when (model.dataType) {
+                        DataType.String -> {
+                            parentPanel.add(JLabel(value.toString()))
+                        }
+                        DataType.Int, DataType.Short, DataType.Long -> {
+                            parentPanel.add(JLabel(value.toString()))
+                        }
+                        DataType.Byte -> {
+                            parentPanel.add(JLabel(value.toString()))
+                        }
+                        DataType.Float, DataType.Double -> {
+                            parentPanel.add(JLabel(value.toString()))
+                        }
+                        DataType.Boolean -> {
+                            val el = JCheckBox()
+                            el.isSelected = value as Boolean
+                            parentPanel.add(el)
+                        }
+                        DataType.BitVector -> {
+                            parentPanel.add(JLabel(value.toString()))
+                        }
+                        DataType.Enum -> {
+                            parentPanel.add(JLabel("enum: " + value.toString()))
+                        }
+                    }
+                }
+
+                return
+            }
+
+            val model = model!!
+
+            if (node == null/* || node.values[i] == null*/) {
                 parentPanel.add(JLabel(model.name), "span 2")
                 parentPanel.add(JLabel("null"))
             }
-            if (model.isArray) {
+            else if (model.isArray) {
                 val btnExpand = ExpandCollapseButton()
                 toggleBtns.add(btnExpand)
                 parentPanel.add(btnExpand)
@@ -133,7 +170,11 @@ class InspectionTreeNode(
 
                 val panel = new_collapsable_panel(parentPanel, btnExpand)
 
-                // TODO
+                for (j in node.values.indices) {
+                    val subnode = node.values[j]
+                    val subnodeModel = if (subnode is ValueTree) subnode.model else null
+                    add_row(j, subnode, subnodeModel, panel)
+                }
             }
             else if (model.dataType == DataType.Object) {
                 val btnExpand = ExpandCollapseButton()
@@ -143,37 +184,13 @@ class InspectionTreeNode(
                 parentPanel.add(JLabel(model.toString()), "span 2")
 
                 val panel = new_collapsable_panel(parentPanel, btnExpand)
-                model.children!!.forEachIndexed { i, model ->
-                    add_row(i, model, panel)
-                }
-            }
-            else if (model.isLeaf) {
-                parentPanel.add(JLabel(""))
-                parentPanel.add(JLabel(model.name))
-                val value = node.values.get(i)
-                when (model.dataType) {
-                    DataType.String -> {
-                        parentPanel.add(JLabel(value.toString()))
-                    }
-                    DataType.Int, DataType.Short, DataType.Long -> {
-                        parentPanel.add(JLabel(value.toString()))
-                    }
-                    DataType.Float, DataType.Double -> {
-                        parentPanel.add(JLabel(value.toString()))
-                    }
-                    DataType.Boolean -> {
-                        val el = JCheckBox()
-                        el.isSelected = value as Boolean
-                        parentPanel.add(el)
-                    }
-                    else -> {
-                        // TODO
-                    }
+                for (j in node.values.indices) {
+                    add_row(j, node.values[j], model.children!![j], panel)
                 }
             }
         }
 
-        add_row(0, node.model!!, init_panel(this, true))
+        add_row(0, node, node.model!!, init_panel(this, true))
     }
 }
 

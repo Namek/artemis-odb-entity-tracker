@@ -20,7 +20,9 @@ public class InspectionFrameTest {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         InspectionTreeComponent inspectionFrame = new InspectionTreeComponent();
-        frame.add(new JScrollPane(inspectionFrame));
+        JScrollPane scrollPane = new JScrollPane(inspectionFrame);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        frame.add(scrollPane);
 
         frame.setVisible(true);
 
