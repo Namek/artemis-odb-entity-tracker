@@ -326,6 +326,23 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                 val enumModel = model.arrayElTypeModel()
                 addDataDescriptionOrRef(enumModel)
             }
+            else if (arrayType == DataType.Array) {
+                var m = model
+                var depth = 0
+                while (m.children != null) {
+                    m = m.children!![0]
+                    ++depth
+                }
+                addRawInt(depth)
+                addType(m.dataSubType)
+                addBoolean(m.isSubTypePrimitive)
+
+                m = model
+                while (m.children != null) {
+                    m = m.children!![0]
+                    addRawInt(m.id)
+                }
+            }
             else {
                 throw RuntimeException("unsupported array type: " + arrayType)
             }

@@ -168,20 +168,22 @@ class ObjectTypeInspector {
             model.children!!.addElement(enumFieldModel)
 //            rememberType(arrayElType, fieldType, enumFieldModel, registeredModel)
         }
-        else {
-//        else if (!isSimpleType(arrayType)) {
-            //			model = inspectLevels(arrayElType, root);
-            //
-            //			if (model.networkType == TYPE_TREE) {
-            //				arrayType = TYPE_TREE;
-            //			}
-
-            arrayType = if (arrayElType.isArray) DataType.Array else DataType.Object
-        }// TODO probably that should inspect deeper anyway!
+        else if (arrayElType.isArray) {
+            arrayType = DataType.Array
+        }
+        else if (arrayType == DataType.Unknown) {
+            arrayType = DataType.Object
+        }
 
         model.dataType = DataType.Array
         model.dataSubType = arrayType
         model.isSubTypePrimitive = isArrayElTypePrimitive
+
+        if (model.dataSubType == DataType.Array) {
+            val submodel = inspectArrayType(arrayElType, fieldType, registeredModel)
+            model.children = Vector()
+            model.children!!.addElement(submodel)
+        }
 
         return model
     }

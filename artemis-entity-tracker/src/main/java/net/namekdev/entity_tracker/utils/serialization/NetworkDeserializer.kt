@@ -283,6 +283,24 @@ class NetworkDeserializer : NetworkSerialization() {
                 node.children = Vector(1)
                 node.children!!.addElement(enumModel)
             }
+            else if (node.dataSubType == DataType.Array) {
+                val depth = readRawInt()
+                val deepSubType = readType()
+                val isDeepSubTypePrimitive = readBoolean()
+
+                var curNode = node
+                for (i in 1..depth) {
+                    val id = readRawInt()
+                    val subnode = ObjectModelNode(null, id, curNode)
+                    subnode.dataType = DataType.Array
+                    subnode.dataSubType = DataType.Array
+                    curNode.children = Vector()
+                    curNode.children!!.addElement(subnode)
+                    curNode = subnode
+                }
+                curNode.dataSubType = deepSubType
+                curNode.isSubTypePrimitive = isDeepSubTypePrimitive
+            }
             else {
                 throw RuntimeException("unsupported array type: " + node.dataSubType)
             }

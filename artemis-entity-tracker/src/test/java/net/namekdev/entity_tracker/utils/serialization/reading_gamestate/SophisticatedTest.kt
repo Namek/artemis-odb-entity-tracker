@@ -203,6 +203,13 @@ class SophisticatedTest {
         assertEquals(DataType.Int, arr4Model.dataSubType)
         assertEquals(true, arr4Model.isSubTypePrimitive)
         assertNull(arr4Model.children)
+
+        serializer.addDataDescriptionOrRef(model)
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+        val model2 = deserializer.readDataDescription()
+
+        assert(model2.equals(model))
     }
 
     @Test
