@@ -548,7 +548,7 @@ internal class ObjectSerializationSession {
         return Pair(found, container)
     }
 
-    fun createId(): Short {
+    private fun createId(): Short {
         return ++lastId
     }
 }

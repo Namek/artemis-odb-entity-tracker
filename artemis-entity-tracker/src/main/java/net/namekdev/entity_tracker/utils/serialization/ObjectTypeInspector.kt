@@ -228,6 +228,8 @@ class ObjectTypeInspector {
         for (registered in registeredModels) {
             val sameParentModel = parent === null && registered.model.parent === null || parent !== null && parent === registered.model
 
+            // a != null && a == b || a == null && b == null
+
             if (registered.type != null && registered.type == type || registered.type == null && type == null) {
                 var isCyclicModel = false
 
