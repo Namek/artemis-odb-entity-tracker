@@ -208,7 +208,25 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val model2 = deserializer.readDataDescription()
+        assert(model2.equals(model))
+    }
 
+    @Test
+    fun inspect_deep_implicit_arrays() {
+        val model = serializer.inspector.inspect(DeepArrayImplicit::class.java)
+        assertEquals(DataType.Object, model.dataType)
+        assertEquals(1, model.ch().size)
+
+        val arrModel = model.ch(0)
+        assertEquals(DataType.Object, arrModel.dataType)
+        assertEquals(DataType.Undefined, arrModel.dataSubType)
+        assertNotNull(arrModel.children)
+        assertEquals(0, arrModel.ch().size)
+
+        serializer.addDataDescriptionOrRef(model)
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+        val model2 = deserializer.readDataDescription()
         assert(model2.equals(model))
     }
 
@@ -221,6 +239,22 @@ class SophisticatedTest {
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val result = deserializer.readObject()
 
+        validate_deep_array_values(obj.arr, result)
+    }
+
+    @Test
+    fun deserialize_deep_implicit_arrays() {
+        val obj = DeepArrayImplicit()
+        serializer.addObject(obj)
+
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+        val result = deserializer.readObject(true)
+
+        validate_deep_array_values(obj.arr as Array<Array<Array<IntArray>>>, result)
+    }
+
+    private fun validate_deep_array_values(origArr: Array<Array<Array<IntArray>>>, result: ValueTree) {
         assertEquals(1, result.model!!.ch().size)
         val arr = result.values[0] as ValueTree
         assertEquals(2, arr.values.size)
@@ -233,8 +267,8 @@ class SophisticatedTest {
         assertEquals(1, arrLeft0.values.size)
         val arrLeft0_0 = arrLeft.values[0] as ValueTree
         assertEquals(2, arrLeft0_0.values.size)
-        assertEquals(obj.arr[0][0][0][0], arrLeft0_0.values[0] as Int)
-        assertEquals(obj.arr[0][0][0][1], arrLeft0_0.values[1] as Int)
+        assertEquals(origArr[0][0][0][0], arrLeft0_0.values[0] as Int)
+        assertEquals(origArr[0][0][0][1], arrLeft0_0.values[1] as Int)
 
         // right
         assertEquals(2, arrRight.values.size)
@@ -243,31 +277,7 @@ class SophisticatedTest {
         assertEquals(1, arrRight0.values.size)
         val arrRight0_0 = arrRight0.values[0] as ValueTree
         assertEquals(1, arrRight0_0.values.size)
-        assertEquals(obj.arr[1][0][0][0], arrRight0_0.values[0] as Int)
-    }
-
-    @Test
-    fun inspect_deep_implicit_arrays() {
-        val model = serializer.inspector.inspect(DeepArrayImplicit::class.java)
-        assertEquals(DataType.Object, model.dataType)
-        assertEquals(1, model.children!!.size)
-
-        val arrModel = model.children!![0]
-        assertEquals(DataType.Array, arrModel.dataType)
-        assertEquals(DataType.Int, arrModel.dataSubType)
-        assertEquals(true, arrModel.isSubTypePrimitive)
-        assertNull(arrModel.children)
-    }
-
-    @Test
-    fun deserialize_deep_implicit_arrays() {
-        serializer.addObject(DeepArrayImplicit())
-
-        val serialized = serializer.result
-        deserializer.setSource(serialized.buffer, 0, serialized.size)
-        val result = deserializer.readObject(true)
-
-        assert(false)
+        assertEquals(origArr[1][0][0][0], arrRight0_0.values[0] as Int)
     }
 
 
