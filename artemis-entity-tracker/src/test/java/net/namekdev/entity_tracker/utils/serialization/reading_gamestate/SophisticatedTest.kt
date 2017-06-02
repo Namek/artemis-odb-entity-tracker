@@ -216,8 +216,34 @@ class SophisticatedTest {
     fun deserialize_deep_arrays() {
         val obj = DeepArray()
         serializer.addObject(obj)
-        // TODO
-        assert(false)
+
+        val serialized = serializer.result
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+        val result = deserializer.readObject()
+
+        assertEquals(1, result.model!!.ch().size)
+        val arr = result.values[0] as ValueTree
+        assertEquals(2, arr.values.size)
+        val arrLeft = arr.values[0] as ValueTree
+        val arrRight = arr.values[1] as ValueTree
+
+        // left
+        assertEquals(1, arrLeft.values.size)
+        val arrLeft0 = arrLeft.values[0] as ValueTree
+        assertEquals(1, arrLeft0.values.size)
+        val arrLeft0_0 = arrLeft.values[0] as ValueTree
+        assertEquals(2, arrLeft0_0.values.size)
+        assertEquals(obj.arr[0][0][0][0], arrLeft0_0.values[0] as Int)
+        assertEquals(obj.arr[0][0][0][1], arrLeft0_0.values[1] as Int)
+
+        // right
+        assertEquals(2, arrRight.values.size)
+        assertNull(arrRight.values[1])
+        val arrRight0 = arrRight.values[0] as ValueTree
+        assertEquals(1, arrRight0.values.size)
+        val arrRight0_0 = arrRight0.values[0] as ValueTree
+        assertEquals(1, arrRight0_0.values.size)
+        assertEquals(obj.arr[1][0][0][0], arrRight0_0.values[0] as Int)
     }
 
     @Test

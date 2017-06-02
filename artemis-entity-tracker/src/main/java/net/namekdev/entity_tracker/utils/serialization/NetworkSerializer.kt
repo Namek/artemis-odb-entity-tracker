@@ -461,58 +461,231 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             addRawInt(enumVal)
         }
         else if (model.isArray) {
-            // TODO probably this case will be moved to `addArray()`
-
-            val array = obj as Array<Any>
-            addRawArray(array, model.arrayType(), session)
+            addArray(obj, model, session)
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType)
         }
     }
 
-    fun addArray(array: Array<Any>?): NetworkSerializer {
-        return addArray(array, ObjectSerializationSession())
+    /**
+     * Use this method if you specifically know the structure of array - it'll be more efficient.
+     */
+    fun addArray(array: Any, model: ObjectModelNode) {
+        return addArray(array, model, ObjectSerializationSession())
     }
 
-    private fun addArray(array: Array<Any>?, session: ObjectSerializationSession): NetworkSerializer {
-        assert(array != null)
+    /**
+     * Use this method if you specifically know the structure of array - it'll be more efficient.
+     */
+    private fun addArray(array: Any?, model: ObjectModelNode, session: ObjectSerializationSession) {
+        if (array == null) {
+            addType(DataType.Null)
+        }
+        else if (!model.isSubTypePrimitive && array is Array<*>) {
+            val n = array.size
+            val arrayType = model.arrayType()
+            beginArray(arrayType, n)
 
-        // TODO replace array[0].javaClass with reflection data. Array could be empty!
-        val arrayType = if (array!!.isNotEmpty()) determineType(array[0].javaClass).first else DataType.Object
-        addRawArray(array, arrayType, session)
+
+            if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
+                for (i in 0..n - 1) {
+                    addObject(array[i], session)
+                }
+            }
+            else if (isSimpleType(arrayType)) {
+                for (el in array) {
+                    if (el == null) {
+                        addType(DataType.Null)
+                    }
+                    else {
+                        addType(arrayType)
+                        addRawByType(arrayType, el)
+                    }
+                }
+            }
+            else if (arrayType == DataType.Enum) {
+                for (i in 0..n - 1) {
+                    val el = array[i]
+
+                    if (el === null) {
+                        addType(DataType.Null)
+                    }
+                    else {
+                        val enumVal = (el as Enum<DataType>).ordinal
+                        addInt(enumVal)
+                    }
+                }
+            }
+            else if (arrayType == DataType.Array) {
+                for (subArr in array) {
+                    addArray(subArr, model.arrayElTypeModel(), session)
+                }
+            }
+            else {
+                throw RuntimeException("unsupported array type: " + arrayType)
+            }
+        }
+        else if (model.isSubTypePrimitive) {
+            if (model.dataSubType == DataType.Boolean) {
+                addArray(array as BooleanArray)
+            }
+            else if (model.dataSubType == DataType.Byte) {
+                addArray(array as ByteArray)
+            }
+            else if (model.dataSubType == DataType.Short) {
+                addArray(array as ShortArray)
+            }
+            else if (model.dataSubType == DataType.Int) {
+                addArray(array as IntArray)
+            }
+            else if (model.dataSubType == DataType.Long) {
+                addArray(array as LongArray)
+            }
+            else if (model.dataSubType == DataType.Float) {
+                addArray(array as FloatArray)
+            }
+            else if (model.dataSubType == DataType.Double) {
+                addArray(array as DoubleArray)
+            }
+            else throw RuntimeException("unknown array type")
+        }
+        else {
+            throw RuntimeException("unknown array type")
+        }
+    }
+
+    /**
+     * By using this method, we don't know the type of array.
+     */
+    private fun addArray(array: Any?, session: ObjectSerializationSession) {
+        // array is represented as Object because it may be IntArray, ByteArray, etc. which is incompatible with Array<Any>.
+        // That's about array's component (element) type: primitive or non-primitive. Array<Any> contains non-primitive objects.
+
+        if (array == null) {
+            throw RuntimeException("you can't pass as an array")
+        }
+
+        // case: array of non-primitives
+        else if (array is Array<*>) {
+            for (el in array) {
+                addObject(el, session)
+            }
+        }
+
+        // case: array of primitives
+        else {
+            if (array is BooleanArray
+                || array is ByteArray
+                || array is ShortArray
+                || array is IntArray
+                || array is LongArray
+                )
+            {
+                addArray(array)
+            }
+            else {
+                throw RuntimeException("unknown array type")
+            }
+        }
+    }
+
+    fun addArray(array: Array<Any>?): NetworkSerializer {
+        return addArray(array as Any?)
+    }
+
+    fun addArray(array: BooleanArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Boolean, n)
+
+        // TODO may be optimized by using BitVector or similar
+        for (value in array) {
+            addRawBoolean(value)
+        }
 
         return this
     }
 
-    fun addRawArray(array: Array<Any>, arrayType: DataType) {
-        addRawArray(array, arrayType, ObjectSerializationSession())
-    }
-
-    private fun addRawArray(array: Array<Any>, arrayType: DataType, session: ObjectSerializationSession) {
+    fun addArray(array: ByteArray): NetworkSerializer {
+        addType(DataType.Array)
         val n = array.size
-        beginArray(arrayType, n)
+        beginArray(DataType.Byte, n)
 
-        if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
-            for (i in 0..n - 1) {
-                addObject(array[i], session)
-            }
+        for (value in array) {
+            addRawByte(value)
         }
-        else if (isSimpleType(arrayType)) {
-            for (i in 0..n - 1) {
-                addRawByType(arrayType, array[i])
-            }
-        }
-        else if (arrayType == DataType.Enum) {
-            for (i in 0..n - 1) {
-                val enumVal = (array[i] as Enum<DataType>).ordinal
-                addRawInt(enumVal)
-            }
-        }
-        else {
-            throw RuntimeException("unsupported array type: " + arrayType)
-        }
+
+        return this
     }
+
+    fun addArray(array: ShortArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Short, n)
+
+        for (value in array) {
+            addRawShort(value)
+        }
+
+        return this
+    }
+
+    fun addArray(array: IntArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Int, n)
+
+        for (value in array) {
+            addRawInt(value)
+        }
+
+        return this
+    }
+
+    fun addArray(array: LongArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Long, n)
+
+        for (value in array) {
+            addRawLong(value)
+        }
+
+        return this
+    }
+
+    fun addArray(array: FloatArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Float, n)
+
+        for (value in array) {
+            addRawFloat(value)
+        }
+
+        return this
+    }
+
+    fun addArray(array: DoubleArray): NetworkSerializer {
+        addType(DataType.Array)
+        val n = array.size
+        beginArray(DataType.Double, n)
+
+        for (value in array) {
+            addRawDouble(value)
+        }
+
+        return this
+    }
+
+    private inline fun addArray(array: Any?): NetworkSerializer {
+        addArray(array, ObjectSerializationSession())
+
+        return this
+    }
+
+
 
     //		_buffer[_pos++] = PACKET_END;
     val result: SerializationResult

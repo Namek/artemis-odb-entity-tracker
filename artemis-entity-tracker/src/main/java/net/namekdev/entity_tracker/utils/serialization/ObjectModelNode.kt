@@ -84,6 +84,16 @@ class ObjectModelNode(
        return enumModel().id
     }
 
+    fun arrayDimensions(): Int {
+        var depth = 1
+        var m = this
+        while (m.children != null) {
+            m = m.children!![0]
+            ++depth
+        }
+        return depth
+    }
+
     fun setValue(targetObj: Any, treePath: IntArray?, value: Any?) {
         var traverseObj: Any? = targetObj
         assert(treePath != null && treePath.size >= 1)
