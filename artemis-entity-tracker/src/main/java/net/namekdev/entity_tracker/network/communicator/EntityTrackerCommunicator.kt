@@ -42,7 +42,7 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener {
                 val componentIndex = _deserializer.readInt()
                 val value = _deserializer.readSomething(true)
 
-                val size = _deserializer.beginArray(DataType.Int)
+                val size = _deserializer.beginArray(DataType.Int, true)
                 val treePath = intArrayOf(size)
 
                 for (i in 0..size - 1) {

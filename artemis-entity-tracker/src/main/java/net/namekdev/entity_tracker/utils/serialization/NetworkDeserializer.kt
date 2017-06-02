@@ -47,10 +47,24 @@ class NetworkDeserializer : NetworkSerialization() {
     val consumedBytesCount: Int
         get() = _sourcePos - _sourceBeginPos
 
-    @JvmOverloads fun beginArray(elementType: DataType = DataType.Unknown): Int {
+    @JvmOverloads fun beginArray(elementType: DataType, shouldBePrimitive: Boolean): Int {
         checkType(DataType.Array)
+        val isPrimitive = readRawBoolean()
+
+        if (isPrimitive !== shouldBePrimitive) {
+            throw RuntimeException("Array primitiveness was expected to be: $shouldBePrimitive, got: $isPrimitive")
+        }
+
         checkType(elementType)
         return readRawInt()
+    }
+
+    @JvmOverloads fun beginArray(): Triple<Boolean, DataType, Int> {
+        checkType(DataType.Array)
+        val isPrimitive = readRawBoolean()
+        val elementType = readType()
+        val size = readRawInt()
+        return Triple(isPrimitive, elementType, size)
     }
 
     fun readType(): DataType {
@@ -343,7 +357,7 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readObject(): ValueTree {
-        return readObject(false)
+        return readObject(true)
     }
 
     fun readObject(joinDataToModel: Boolean): ValueTree {
@@ -351,6 +365,11 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     private fun readObject(joinDataToModel: Boolean, session: ObjectReadSession): ValueTree {
+        val model = possiblyReadDescriptions()
+        return readObject(model!!, session, joinDataToModel)
+    }
+
+    private fun possiblyReadDescriptions(): ObjectModelNode? {
         checkType(DataType.MultipleDescriptions)
         val descrCount = readRawInt()
 
@@ -379,7 +398,7 @@ class NetworkDeserializer : NetworkSerialization() {
             }
         }
 
-        return readObject(rootModel!!, session, joinDataToModel)
+        return rootModel
     }
 
 
@@ -429,7 +448,7 @@ class NetworkDeserializer : NetworkSerialization() {
                 throw RuntimeException("Types are divergent, expected: ${DataType.Object} or ${DataType.ObjectRef}, got: $dataType")
             }
         }
-        else if (NetworkSerialization.isSimpleType(model.dataType)) {
+        else if (isSimpleType(model.dataType)) {
             assert(model.isTypePrimitive)
             val value = readRawByType(model.dataType)
 
@@ -443,66 +462,258 @@ class NetworkDeserializer : NetworkSerialization() {
             return enumVal
         }
         else if (model.isArray) {
-            val arrayType = model.arrayType()
-            val tree = readRawArray(arrayType, session, joinModelToData)
+//            val arrayType = model.arrayType()
+//            val tree = readRawArray(arrayType, session, joinModelToData)
+//
+//            tree.parent = parentTree
+//
+//            if (joinModelToData) {
+//                tree.model = model
+//            }
+//
+//            return tree
 
-            tree.parent = parentTree
-
-            if (joinModelToData) {
-                tree.model = model
-            }
-
-            return tree
+            return readArray(model, joinModelToData, session)
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType + ", subtype: " + model.dataSubType)
         }
     }
 
-    fun readArray(): ValueTree {
-        return readRawArray(null, false)
+    // TODO to be public
+    fun readArray(model: ObjectModelNode, joinModelToData: Boolean = true): ValueTree {
+        return readArray(model, joinModelToData, ObjectReadSession())
     }
 
-    fun readRawArray(arrayType: DataType?, joinModelToData: Boolean): ValueTree {
-        return readRawArray(arrayType, ObjectReadSession(), joinModelToData)
+    fun readPrimitiveBooleanArray(): BooleanArray {
+        val n = beginArray(DataType.Boolean, true)
+        val arr = BooleanArray(n)
+
+        // TODO: optimize by using BitVector?
+        for (i in 0..n-1) {
+            arr[i] = readRawBoolean()
+        }
+        return arr
     }
 
-    private fun readRawArray(arrayType: DataType?, session: ObjectReadSession, joinModelToData: Boolean): ValueTree {
-        var arrayType = arrayType
-        checkType(DataType.Array)
+    fun readPrimitiveByteArray(): ByteArray {
+        val n = beginArray(DataType.Byte, true)
+        val arr = ByteArray(n)
+        for (i in 0..n-1) {
+            arr[i] = readRawByte()
+        }
+        return arr
+    }
 
-        if (arrayType != null) {
-            checkType(arrayType)
+    fun readPrimitiveShortArray(): ShortArray {
+        val n = beginArray(DataType.Short, true)
+        val arr = ShortArray(n)
+        for (i in 0..n-1) {
+            arr[i] = readRawShort()
+        }
+        return arr
+    }
+
+    fun readPrimitiveIntArray(): IntArray {
+        val n = beginArray(DataType.Int, true)
+        val arr = IntArray(n)
+        for (i in 0..n-1) {
+            arr[i] = readRawInt()
+        }
+        return arr
+    }
+
+    fun readPrimitiveLongArray(): LongArray {
+        val n = beginArray(DataType.Long, true)
+        val arr = LongArray(n)
+        for (i in 0..n-1) {
+            arr[i] = readRawLong()
+        }
+        return arr
+    }
+
+    fun readPrimitiveFloatArray(): FloatArray {
+        val n = beginArray(DataType.Float, true)
+        val arr = FloatArray(n)
+        for (i in 0..n-1) {
+            arr[i] = readRawFloat()
+        }
+        return arr
+    }
+
+    fun readPrimitiveDoubleArray(): DoubleArray {
+        val n = beginArray(DataType.Double, true)
+        return DoubleArray(n, { readRawDouble() })
+    }
+
+    fun readBooleanArray(): Array<Boolean?> {
+        val n = beginArray(DataType.Boolean, false)
+        return Array<Boolean?>(n, {
+            if (expectTypeOrNull(DataType.Boolean))
+                readRawBoolean()
+            else null
+        })
+    }
+
+    fun readByteArray(): Array<Byte?> {
+        val n = beginArray(DataType.Byte, false)
+        return Array<Byte?>(n, {
+            if (expectTypeOrNull(DataType.Byte))
+                readRawByte()
+            else null
+        })
+    }
+
+    fun readShortArray(): Array<Short?> {
+        val n = beginArray(DataType.Short, false)
+        return Array<Short?>(n, {
+            if (expectTypeOrNull(DataType.Short))
+                readRawShort()
+            else null
+        })
+    }
+
+    fun readIntArray(): Array<Int?> {
+        val n = beginArray(DataType.Int, false)
+        return Array<Int?>(n, {
+            if (expectTypeOrNull(DataType.Int))
+                readRawInt()
+            else null
+        })
+    }
+
+    fun readLongArray(): Array<Long?> {
+        val n = beginArray(DataType.Long, false)
+        return Array<Long?>(n, { i->
+            if (expectTypeOrNull(DataType.Long))
+                readRawLong()
+            else null
+        })
+    }
+
+    fun readFloatArray(): Array<Float?> {
+        val n = beginArray(DataType.Float, false)
+        return Array<Float?>(n, {
+            if (expectTypeOrNull(DataType.Float))
+                readRawFloat()
+            else null
+        })
+    }
+
+    fun readDoubleArray(): Array<Double?> {
+        val n = beginArray(DataType.Double, false)
+        return Array<Double?>(n, {
+            if (expectTypeOrNull(DataType.Double))
+                readRawDouble()
+            else null
+        })
+    }
+
+
+    /**
+     * Read array of primitives.
+     */
+    fun readPrimitiveArrayByType(arrayType: DataType): Any {
+        when (arrayType) {
+            DataType.Boolean -> return readPrimitiveBooleanArray()
+            DataType.Byte -> return readPrimitiveByteArray()
+            DataType.Short -> return readPrimitiveShortArray()
+            DataType.Int -> return readPrimitiveIntArray()
+            DataType.Long -> return readPrimitiveLongArray()
+            DataType.Float -> return readPrimitiveFloatArray()
+            DataType.Double -> return readPrimitiveDoubleArray()
+            else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
+        }
+    }
+
+    /**
+     * Read array of primitives.
+     */
+    fun readArrayByType(arrayType: DataType): Array<*> {
+        when (arrayType) {
+            DataType.Boolean -> return readBooleanArray()
+            DataType.Byte -> return readByteArray()
+            DataType.Short -> return readShortArray()
+            DataType.Int -> return readIntArray()
+            DataType.Long -> return readLongArray()
+            DataType.Float -> return readFloatArray()
+            DataType.Double -> return readDoubleArray()
+            else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
+        }
+    }
+
+
+    /**
+     * Read array without a known model a priori.
+     */
+    fun readArray(joinModelToData: Boolean = true): ValueTree {
+        return readArray(true, ObjectReadSession())
+    }
+
+    /**
+     * Read array without a known model a priori.
+     */
+    private fun readArray(joinModelToData: Boolean, session: ObjectReadSession): ValueTree {
+        val rootModel = possiblyReadDescriptions()
+
+        if (rootModel != null && rootModel.isArray) {
+            return readArray(rootModel, joinModelToData, session)
         }
         else {
-            arrayType = readType()
-        }
+            val (isPrimitive, elementType, n) = beginArray()
+            val node = ValueTree(n)
 
-        val n = readRawInt()
-        val tree = ValueTree(n)
+            // TODO!
+        }
+    }
 
-        if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
-            for (i in 0..n - 1) {
-                val value = readObject(joinModelToData, session)
-                value.parent = tree
-                tree.values[i] = value
+    private fun readArray(model: ObjectModelNode, joinModelToData: Boolean, session: ObjectReadSession): ValueTree {
+        if (model.isSubTypePrimitive) {
+            val array = readArrayByType(model.arrayType())
+            val node = ValueTree(array as Array<Any?>)
+
+            if (joinModelToData) {
+                node.model = model
             }
-        }
-        else if (NetworkSerialization.isSimpleType(arrayType)) {
-            for (i in 0..n - 1) {
-                tree.values[i] = readRawByType(arrayType)
-            }
-        }
-        else if (/*model.isEnumArray()*/ arrayType == DataType.Enum) {
-            for (i in 0..n - 1) {
-                tree.values[i] = readRawInt()
-            }
+
+            return node
         }
         else {
-            throw RuntimeException("unsupported array type: " + arrayType)
-        }
+            val arrayType = model.arrayType()
+            val n = beginArray(arrayType, false)
+            val node = ValueTree(n)
 
-        return tree
+            if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
+                for (i in 0..n - 1) {
+                    val value = readObject(joinModelToData, session)
+                    value.parent = node
+                    node.values[i] = value
+                }
+            }
+            else if (NetworkSerialization.isSimpleType(arrayType)) {
+                for (i in 0..n - 1) {
+                    node.values[i] = readRawByType(arrayType)
+                }
+            }
+            else if (/*model.isEnumArray()*/ arrayType == DataType.Enum) {
+                for (i in 0..n - 1) {
+                    node.values[i] = readRawInt()
+                }
+            }
+            else if (arrayType == DataType.Array) {
+                val subModel = model.children!![0]
+
+                for (i in 0..n-1) {
+                    val subArray = readArray(subModel, joinModelToData, session)
+                    node.values[i] = subArray
+                }
+            }
+            else {
+                throw RuntimeException("unsupported array type: " + arrayType)
+            }
+
+            return node
+        }
     }
 
     fun readRawInt(): Int {
@@ -525,6 +736,17 @@ class NetworkDeserializer : NetworkSerialization() {
             val resultType = DataType.values()[srcType.toInt()]
             throw RuntimeException("Types are divergent, expected: $type, got: $resultType")
         }
+    }
+
+    fun expectTypeOrNull(expectedType: DataType): Boolean {
+        val type = readType()
+        val isNull = type === DataType.Null
+
+        if (type != expectedType && !isNull) {
+            throw RuntimeException("Types are divergent, expected: $type, got: $type")
+        }
+
+        return !isNull
     }
 
     protected fun checkNull(): Boolean {

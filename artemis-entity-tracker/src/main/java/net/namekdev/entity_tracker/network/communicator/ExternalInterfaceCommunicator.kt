@@ -123,7 +123,7 @@ class ExternalInterfaceCommunicator(
             .addInt(componentIndex)
             .addSomething(value)
 
-        p.beginArray(DataType.Int, treePath.size)
+        p.beginArray(DataType.Int, treePath.size, true)
         for (i in treePath.indices) {
             p.addInt(treePath[i])
         }

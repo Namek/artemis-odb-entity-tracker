@@ -41,8 +41,9 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             return diff
         }
 
-    fun beginArray(elementType: DataType, length: Int): NetworkSerializer {
+    fun beginArray(elementType: DataType, length: Int, isPrimitive: Boolean): NetworkSerializer {
         addType(DataType.Array)
+        addRawBoolean(isPrimitive)
         addType(elementType)
         addRawInt(length)
 
@@ -50,7 +51,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun beginArray(length: Int): NetworkSerializer {
-        return beginArray(DataType.Unknown, length)
+        return beginArray(DataType.Unknown, length, false)
     }
 
     fun addType(type: DataType): NetworkSerializer {
@@ -485,7 +486,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         else if (!model.isSubTypePrimitive && array is Array<*>) {
             val n = array.size
             val arrayType = model.arrayType()
-            beginArray(arrayType, n)
+            beginArray(arrayType, n, false)
 
 
             if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
@@ -527,28 +528,22 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             }
         }
         else if (model.isSubTypePrimitive) {
-            if (model.dataSubType == DataType.Boolean) {
+            if (model.dataSubType == DataType.Boolean)
                 addArray(array as BooleanArray)
-            }
-            else if (model.dataSubType == DataType.Byte) {
+            else if (model.dataSubType == DataType.Byte)
                 addArray(array as ByteArray)
-            }
-            else if (model.dataSubType == DataType.Short) {
+            else if (model.dataSubType == DataType.Short)
                 addArray(array as ShortArray)
-            }
-            else if (model.dataSubType == DataType.Int) {
+            else if (model.dataSubType == DataType.Int)
                 addArray(array as IntArray)
-            }
-            else if (model.dataSubType == DataType.Long) {
+            else if (model.dataSubType == DataType.Long)
                 addArray(array as LongArray)
-            }
-            else if (model.dataSubType == DataType.Float) {
+            else if (model.dataSubType == DataType.Float)
                 addArray(array as FloatArray)
-            }
-            else if (model.dataSubType == DataType.Double) {
+            else if (model.dataSubType == DataType.Double)
                 addArray(array as DoubleArray)
-            }
-            else throw RuntimeException("unknown array type")
+            else
+                throw RuntimeException("unknown array type")
         }
         else {
             throw RuntimeException("unknown array type")
@@ -568,6 +563,8 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
         // case: array of non-primitives
         else if (array is Array<*>) {
+            beginArray(array.size)
+
             for (el in array) {
                 addObject(el, session)
             }
@@ -575,15 +572,20 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
         // case: array of primitives
         else {
-            if (array is BooleanArray
-                || array is ByteArray
-                || array is ShortArray
-                || array is IntArray
-                || array is LongArray
-                )
-            {
+            if (array is BooleanArray)
                 addArray(array)
-            }
+            else if (array is ByteArray)
+                addArray(array)
+            else if (array is ShortArray)
+                addArray(array)
+            else if (array is IntArray)
+                addArray(array)
+            else if (array is LongArray)
+                addArray(array)
+            else if (array is FloatArray)
+                addArray(array)
+            else if (array is DoubleArray)
+                addArray(array)
             else {
                 throw RuntimeException("unknown array type")
             }
@@ -595,9 +597,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: BooleanArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Boolean, n)
+        beginArray(DataType.Boolean, array.size, true)
 
         // TODO may be optimized by using BitVector or similar
         for (value in array) {
@@ -608,9 +608,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: ByteArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Byte, n)
+        beginArray(DataType.Byte, array.size, true)
 
         for (value in array) {
             addRawByte(value)
@@ -620,9 +618,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: ShortArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Short, n)
+        beginArray(DataType.Short, array.size, true)
 
         for (value in array) {
             addRawShort(value)
@@ -632,9 +628,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: IntArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Int, n)
+        beginArray(DataType.Int, array.size, true)
 
         for (value in array) {
             addRawInt(value)
@@ -644,9 +638,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: LongArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Long, n)
+        beginArray(DataType.Long, array.size, true)
 
         for (value in array) {
             addRawLong(value)
@@ -656,9 +648,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: FloatArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Float, n)
+        beginArray(DataType.Float, array.size, true)
 
         for (value in array) {
             addRawFloat(value)
@@ -668,9 +658,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addArray(array: DoubleArray): NetworkSerializer {
-        addType(DataType.Array)
-        val n = array.size
-        beginArray(DataType.Double, n)
+        beginArray(DataType.Double, array.size, true)
 
         for (value in array) {
             addRawDouble(value)
@@ -681,7 +669,6 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
     private inline fun addArray(array: Any?): NetworkSerializer {
         addArray(array, ObjectSerializationSession())
-
         return this
     }
 

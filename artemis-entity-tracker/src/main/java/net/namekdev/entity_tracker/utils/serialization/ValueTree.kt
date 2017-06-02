@@ -1,7 +1,15 @@
 package net.namekdev.entity_tracker.utils.serialization
 
-class ValueTree(length: Int) {
-    val values: Array<Any?> = arrayOfNulls<Any>(length)
+class ValueTree {
+    val values: Array<Any?>
     var model: ObjectModelNode? = null
     var parent: ValueTree? = null
+
+    constructor(length: Int) {
+        values = arrayOfNulls<Any>(length)
+    }
+
+    constructor(values: Array<Any?>) {
+        this.values = values
+    }
 }
