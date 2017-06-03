@@ -488,7 +488,7 @@ class SerializeCustomClassTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val arr = deserializer.readArray()
+        val arr = deserializer.readArray()!!
         assertEquals(array.size.toLong(), arr.values.size.toLong())
 
         val v2d = arr.values[0] as ValueTree

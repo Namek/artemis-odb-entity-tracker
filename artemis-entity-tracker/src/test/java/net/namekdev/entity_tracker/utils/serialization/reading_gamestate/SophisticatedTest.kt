@@ -265,7 +265,7 @@ class SophisticatedTest {
         assertEquals(1, arrLeft.values.size)
         val arrLeft0 = arrLeft.values[0] as ValueTree
         assertEquals(1, arrLeft0.values.size)
-        val arrLeft0_0 = arrLeft.values[0] as ValueTree
+        val arrLeft0_0 = arrLeft0.values[0] as ValueTree
         assertEquals(2, arrLeft0_0.values.size)
         assertEquals(origArr[0][0][0][0], arrLeft0_0.values[0] as Int)
         assertEquals(origArr[0][0][0][1], arrLeft0_0.values[1] as Int)

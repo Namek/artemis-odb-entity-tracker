@@ -47,7 +47,7 @@ class NetworkDeserializer : NetworkSerialization() {
     val consumedBytesCount: Int
         get() = _sourcePos - _sourceBeginPos
 
-    @JvmOverloads fun beginArray(elementType: DataType, shouldBePrimitive: Boolean): Int {
+    fun beginArray(elementType: DataType, shouldBePrimitive: Boolean): Int {
         checkType(DataType.Array)
         val isPrimitive = readRawBoolean()
 
@@ -59,12 +59,20 @@ class NetworkDeserializer : NetworkSerialization() {
         return readRawInt()
     }
 
-    @JvmOverloads fun beginArray(): Triple<Boolean, DataType, Int> {
+    fun beginArray(): Triple<Boolean, DataType, Int> {
         checkType(DataType.Array)
         val isPrimitive = readRawBoolean()
         val elementType = readType()
         val size = readRawInt()
         return Triple(isPrimitive, elementType, size)
+    }
+
+    private fun peakArray(): Triple<Boolean, DataType, Int> {
+        val beginPos = _sourcePos
+        val ret = beginArray()
+        _sourcePos = beginPos
+
+        return ret
     }
 
     fun readType(): DataType {
@@ -480,8 +488,7 @@ class NetworkDeserializer : NetworkSerialization() {
         }
     }
 
-    // TODO to be public
-    fun readArray(model: ObjectModelNode, joinModelToData: Boolean = true): ValueTree {
+    fun readArray(model: ObjectModelNode, joinModelToData: Boolean = true): ValueTree? {
         return readArray(model, joinModelToData, ObjectReadSession())
     }
 
@@ -609,6 +616,43 @@ class NetworkDeserializer : NetworkSerialization() {
         })
     }
 
+    fun readPrimitiveBooleanArray_asBoxedArray(): Array<Boolean?> {
+        val n = beginArray(DataType.Boolean, true)
+
+        // TODO: optimize by using BitVector?
+        return Array<Boolean?>(n, { readRawBoolean() })
+    }
+
+    fun readPrimitiveByteArray_asBoxedArray(): Array<Byte?> {
+        val n = beginArray(DataType.Byte, true)
+        return Array<Byte?>(n, { readRawByte() })
+    }
+
+    fun readPrimitiveShortArray_asBoxedArray(): Array<Short?> {
+        val n = beginArray(DataType.Short, true)
+        return Array<Short?>(n, { readRawShort() })
+    }
+
+    fun readPrimitiveIntArray_asBoxedArray(): Array<Int?> {
+        val n = beginArray(DataType.Int, true)
+        return Array<Int?>(n, { readRawInt() })
+    }
+
+    fun readPrimitiveLongArray_asBoxedArray(): Array<Long?> {
+        val n = beginArray(DataType.Long, true)
+        return Array<Long?>(n, { readRawLong() })
+    }
+
+    fun readPrimitiveFloatArray_asBoxedArray(): Array<Float?> {
+        val n = beginArray(DataType.Float, true)
+        return Array<Float?>(n, { readRawFloat() })
+    }
+
+    fun readPrimitiveDoubleArray_asBoxedArray(): Array<Double?> {
+        val n = beginArray(DataType.Double, true)
+        return Array<Double?>(n, { readRawDouble() })
+    }
+
 
     /**
      * Read array of primitives.
@@ -627,7 +671,23 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     /**
-     * Read array of primitives.
+     * Read array of primitives and return it as array of boxed values.
+     */
+    fun readPrimitiveArrayByType_asBoxedArray(arrayType: DataType): Array<*> {
+        when (arrayType) {
+            DataType.Boolean -> return readPrimitiveBooleanArray_asBoxedArray()
+            DataType.Byte -> return readPrimitiveByteArray_asBoxedArray()
+            DataType.Short -> return readPrimitiveShortArray_asBoxedArray()
+            DataType.Int -> return readPrimitiveIntArray_asBoxedArray()
+            DataType.Long -> return readPrimitiveLongArray_asBoxedArray()
+            DataType.Float -> return readPrimitiveFloatArray_asBoxedArray()
+            DataType.Double -> return readPrimitiveDoubleArray_asBoxedArray()
+            else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
+        }
+    }
+
+    /**
+     * Read array of non-primitives (can contain nulls).
      */
     fun readArrayByType(arrayType: DataType): Array<*> {
         when (arrayType) {
@@ -646,30 +706,45 @@ class NetworkDeserializer : NetworkSerialization() {
     /**
      * Read array without a known model a priori.
      */
-    fun readArray(joinModelToData: Boolean = true): ValueTree {
-        return readArray(true, ObjectReadSession())
+    fun readArray(joinModelToData: Boolean = true): ValueTree? {
+        return readArray(joinModelToData, ObjectReadSession())
     }
 
     /**
      * Read array without a known model a priori.
      */
-    private fun readArray(joinModelToData: Boolean, session: ObjectReadSession): ValueTree {
+    private fun readArray(joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
         val rootModel = possiblyReadDescriptions()
+
+        if (checkNull())
+            return null
 
         if (rootModel != null && rootModel.isArray) {
             return readArray(rootModel, joinModelToData, session)
         }
         else {
             val (isPrimitive, elementType, n) = beginArray()
-            val node = ValueTree(n)
+            val node: ValueTree
 
-            // TODO!
+            if (isPrimitive) {
+                val arr = readPrimitiveArrayByType_asBoxedArray(elementType) as Array<Any?>
+                node = ValueTree(arr)
+            }
+            else {
+                val arr = readArrayByType(elementType) as Array<Any?>
+                node = ValueTree(arr)
+            }
+
+            return node
         }
     }
 
-    private fun readArray(model: ObjectModelNode, joinModelToData: Boolean, session: ObjectReadSession): ValueTree {
+    private fun readArray(model: ObjectModelNode, joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
+        if (checkNull())
+            return null
+
         if (model.isSubTypePrimitive) {
-            val array = readArrayByType(model.arrayType())
+            val array = readPrimitiveArrayByType_asBoxedArray(model.arrayType())
             val node = ValueTree(array as Array<Any?>)
 
             if (joinModelToData) {
