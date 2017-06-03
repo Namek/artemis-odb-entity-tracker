@@ -7,7 +7,8 @@ public class EnumFullTestClass {
 	TestEnum[] enums = new TestEnum[] {
 		TestEnum.First,
 		TestEnum.Second,
-		TestEnum.Third
+		TestEnum.Third,
+		null
 	};
 
 	public Object getEnumUndefined() {

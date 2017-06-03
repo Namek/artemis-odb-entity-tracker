@@ -4,7 +4,8 @@ public class EnumArrayTestClass {
     TestEnum[] enums = new TestEnum[] {
         TestEnum.First,
         TestEnum.Second,
-        TestEnum.Third
+        TestEnum.Third,
+        null
     };
 
     public TestEnum[] getEnums() {

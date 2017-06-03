@@ -520,8 +520,9 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                         addType(DataType.Null)
                     }
                     else {
+                        addType(DataType.EnumValue)
                         val enumVal = (el as Enum<DataType>).ordinal
-                        addInt(enumVal)
+                        addRawInt(enumVal)
                     }
                 }
             }

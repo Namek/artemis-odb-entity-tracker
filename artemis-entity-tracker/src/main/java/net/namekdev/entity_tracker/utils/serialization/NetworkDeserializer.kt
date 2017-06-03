@@ -808,7 +808,15 @@ class NetworkDeserializer : NetworkSerialization() {
             }
             else if (/*model.isEnumArray()*/ arrayType == DataType.Enum) {
                 for (i in 0..n - 1) {
-                    node.values[i] = readRawInt()
+                    val type = readType()
+                    node.values[i] = (
+                        if (type == DataType.Null)
+                            null
+                        else if (type == DataType.EnumValue)
+                            readRawInt()
+                        else
+                            throw RuntimeException("array enum didn't expect type: $type")
+                    )
                 }
             }
             else if (arrayType == DataType.Array) {
