@@ -38,7 +38,7 @@ class SerializeCustomClassTest {
         deserializer.setSource(res.buffer, 0, res.size)
         val value = deserializer.readObject()
 
-        return value
+        return value!!
     }
 
     @Test
@@ -86,7 +86,7 @@ class SerializeCustomClassTest {
 
         val res = serializer.result
         deserializer.setSource(res.buffer, 0, res.size)
-        val deserializedGameState = deserializer.readObject()
+        val deserializedGameState = deserializer.readObject()!!
 
         assertNull(deserializedGameState.parent)
 

@@ -95,7 +95,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)
+        val result = deserializer.readObject(true)!!
         assertTrue(result.model!!.equals(model))
 
 //        val reading = deserializer.startReadingData(model2)
@@ -153,7 +153,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)
+        val result = deserializer.readObject(true)!!
         val a = (result.values[0] as ValueTree)
         val b = (a.values[0] as ValueTree)
         val c = (b.values[0] as ValueTree)
@@ -237,7 +237,7 @@ class SophisticatedTest {
 
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
-        val result = deserializer.readObject()
+        val result = deserializer.readObject()!!
 
         validate_deep_array_values(obj.arr, result)
     }
@@ -249,7 +249,7 @@ class SophisticatedTest {
 
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
-        val result = deserializer.readObject(true)
+        val result = deserializer.readObject()!!
 
         validate_deep_array_values(obj.arr as Array<Array<Array<IntArray>>>, result)
     }

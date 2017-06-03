@@ -55,6 +55,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     }
 
     fun addType(type: DataType): NetworkSerializer {
+        dbgType(type)
         return addRawByte(type.ordinal.toByte())
     }
 
@@ -400,8 +401,8 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
             return this
         }
 
-        assert(!obj!!.javaClass.isArray)
-        val model = inspectThenAddDescriptionOrRef(obj)
+//        assert(!obj!!.javaClass.isArray)
+        val model = inspectThenAddDescriptionOrRef(obj!!)
 
         // Note: even though we have inspected as much as we could up to this point,
         // there could be added more types because of Object Arrays.
@@ -432,13 +433,14 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
         val obj = obj!!
         val remembered = session.hasOrRemember(obj)
+        val isArray = obj.javaClass.isArray
 
         if (remembered.first) {
             // add reference to cyclic dependency
             addType(DataType.ObjectRef)
             addRawShort(remembered.second.id)
         }
-        else if (model.dataType == DataType.Object || model.dataType == DataType.Unknown) {
+        else if ((model.dataType == DataType.Object || model.dataType == DataType.Unknown) && !isArray) {
             addType(DataType.Object)
             addRawShort(remembered.second.id)
             val n = model.children!!.size
@@ -463,6 +465,11 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
         else if (model.isArray) {
             addArray(obj, model, session)
+        }
+        else if (isArray) {
+            // This is hidden array in Object field.
+            // Example: Object someField = new int[] { ... }
+            addArray(obj, session)
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType)
@@ -670,6 +677,10 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
     private inline fun addArray(array: Any?): NetworkSerializer {
         addArray(array, ObjectSerializationSession())
         return this
+    }
+
+    private inline fun dbgType(t: DataType) {
+        //println(t)
     }
 
 

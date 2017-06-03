@@ -51,7 +51,7 @@ class NetworkDeserializer : NetworkSerialization() {
         checkType(DataType.Array)
         val isPrimitive = readRawBoolean()
 
-        if (isPrimitive !== shouldBePrimitive) {
+        if (isPrimitive != shouldBePrimitive) {
             throw RuntimeException("Array primitiveness was expected to be: $shouldBePrimitive, got: $isPrimitive")
         }
 
@@ -77,7 +77,7 @@ class NetworkDeserializer : NetworkSerialization() {
 
     fun readType(): DataType {
         val value = DataType.values()[readRawByte().toInt()]
-        //		dbgType(value);
+        dbgType(value)
         return value
     }
 
@@ -289,7 +289,7 @@ class NetworkDeserializer : NetworkSerialization() {
         }
         else if (nodeType == DataType.Array) {
             node.dataSubType = readType()
-            //			dbgType(Type.values()[node.childType]);
+            dbgType(node.dataSubType)
 
             if (isSimpleType(node.dataSubType)) {
                 // do nothing
@@ -364,21 +364,41 @@ class NetworkDeserializer : NetworkSerialization() {
         return node
     }
 
-    fun readObject(): ValueTree {
+    fun readObject(): ValueTree? {
         return readObject(true)
     }
 
-    fun readObject(joinDataToModel: Boolean): ValueTree {
+    fun readObject(joinDataToModel: Boolean): ValueTree? {
         return readObject(joinDataToModel, ObjectReadSession())
     }
 
-    private fun readObject(joinDataToModel: Boolean, session: ObjectReadSession): ValueTree {
+    private fun readObject(joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
         val model = possiblyReadDescriptions()
-        return readObject(model!!, session, joinDataToModel)
+
+        if (model != null) {
+            return readObject(model, session, joinModelToData)
+        }
+        else if (checkNull()) {
+            return null
+        }
+        else {
+            // This is hidden array in Object field.
+            // Example: Object someField = new int[] { ... }
+
+            return readArray(joinModelToData, session)
+        }
     }
 
-    private fun possiblyReadDescriptions(): ObjectModelNode? {
-        checkType(DataType.MultipleDescriptions)
+    private fun possiblyReadDescriptions(force: Boolean = true): ObjectModelNode? {
+        if (force) {
+            checkType(DataType.MultipleDescriptions)
+        }
+        else {
+            if (!peakType(DataType.MultipleDescriptions)) {
+                return null
+            }
+        }
+
         val descrCount = readRawInt()
 
         var rootModel: ObjectModelNode? = null
@@ -452,6 +472,15 @@ class NetworkDeserializer : NetworkSerialization() {
             else if (dataType == DataType.ObjectRef) {
                 return session.find(id)!!.tree
             }
+            else if (dataType == DataType.Array) {
+                // This is hidden array in Object field.
+                // Example: Object someField = new int[] { ... }
+
+                // TODO HACK: we should identify every array!
+                _sourcePos -= 3
+
+                return readArray(joinModelToData, session)
+            }
             else {
                 throw RuntimeException("Types are divergent, expected: ${DataType.Object} or ${DataType.ObjectRef}, got: $dataType")
             }
@@ -470,18 +499,13 @@ class NetworkDeserializer : NetworkSerialization() {
             return enumVal
         }
         else if (model.isArray) {
-//            val arrayType = model.arrayType()
-//            val tree = readRawArray(arrayType, session, joinModelToData)
-//
-//            tree.parent = parentTree
-//
-//            if (joinModelToData) {
-//                tree.model = model
-//            }
-//
-//            return tree
+            val array = readArray(model, joinModelToData, session)
 
-            return readArray(model, joinModelToData, session)
+            if (array != null) {
+                array.parent = parentTree
+            }
+
+            return array
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType + ", subtype: " + model.dataSubType)
@@ -714,7 +738,7 @@ class NetworkDeserializer : NetworkSerialization() {
      * Read array without a known model a priori.
      */
     private fun readArray(joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
-        val rootModel = possiblyReadDescriptions()
+        val rootModel = possiblyReadDescriptions(false)
 
         if (checkNull())
             return null
@@ -723,12 +747,16 @@ class NetworkDeserializer : NetworkSerialization() {
             return readArray(rootModel, joinModelToData, session)
         }
         else {
-            val (isPrimitive, elementType, n) = beginArray()
-            val node: ValueTree
+            val (isPrimitive, elementType, n) = peakArray()
+            val node: ValueTree?
 
             if (isPrimitive) {
                 val arr = readPrimitiveArrayByType_asBoxedArray(elementType) as Array<Any?>
                 node = ValueTree(arr)
+            }
+            else if (elementType == DataType.Unknown) {
+                val n = beginArray(DataType.Unknown, false)
+                node = ValueTree(Array<Any?>(n, { readObject() }))
             }
             else {
                 val arr = readArrayByType(elementType) as Array<Any?>
@@ -758,10 +786,18 @@ class NetworkDeserializer : NetworkSerialization() {
             val n = beginArray(arrayType, false)
             val node = ValueTree(n)
 
+            if (joinModelToData) {
+                node.model = model
+            }
+
             if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
                 for (i in 0..n - 1) {
                     val value = readObject(joinModelToData, session)
-                    value.parent = node
+
+                    if (value != null) {
+                        value.parent = node
+                    }
+
                     node.values[i] = value
                 }
             }
@@ -780,6 +816,11 @@ class NetworkDeserializer : NetworkSerialization() {
 
                 for (i in 0..n-1) {
                     val subArray = readArray(subModel, joinModelToData, session)
+
+                    if (subArray != null) {
+                        subArray.parent = node
+                    }
+
                     node.values[i] = subArray
                 }
             }
@@ -805,12 +846,17 @@ class NetworkDeserializer : NetworkSerialization() {
 
     protected fun checkType(type: DataType) {
         val srcType = _source!![_sourcePos++]
-        //		dbgType(type);
+        dbgType(type)
 
         if (srcType.toInt() != type.ordinal) {
             val resultType = DataType.values()[srcType.toInt()]
             throw RuntimeException("Types are divergent, expected: $type, got: $resultType")
         }
+    }
+
+    protected fun peakType(type: DataType): Boolean {
+        val t = _source!![_sourcePos].toInt()
+        return t == type.ordinal
     }
 
     fun expectTypeOrNull(expectedType: DataType): Boolean {
@@ -826,7 +872,7 @@ class NetworkDeserializer : NetworkSerialization() {
 
     protected fun checkNull(): Boolean {
         if (_source!![_sourcePos].toInt() == DataType.Null.ordinal) {
-            //			dbgType(Type.Null);
+            dbgType(DataType.Null)
             ++_sourcePos
             return true
         }
@@ -834,8 +880,8 @@ class NetworkDeserializer : NetworkSerialization() {
         return false
     }
 
-    private fun dbgType(t: DataType) {
-        println(t)
+    private inline fun dbgType(t: DataType) {
+        //println(t)
     }
 }
 
