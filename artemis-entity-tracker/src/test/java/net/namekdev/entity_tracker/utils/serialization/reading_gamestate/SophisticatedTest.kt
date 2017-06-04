@@ -127,7 +127,9 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)
+        val result = deserializer.readObject(true)!!
+        val children = result.values[0] as ValueTree
+        assert(children.values[0] === result)
     }
 
     @Test
