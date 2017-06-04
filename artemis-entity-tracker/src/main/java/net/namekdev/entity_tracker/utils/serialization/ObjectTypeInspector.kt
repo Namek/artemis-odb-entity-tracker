@@ -102,6 +102,7 @@ class ObjectTypeInspector {
 
             registeredModel = rememberType(type, parentType, model, parentRegisteredModel)
             root = registeredModel.model
+            root.parent = parentOfRoot
 
             for (field in fields) {
                 val fieldType = field.type
