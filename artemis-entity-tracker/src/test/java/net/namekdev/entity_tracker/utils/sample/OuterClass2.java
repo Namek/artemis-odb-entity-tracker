@@ -5,19 +5,20 @@ package net.namekdev.entity_tracker.utils.sample;
  */
 public class OuterClass2 {
     InnerClass a = new InnerClass();
-    InnerClass.MoreInnerClass c;
+    InnerClass.MoreInnerClass b;
 
     class InnerClass {
-        MoreInnerClass b = new MoreInnerClass();
+        MoreInnerClass c = new MoreInnerClass();
 
         InnerClass() {
-            c = b;
+            b = c;
         }
 
         class MoreInnerClass {
+            InnerClass a;//a1
+            MoreInnerClass b;//b1
+            MoreInnerClass c;//c1
             OuterClass2 d;
-            InnerClass e;
-            MoreInnerClass f;
             boolean g = true;
         }
     }

@@ -201,15 +201,47 @@ class SophisticatedTest {
     }
 
     @Test
+    fun inspect_inner_class_2() {
+        val model = serializer.inspector.inspect(OuterClass2::class.java)
+        val aModel = model.ch(0)
+        val bModel = model.ch(1)
+        val cModel = aModel.ch(0)
+        val dModel = cModel.ch(0)
+        val a1Model = cModel.ch(1)
+        val b1Model = cModel.ch(2)
+        val c1Model = cModel.ch(3)
+        val gModel = cModel.ch(4)
+
+        // both models are of the same type but represent fields in different classes
+        assertNotEquals(bModel, cModel)
+        assertNotEquals(a1Model, aModel)
+        assertNotEquals(b1Model, cModel)
+        assertNotEquals(b1Model, bModel)
+        assertNotEquals(b1Model, c1Model)
+        assertNotEquals(c1Model, bModel)
+
+        // OuterClass2: class model vs field model
+        assertNotEquals(model, dModel)
+    }
+
+    @Test
     fun deserialize_inner_class_2() {
         val obj = OuterClass2()
         serializer.addObject(obj)
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)
-        // TODO
-        assert(false)
+        val result = deserializer.readObject(true)!!
+        val a = result.values[0] as ValueTree
+        val b = result.values[1] as ValueTree
+        val c = a.values[0] as ValueTree
+        assertEquals(b, c)
+
+        assertEquals(null, c.values[0])//a1
+        assertEquals(null, c.values[1])//b1
+        assertEquals(null, c.values[2])//c1
+        assertEquals(null, c.values[3])//d
+        assertEquals(true, c.values[4])//g
     }
 
     @Test

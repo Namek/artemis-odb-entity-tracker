@@ -374,7 +374,7 @@ class SerializeCustomClassTest {
 
         val model = inspector.inspect(obj.javaClass)
         assertEquals(2, model.children!!.size.toLong())
-        assertEquals(model.id.toLong(), model.children!!.elementAt(0).id.toLong())
+        assertNotEquals(model.id.toLong(), model.children!!.elementAt(0).id.toLong())
         assert(model !== model.children!!.elementAt(0))
     }
 
@@ -388,7 +388,7 @@ class SerializeCustomClassTest {
         val model = inspector.inspect(obj.javaClass)
         assertEquals(2, model.children!!.size.toLong())
         val fieldModel = model.children!!.elementAt(0)
-        assertEquals(model.id.toLong(), fieldModel.children!!.elementAt(0).id.toLong())
+        assertNotEquals(model.id.toLong(), fieldModel.children!!.elementAt(0).id.toLong())
     }
 
     @Test
