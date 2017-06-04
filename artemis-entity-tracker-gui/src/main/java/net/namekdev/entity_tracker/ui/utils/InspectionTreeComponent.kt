@@ -40,7 +40,7 @@ object TreeDataProviderTestImpl : TreeDataProvider {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        gameStateAsValueTree = deserializer.readObject(true)
+        gameStateAsValueTree = deserializer.readObject(true)!!
     }
 
     override fun getObjectId(): Int {
@@ -82,6 +82,7 @@ class InspectionTreeNode(
 ) : JPanel() {
     init {
         val toggleBtns = mutableListOf<ExpandCollapseButton>()
+        val visitedObjIds = mutableListOf<Short>()
 
 
         fun init_panel(panel: JPanel, isRoot: Boolean = false): JPanel {
@@ -152,6 +153,20 @@ class InspectionTreeNode(
             }
 
             val model = model!!
+
+            // TODO instead of making visitedObjIds global, make it stack-based!
+            // Then we will be sure that there is a <cyclic>
+
+            if (node != null && node.id >= 1) {
+                if (visitedObjIds.contains(node.id)) {
+                    // we may have a cyclic reference here!
+                    // TODO add a button that would dynamically open/expand the object
+                    parentPanel.add(JLabel(model.name), "span 2")
+                    parentPanel.add(JLabel("<visited>"))
+                    return
+                }
+                else visitedObjIds.add(node.id)
+            }
 
             if (node == null) {
                 parentPanel.add(JLabel(model.name), "span 2")

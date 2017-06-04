@@ -454,6 +454,7 @@ class NetworkDeserializer : NetworkSerialization() {
             if (dataType == DataType.Object) {
                 val n = model.children!!.size
                 val tree = ValueTree(n)
+                tree.id = id
                 tree.parent = parentTree
 
                 session.remember(id, tree, model)
@@ -477,9 +478,17 @@ class NetworkDeserializer : NetworkSerialization() {
                 // Example: Object someField = new int[] { ... }
 
                 // TODO HACK: we should identify every array!
+                // it would be best to do it in readArray() method.
+                // So ID would included within beginArray()
                 _sourcePos -= 3
 
-                return readArray(joinModelToData, session)
+                val arrayTree = readArray(joinModelToData, session)
+
+                if (arrayTree != null) {
+                    arrayTree.parent = parentTree
+                }
+
+                return arrayTree
             }
             else {
                 throw RuntimeException("Types are divergent, expected: ${DataType.Object} or ${DataType.ObjectRef}, got: $dataType")
