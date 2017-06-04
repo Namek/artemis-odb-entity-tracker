@@ -8,6 +8,7 @@ abstract class NetworkSerialization {
 
         // meta data
         Description,
+        DescriptionRef,
         MultipleDescriptions,
         EnumDescription,  //defines a list of possible values in enum
         EnumValue,
@@ -32,7 +33,6 @@ abstract class NetworkSerialization {
 
         // special values
         Null, //takes 1 byte
-        DescriptionRef,
     }
 
 

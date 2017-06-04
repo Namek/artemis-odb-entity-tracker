@@ -121,12 +121,12 @@ class ObjectTypeInspector {
                             child = inspectLevels(fieldType, type, root, registeredModel)
                         }
                         else {
-                            child = ObjectModelNode(registeredModelsAsCollection, ++lastId, root).copyFrom(
+                            child = ObjectModelNode(registeredModelsAsCollection, 0, root).copyFrom(
                                 registeredChildModel.model
                             )
+                            child.id = ++lastId
                             child.name = null
 
-                            // TODO should we remember this model?
                             rememberType(fieldType, type, root, registeredModel)
                         }
                     }
@@ -229,7 +229,7 @@ class ObjectTypeInspector {
 
     private fun findModel(type: Class<*>?, parentType: Class<*>?, parent: ObjectModelNode?): RegisteredModel? {
         for (registered in registeredModels) {
-            val sameParentModel = parent === null && registered.model.parent === null || parent !== null && parent === registered.model
+            val sameParentModel = parent === null && registered.model.parent === null || parent !== null && parent === registered.model.parent
 
             // a != null && a == b || a == null && b == null
 

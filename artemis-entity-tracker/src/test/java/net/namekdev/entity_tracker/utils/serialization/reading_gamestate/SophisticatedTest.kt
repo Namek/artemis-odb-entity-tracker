@@ -6,6 +6,7 @@ import net.namekdev.entity_tracker.utils.sample.DeepArrayImplicit
 import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
 import net.namekdev.entity_tracker.utils.sample.OuterClass
 import net.namekdev.entity_tracker.utils.sample.OuterClass2
+import net.namekdev.entity_tracker.utils.sample.RepeatingModelsTestClass
 import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
@@ -133,6 +134,29 @@ class SophisticatedTest {
     }
 
     @Test
+    fun inspect_repeating_models() {
+        val pureRepeatedModel = serializer.inspector.inspect(RepeatingModelsTestClass.RepeatedClass::class.java)
+        val model = serializer.inspector.inspect(RepeatingModelsTestClass::class.java)
+
+        val aModel = model.ch(0)
+        val bModel = model.ch(1)
+        val cModel = model.ch(2)
+        val dModel = cModel.ch(0)
+
+        // both fields are different models
+        assertNotEquals(aModel, bModel)
+
+        // neither of those fields model is same as a model for the type
+        assertNotEquals(aModel, pureRepeatedModel)
+        assertNotEquals(bModel, pureRepeatedModel)
+
+        // model in another subclass is also different
+        assertNotEquals(dModel, aModel)
+        assertNotEquals(dModel, bModel)
+        assertNotEquals(dModel, pureRepeatedModel)
+    }
+
+    @Test
     fun inspect_inner_class() {
         val outerClassModel = serializer.inspector.inspect(OuterClass::class.java)
         assertEquals(1, outerClassModel.children!!.size)
@@ -151,12 +175,9 @@ class SophisticatedTest {
         assertEquals(DataType.Boolean, dModel.dataType)
 
         val _aModel = cModel.children!![0]
-//        assertEquals(DataType.DescriptionRef, _aModel.dataType)
 
-        // it should be a reference to same model but it's different
         assertNotEquals(outerClassModel.id, _aModel.id)
-        assertNotNull(_aModel.parent)
-        assertEquals(cModel.id, _aModel.parent!!.id)
+        assertEquals(cModel, _aModel.parent)
     }
 
     @Test
@@ -170,8 +191,13 @@ class SophisticatedTest {
         val a = (result.values[0] as ValueTree)
         val b = (a.values[0] as ValueTree)
         val c = (b.values[0] as ValueTree)
-        val d = c.values[0] as Boolean
+        val d = c.values[1] as Boolean
         assertEquals(true, d)
+        val _a = (c.values[0] as ValueTree)
+
+        // models has to be different because model of OuterClass is a different thing than a field of type OuterClass
+        assert(_a !== a)
+        assertNotEquals(a.model, _a.model)
     }
 
     @Test

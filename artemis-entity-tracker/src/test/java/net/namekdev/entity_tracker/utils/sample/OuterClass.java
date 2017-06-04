@@ -25,7 +25,7 @@ public class OuterClass {
                 }
 
                 void mutate(OuterClass _a) {
-//                    this._a = _a;
+                    this._a = _a;
                     a.b.c.d = true;
                 }
             }
