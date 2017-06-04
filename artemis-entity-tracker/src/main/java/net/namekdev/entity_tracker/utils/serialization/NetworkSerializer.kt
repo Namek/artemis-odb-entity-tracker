@@ -321,8 +321,7 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
                 // do nothing
             }
             else if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
-                //				int modelId = model.children.get(0).id;
-                //				addRawInt(modelId);
+                // do nothing
             }
             else if (arrayType == DataType.Enum) {
                 val enumModel = model.arrayElTypeModel()
@@ -432,27 +431,46 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
         }
 
         val obj = obj!!
-        val remembered = session.hasOrRemember(obj)
         val isArray = obj.javaClass.isArray
+        val isReferential = model.dataType == DataType.Object || model.dataType == DataType.Unknown || isArray
 
-        if (remembered.first) {
-            // add reference to cyclic dependency
-            addType(DataType.ObjectRef)
-            addRawShort(remembered.second.id)
-        }
-        else if ((model.dataType == DataType.Object || model.dataType == DataType.Unknown) && !isArray) {
-            addType(DataType.Object)
-            addRawShort(remembered.second.id)
-            val n = model.children!!.size
+        if (isReferential) {
+            val remembered = session.hasOrRemember(obj)
 
-            for (i in 0..n - 1) {
-                val child = model.children!![i]
-                val childObject = ReflectionUtils.getHiddenFieldValue(obj.javaClass, child.name!!, obj)
-
-                addRawObject(child, childObject, session)
+            if (remembered.first) {
+                // add reference to cyclic dependency
+                addType(DataType.ObjectRef)
+                addRawShort(remembered.second.id)
             }
+            else if (!isArray) {
+                addType(DataType.Object)
+                addRawShort(remembered.second.id)
+                val n = model.children!!.size
+
+                for (i in 0..n - 1) {
+                    val child = model.children!![i]
+                    val childObject = ReflectionUtils.getHiddenFieldValue(obj.javaClass, child.name!!, obj)
+
+                    addRawObject(child, childObject, session)
+                }
+            }
+            else if (model.isArray) {
+                addArray(obj, model, session)
+
+                // TODO add remembered id!
+            }
+            else if (isArray) {
+                // This is hidden array in Object field.
+                // Example: Object someField = new int[] { ... }
+                addArray(obj, session)
+
+                // TODO add remembered id!
+            }
+
+            return
         }
-        else if (isSimpleType(model.dataType)) {
+
+        if (isSimpleType(model.dataType)) {
             // TODO handle non-primitive fields. This assertion may fail? or not
             assert(model.isTypePrimitive)
             addRawByType(model.dataType, obj)
@@ -462,14 +480,6 @@ class NetworkSerializer @JvmOverloads constructor(val inspector: ObjectTypeInspe
 
             val enumVal = (obj as Enum<DataType>).ordinal
             addRawInt(enumVal)
-        }
-        else if (model.isArray) {
-            addArray(obj, model, session)
-        }
-        else if (isArray) {
-            // This is hidden array in Object field.
-            // Example: Object someField = new int[] { ... }
-            addArray(obj, session)
         }
         else {
             throw RuntimeException("unsupported type: " + model.dataType)
