@@ -60,7 +60,7 @@ class SophisticatedTest {
     @Test
     fun deserialize_inner_game_state() {
         val gameState = GameState()
-        gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
+//        gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
         val serializer = NetworkSerializer().reset()
         val inspector = serializer.inspector
@@ -88,17 +88,33 @@ class SophisticatedTest {
 
         val serializer = NetworkSerializer().reset()
         val model = inspector.inspect(GameState::class.java)
-
-
         serializer.addObject(gameState)
-
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject(true)!!
         assertTrue(result.model!!.equals(model))
 
-//        val reading = deserializer.startReadingData(model2)
+        // boolean omg
+        assertEquals(gameState.omg, result.values[1] as Boolean)
+
+        // arrayOf GameObjects
+        val objects = result.values[0] as ValueTree
+
+        assert(objects.model!!.isArray)
+        for (i in 0..gameState.objects!!.size-1) {
+            val origObj = gameState.objects!![i]
+            val obj = objects.values[i] as ValueTree
+
+            val objPos = obj.values[0] as ValueTree
+            assertEquals(origObj.pos.x, objPos.values[0])
+            assertEquals(origObj.pos.y, objPos.values[1])
+            assertEquals(origObj.pos.z, objPos.values[2])
+
+            val objSize = obj.values[1] as ValueTree
+            assertEquals(origObj.size.x, objSize.values[0])
+            assertEquals(origObj.size.y, objSize.values[1])
+        }
     }
 
     @Test
@@ -122,7 +138,6 @@ class SophisticatedTest {
 
         val aModel = outerClassModel.children!![0]
         assertEquals(1, aModel.children!!.size)
-//        assertEquals(aModel)
 
         val bModel = aModel.children!![0]
         assertEquals(1, bModel.children!!.size)
@@ -130,14 +145,10 @@ class SophisticatedTest {
         val cModel = bModel.children!![0]
         assertEquals(2, cModel.children!!.size)
 
-        val _aModel = cModel.children!![0]
-
-        // TODO what to assert here?
-
         val dModel = cModel.children!![1]
         assertEquals(DataType.Boolean, dModel.dataType)
 
-
+        val _aModel = cModel.children!![0]
 //        assertEquals(DataType.DescriptionRef, _aModel.dataType)
 
         // it should be a reference to same model but it's different
