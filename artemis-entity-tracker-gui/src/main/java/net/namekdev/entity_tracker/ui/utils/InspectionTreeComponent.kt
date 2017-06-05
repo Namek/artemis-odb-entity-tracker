@@ -12,6 +12,7 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Insets
 import java.awt.event.MouseEvent
+import java.util.*
 import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JLabel
@@ -82,7 +83,6 @@ class InspectionTreeNode(
 ) : JPanel() {
     init {
         val toggleBtns = mutableListOf<ExpandCollapseButton>()
-        val visitedObjIds = mutableListOf<Short>()
 
 
         fun init_panel(panel: JPanel, isRoot: Boolean = false): JPanel {
@@ -116,7 +116,9 @@ class InspectionTreeNode(
             return panel
         }
 
-        fun add_row(i: Int, node: Any?, model: ObjectModelNode?, parentPanel: JPanel) {
+        fun add_row(i: Int, node: Any?, model: ObjectModelNode?, parentPanel: JPanel, visitedObjIds: Stack<Short>) {
+            val visitedObjIdsBeginSize = visitedObjIds.size
+
             if (node !is ValueTree) {
                 if (model != null && model.isLeaf) {
                     parentPanel.add(JLabel(""))
@@ -148,67 +150,69 @@ class InspectionTreeNode(
                         }
                     }
                 }
-
-                return
             }
+            else if (model != null) {
+                if (node != null && node.id >= 1) {
+                    if (visitedObjIds.contains(node.id)) {
+                        // we have a cyclic reference here!
+                        // TODO add a button that would dynamically open/expand the object
+                        parentPanel.add(JLabel(model.name), "span 2")
+                        parentPanel.add(JLabel("<cyclic>"))
+                        return
+                    }
+                    else visitedObjIds.add(node.id)
+                }
 
-            val model = model!!
-
-            // TODO instead of making visitedObjIds global, make it stack-based!
-            // Then we will be sure that there is a <cyclic>
-
-            if (node != null && node.id >= 1) {
-                if (visitedObjIds.contains(node.id)) {
-                    // we may have a cyclic reference here!
-                    // TODO add a button that would dynamically open/expand the object
+                if (node == null) {
                     parentPanel.add(JLabel(model.name), "span 2")
-                    parentPanel.add(JLabel("<visited>"))
-                    return
+                    parentPanel.add(JLabel("null"))
                 }
-                else visitedObjIds.add(node.id)
+                else if (model.isArray) {
+                    val btnExpand = ExpandCollapseButton()
+                    toggleBtns.add(btnExpand)
+                    parentPanel.add(btnExpand)
+
+                    val arrSuffix = (
+                        if (model.isSubTypePrimitive)
+                            '[' + model.dataSubType.toString() + ']'
+                        else
+                            "[]"
+                    )
+                    parentPanel.add(JLabel(model.name + ' ' + arrSuffix))
+                    parentPanel.add(JLabel("size=" + node.values.size.toString()))
+
+                    val panel = new_collapsable_panel(parentPanel, btnExpand)
+
+                    for (j in node.values.indices) {
+                        val subnode = node.values[j]
+                        val subnodeModel = if (subnode is ValueTree) subnode.model else null
+                        add_row(j, subnode, subnodeModel, panel, visitedObjIds)
+                    }
+                }
+                else if (model.dataType == DataType.Object) {
+                    val btnExpand = ExpandCollapseButton()
+                    toggleBtns.add(btnExpand)
+                    parentPanel.add(btnExpand)
+
+                    parentPanel.add(JLabel(model.toString()), "span 2")
+
+                    val panel = new_collapsable_panel(parentPanel, btnExpand)
+                    for (j in node.values.indices) {
+                        add_row(j, node.values[j], model.children!![j], panel, visitedObjIds)
+                    }
+                }
+            }
+            else {
+                throw RuntimeException("why is the model == null?")
             }
 
-            if (node == null) {
-                parentPanel.add(JLabel(model.name), "span 2")
-                parentPanel.add(JLabel("null"))
-            }
-            else if (model.isArray) {
-                val btnExpand = ExpandCollapseButton()
-                toggleBtns.add(btnExpand)
-                parentPanel.add(btnExpand)
-
-                val arrSuffix = (
-                    if (model.isSubTypePrimitive)
-                        '[' + model.dataSubType.toString() + ']'
-                    else
-                        "[]"
-                )
-                parentPanel.add(JLabel(model.name + ' ' + arrSuffix))
-                parentPanel.add(JLabel("size=" + node.values.size.toString()))
-
-                val panel = new_collapsable_panel(parentPanel, btnExpand)
-
-                for (j in node.values.indices) {
-                    val subnode = node.values[j]
-                    val subnodeModel = if (subnode is ValueTree) subnode.model else null
-                    add_row(j, subnode, subnodeModel, panel)
-                }
-            }
-            else if (model.dataType == DataType.Object) {
-                val btnExpand = ExpandCollapseButton()
-                toggleBtns.add(btnExpand)
-                parentPanel.add(btnExpand)
-
-                parentPanel.add(JLabel(model.toString()), "span 2")
-
-                val panel = new_collapsable_panel(parentPanel, btnExpand)
-                for (j in node.values.indices) {
-                    add_row(j, node.values[j], model.children!![j], panel)
-                }
+            val diff = visitedObjIds.size - visitedObjIdsBeginSize
+            for (i in 0..diff-1) {
+                visitedObjIds.pop()
             }
         }
 
-        add_row(0, node, node.model!!, init_panel(this, true))
+        add_row(0, node, node.model!!, init_panel(this, true), Stack<Short>())
     }
 }
 
