@@ -17,6 +17,7 @@ import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.JTextField
 
 
 interface TreeDataProvider {
@@ -126,7 +127,12 @@ class InspectionTreeNode(
                     val value = node
                     when (model.dataType) {
                         DataType.String -> {
-                            parentPanel.add(JLabel(value.toString()))
+                            val field = JTextField(value.toString())
+                            parentPanel.add(field, "growx")
+
+                            field.addActionListener({ evt ->
+                                println(evt)
+                            })
                         }
                         DataType.Int, DataType.Short, DataType.Long -> {
                             parentPanel.add(JLabel(value.toString()))
@@ -157,7 +163,7 @@ class InspectionTreeNode(
                         // we have a cyclic reference here!
                         // TODO add a button that would dynamically open/expand the object
                         parentPanel.add(JLabel(model.name), "span 2")
-                        parentPanel.add(JLabel("<cyclic>"))
+                        parentPanel.add(JLabel("<cyclic: ${node.id}>"))
                         return
                     }
                     else visitedObjIds.add(node.id)
