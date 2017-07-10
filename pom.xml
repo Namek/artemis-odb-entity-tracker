@@ -12,7 +12,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.11</junit.version>
-		<kotlin.version>1.0.6</kotlin.version>
+		<kotlin.version>1.1.2-2</kotlin.version>
 	</properties>
 
 	<modules>
@@ -155,8 +155,8 @@
 					</execution>
 				</executions>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>
