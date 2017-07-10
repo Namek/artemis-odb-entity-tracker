@@ -6,7 +6,7 @@ package net.namekdev.entity_tracker.network.base
 
  * @author Namek
  */
-class PersistentClient(connectionListener: RawConnectionCommunicator) : Client() {
+class PersistentTcpClient(connectionListener: RawConnectionCommunicator) : TcpClient() {
     @Volatile private var isReconnectEnabled: Boolean = false
 
     /**
@@ -19,11 +19,11 @@ class PersistentClient(connectionListener: RawConnectionCommunicator) : Client()
         super.connectionListener = connectionListener
     }
 
-    override fun connect(serverName: String, serverPort: Int): Client {
+    override fun connect(serverName: String, serverPort: Int): TcpClient {
         return connect(serverName, serverPort, false)
     }
 
-    fun connect(serverName: String, serverPort: Int, manualUpdate: Boolean): Client {
+    fun connect(serverName: String, serverPort: Int, manualUpdate: Boolean): TcpClient {
         isReconnectEnabled = true
 
         val thread = Thread(object : Runnable {
@@ -46,10 +46,10 @@ class PersistentClient(connectionListener: RawConnectionCommunicator) : Client()
 
             private fun tryConnect() {
                 try {
-                    super@PersistentClient.connect(serverName, serverPort)
+                    super@PersistentTcpClient.connect(serverName, serverPort)
 
                     if (!manualUpdate)
-                        super@PersistentClient.startThread()
+                        super@PersistentTcpClient.startThread()
                 }
                 catch (ex: Exception) {
                 }

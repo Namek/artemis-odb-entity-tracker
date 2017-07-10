@@ -2,19 +2,11 @@ package net.namekdev.entity_tracker.network.communicator
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 
-import java.net.SocketAddress
-
-import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.model.FieldInfo
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
 import net.namekdev.entity_tracker.utils.AutoSizedArray
-import net.namekdev.entity_tracker.utils.ArrayPool
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
-import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
-import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 /**
  * Communicator used by UI (client).
@@ -27,8 +19,8 @@ class ExternalInterfaceCommunicator(
     //	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
-    override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
-        super.connected(remoteAddress, output)
+    override fun connected(identifier: String, output: RawConnectionOutputListener) {
+        super.connected(identifier, output)
         _listener.injectWorldController(this)
     }
 

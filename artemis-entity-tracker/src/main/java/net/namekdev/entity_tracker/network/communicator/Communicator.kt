@@ -1,10 +1,7 @@
 package net.namekdev.entity_tracker.network.communicator
 
-import java.net.SocketAddress
-
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.utils.serialization.NetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 
@@ -19,7 +16,7 @@ abstract class Communicator : RawConnectionCommunicator {
     protected val _deserializer = NetworkSerialization.createDeserializer()
 
 
-    override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
+    override fun connected(identifier: String, output: RawConnectionOutputListener) {
         _output = output
     }
 

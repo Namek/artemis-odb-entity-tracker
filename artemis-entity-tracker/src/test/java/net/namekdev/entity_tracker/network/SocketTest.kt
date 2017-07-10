@@ -1,16 +1,15 @@
 package net.namekdev.entity_tracker.network
 
-import java.net.SocketAddress
-
-import net.namekdev.entity_tracker.network.base.Client
+import net.namekdev.entity_tracker.network.base.TcpClient
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.network.base.Server
+import net.namekdev.entity_tracker.network.base.TcpServer
 
 object SocketTest {
     @JvmStatic fun main(args: Array<String>) {
-        val server = Server(object : RawConnectionCommunicatorProvider {
+        val server = TcpServer()
+        server.setCommunicator(object : RawConnectionCommunicatorProvider {
             override fun getListener(remoteName: String): RawConnectionCommunicator {
                 return object : RawConnectionCommunicator {
 
@@ -18,7 +17,7 @@ object SocketTest {
 
                     }
 
-                    override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
+                    override fun connected(identifier: String, output: RawConnectionOutputListener) {
                         println("server: client connected")
                     }
 
@@ -28,17 +27,17 @@ object SocketTest {
         })
         server.start()
 
-        val client = Client(object : RawConnectionCommunicator {
+        val client = TcpClient(object : RawConnectionCommunicator {
             override fun disconnected() {
 
             }
 
-            override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
+            override fun connected(identifier: String, output: RawConnectionOutputListener) {
                 println("client: connected!")
             }
 
             override fun bytesReceived(bytes: ByteArray, offset: Int, length: Int) {}
         })
-        client.connect("localhost", Server.DEFAULT_PORT)
+        client.connect("localhost", TcpServer.DEFAULT_PORT)
     }
 }

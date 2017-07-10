@@ -4,17 +4,15 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
-import java.net.SocketException
 import java.net.UnknownHostException
 import java.util.Arrays
 
 /**
-
  * @author Namek
  */
-open class Client {
+open class TcpClient {
     protected var remoteName: String? = null
-    protected var serverPort = Server.DEFAULT_PORT
+    protected var serverPort = TcpServer.DEFAULT_PORT
 
     protected var socket: Socket? = null
     protected var thread: Thread? = null
@@ -54,7 +52,7 @@ open class Client {
      * *
      * @param serverPort
      */
-    open fun connect(serverName: String, serverPort: Int): Client {
+    open fun connect(serverName: String, serverPort: Int): TcpClient {
         if (isConnected) {
             throw IllegalStateException("Cannot connect twice in the same time.")
         }
@@ -93,7 +91,7 @@ open class Client {
             output = socket!!.outputStream
             _isRunning = true
 
-            connectionListener!!.connected(socket!!.remoteSocketAddress, outputListener)
+            connectionListener!!.connected(socket!!.remoteSocketAddress.toString(), outputListener)
         }
         catch (e: IOException) {
             throw RuntimeException(e)

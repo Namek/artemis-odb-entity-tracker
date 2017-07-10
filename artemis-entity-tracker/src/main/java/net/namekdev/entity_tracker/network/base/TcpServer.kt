@@ -11,31 +11,30 @@ import com.artemis.utils.Bag
  *
  * @author Namek
  */
-open class Server {
+class TcpServer : IServer {
     protected var listeningPort = DEFAULT_PORT
     protected var socket: ServerSocket? = null
     protected var isRunning: Boolean = false
     protected lateinit var runningThread: Thread
-    protected val clients = Bag<Client>()
+    protected val clients = Bag<TcpClient>()
 
     protected lateinit var clientListenerProvider: RawConnectionCommunicatorProvider
 
+    constructor()
 
-    constructor(clientListenerProvider: RawConnectionCommunicatorProvider) {
-        this.clientListenerProvider = clientListenerProvider
-    }
-
-    constructor(clientListenerProvider: RawConnectionCommunicatorProvider, listeningPort: Int) {
+    constructor(listeningPort: Int) {
         this.clientListenerProvider = clientListenerProvider
         this.listeningPort = listeningPort
     }
 
-    protected constructor() {}
+    override fun setCommunicator(communicatorProvider: RawConnectionCommunicatorProvider) {
+        clientListenerProvider = communicatorProvider
+    }
 
     /**
      * Starts listening in new thread.
      */
-    fun start(): Server {
+    override fun start(): IServer {
         if (socket != null && !socket!!.isClosed) {
             throw IllegalStateException("Cannot serve twice in the same time.")
         }
@@ -48,12 +47,12 @@ open class Server {
         }
 
         runningThread = Thread(ServerThread())
-        runningThread!!.start()
+        runningThread.start()
 
         return this
     }
 
-    fun stop() {
+    override fun stop() {
         this.isRunning = false
 
         var i = 0
@@ -73,9 +72,9 @@ open class Server {
         }
     }
 
-    protected fun createSocketListener(socket: Socket): Client {
-        val connectionListener = clientListenerProvider!!.getListener(socket.remoteSocketAddress.toString())
-        return Client(socket, connectionListener)
+    protected fun createSocketListener(socket: Socket): TcpClient {
+        val connectionListener = clientListenerProvider.getListener(socket.remoteSocketAddress.toString())
+        return TcpClient(socket, connectionListener)
     }
 
 

@@ -1,6 +1,5 @@
 package net.namekdev.entity_tracker.network
 
-import java.net.SocketAddress
 import java.util.HashMap
 
 import com.artemis.Component
@@ -10,10 +9,10 @@ import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.model.AspectInfo
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.network.base.IServer
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator
 import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.network.base.Server
 import net.namekdev.entity_tracker.network.communicator.EntityTrackerCommunicator
 import net.namekdev.entity_tracker.utils.tuple.Tuple3
 
@@ -21,10 +20,10 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
 /**
  * Server listening to new clients, useful to pass into Entity Tracker itself.
  * Collects data to gather world state for incoming connections.
-
+ *
  * @author Namek
  */
-class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.DEFAULT_PORT) : Server(), WorldUpdateListener {
+class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener {
     private lateinit var _worldController: WorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
@@ -129,8 +128,8 @@ class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.
             // Server requests communicator for given remote.
 
             val newCommunicator = object : EntityTrackerCommunicator() {
-                override fun connected(remoteAddress: SocketAddress, output: RawConnectionOutputListener) {
-                    super.connected(remoteAddress, output)
+                override fun connected(identifier: String, output: RawConnectionOutputListener) {
+                    super.connected(identifier, output)
                     injectWorldController(_worldController)
 
 
@@ -190,7 +189,6 @@ class EntityTrackerServer @JvmOverloads constructor(listeningPort: Int = Server.
     }
 
     init {
-        super.clientListenerProvider = _communicatorProvider
-        super.listeningPort = listeningPort
+        server.setCommunicator(_communicatorProvider)
     }
 }
