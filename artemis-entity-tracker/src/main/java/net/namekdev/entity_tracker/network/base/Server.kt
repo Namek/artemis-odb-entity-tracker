@@ -8,14 +8,14 @@ import com.artemis.utils.Bag
 
 /**
  * Multi-threaded multi-client server.
-
+ *
  * @author Namek
  */
-open class Server : Runnable {
+open class Server {
     protected var listeningPort = DEFAULT_PORT
     protected var socket: ServerSocket? = null
     protected var isRunning: Boolean = false
-    protected var runningThread: Thread? = null
+    protected lateinit var runningThread: Thread
     protected val clients = Bag<Client>()
 
     protected lateinit var clientListenerProvider: RawConnectionCommunicatorProvider
@@ -47,7 +47,7 @@ open class Server : Runnable {
             throw RuntimeException("Couldn't start server on port " + listeningPort, e)
         }
 
-        runningThread = Thread(this)
+        runningThread = Thread(ServerThread())
         runningThread!!.start()
 
         return this
@@ -73,42 +73,46 @@ open class Server : Runnable {
         }
     }
 
-    override fun run() {
-        synchronized(this) {
-            this.runningThread = Thread.currentThread()
-        }
-
-        isRunning = true
-
-        while (isRunning) {
-            var clientSocket: Socket? = null
-            try {
-                clientSocket = socket!!.accept()
-                clientSocket!!.tcpNoDelay = true
-            }
-            catch (e: IOException) {
-                if (isRunning) {
-                    throw RuntimeException("Error accepting client connection", e)
-                }
-
-                return
-            }
-
-            val client = createSocketListener(clientSocket)
-            client.initSocket()
-            val clientThread = Thread(client.threadRunnable)
-
-            clients.add(client)
-            clientThread.start()
-        }
-    }
-
     protected fun createSocketListener(socket: Socket): Client {
         val connectionListener = clientListenerProvider!!.getListener(socket.remoteSocketAddress.toString())
         return Client(socket, connectionListener)
     }
 
+
     companion object {
         const val DEFAULT_PORT = 1087
+    }
+
+
+    inner class ServerThread : Runnable {
+        override fun run() {
+            synchronized(this) {
+                runningThread = Thread.currentThread()
+            }
+
+            isRunning = true
+
+            while (isRunning) {
+                var clientSocket: Socket? = null
+                try {
+                    clientSocket = socket!!.accept()
+                    clientSocket!!.tcpNoDelay = true
+                }
+                catch (e: IOException) {
+                    if (isRunning) {
+                        throw RuntimeException("Error accepting client connection", e)
+                    }
+
+                    return
+                }
+
+                val client = createSocketListener(clientSocket)
+                client.initSocket()
+                val clientThread = Thread(client.threadRunnable)
+
+                clients.add(client)
+                clientThread.start()
+            }
+        }
     }
 }
