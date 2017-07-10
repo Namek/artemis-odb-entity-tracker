@@ -1,0 +1,8 @@
+root = true
+
+[src/**/*]
+charset = utf-8
+
+[src/**/*.elm]
+indent_style = space
+indent_size = 2
