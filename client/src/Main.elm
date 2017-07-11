@@ -9,7 +9,6 @@ import Html.Events exposing (..)
 import List.Extra
 import ObjectModelNode exposing (..)
 import Serialization exposing (..)
-import Task
 import WebSocket
 import WebSocket.LowLevel exposing (MessageData(..))
 
@@ -32,6 +31,7 @@ type alias Model =
   , messages : List String
   , modelNodes : List ObjectModelNode
   , systems : List EntitySystemInfo
+  , managers : List EntityManagerInfo
   }
 
 
@@ -46,9 +46,13 @@ type alias EntitySystemInfo =
   }
 
 
+type alias EntityManagerInfo =
+  { name : String }
+
+
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [ defaultModelNode ] [], Cmd.none )
+  ( Model "" [] [ defaultModelNode ] [] [], Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -119,7 +123,11 @@ update msg model =
       { model | systems = newSystemInfo :: model.systems |> List.sortBy .index } ! []
 
     Msg_OnAddedManager name ->
-      { model | messages = ("manager: " ++ name) :: messages } ! []
+      let
+        newManager =
+          { name = name }
+      in
+      { model | managers = newManager :: model.managers } ! []
 
     Msg_OnAddedComponentType index name objModelId ->
       { model | messages = ("component type: " ++ toString index ++ ": " ++ name) :: messages } ! []
@@ -197,6 +205,9 @@ view model =
   div []
     [ h2 [] [ text "Systems" ]
     , div [] (List.map viewSystem model.systems)
+    , h2 [] [ text "Managers" ]
+    , div [] (List.map viewManager model.managers)
+    , h2 [] [ text "Debug" ]
     , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []
     , button [ onClick Send ] [ text "Send" ]
@@ -221,6 +232,11 @@ viewSystem system =
         ++ ")"
   in
   div [] [ text aText ]
+
+
+viewManager : EntityManagerInfo -> Html msg
+viewManager manager =
+  div [] [ text manager.name ]
 
 
 maybeBitsToString : Maybe BitVector -> String
