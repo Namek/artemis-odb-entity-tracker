@@ -40,6 +40,19 @@ elemIndex arr expectedElem =
   find 0
 
 
+iterateFoldl : (a -> Int -> Maybe a) -> a -> Int -> Int -> a
+iterateFoldl callback acc startIndex endIndex =
+  if startIndex <= endIndex then
+    case callback acc startIndex of
+      Just newAcc ->
+        iterateFoldl callback newAcc (startIndex + 1) endIndex
+
+      Nothing ->
+        acc
+  else
+    acc
+
+
 send : msg -> Cmd msg
 send msg =
   Task.succeed msg

@@ -3,7 +3,8 @@ module Serialization exposing (..)
 import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
-import Common exposing (intentionalCrash)
+import Common exposing (intentionalCrash, iterateFoldl)
+import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
 
@@ -378,8 +379,97 @@ checkNull des =
 
 readDataDescription : DeserializationPoint -> ( DeserializationPoint, ObjectModelNodeId )
 readDataDescription des0 =
-  -- TODO
-  ( des0, 0 )
+  let
+    ( des1, aType ) =
+      readType des0
+  in
+  if aType == TDescription then
+    readRawDataDescription des1
+  else if aType == TDescriptionRef then
+    readRawInt des1
+  else
+    intentionalCrash ( des0, 0 ) ("unexpectedType" ++ toString aType)
+
+
+readRawDataDescription : DeserializationPoint -> ( DeserializationPoint, ObjectModelNodeId )
+readRawDataDescription des0 =
+  let
+    ( des1, objModelId ) =
+      readRawInt des0
+
+    ( des2, name ) =
+      readString des1
+
+    ( des3, isTypePrimitive ) =
+      readBoolean des2
+
+    ( des4, nodeType ) =
+      readType des3
+
+    newObjModel : ObjectModelNode
+    newObjModel =
+      createModelNode objModelId
+
+    updatedObjModel0 : ObjectModelNode
+    updatedObjModel0 =
+      { newObjModel
+        | name = name
+        , isTypePrimitive = isTypePrimitive
+        , dataType = nodeType
+      }
+  in
+  if nodeType == TObject then
+    let
+      ( des5, n ) =
+        readRawInt des4
+
+      ( des6, childrenIds ) =
+        iterateFoldl
+          (\( des, childrenIds ) idx ->
+            let
+              ( newDes, childObjModelId ) =
+                readDataDescription des
+            in
+            Just ( newDes, childObjModelId :: childrenIds )
+          )
+          ( des5, [] )
+          0
+          (n - 1)
+
+      updatedObjModel1 =
+        { updatedObjModel0 | children = Just childrenIds }
+    in
+    ( { des6 | models = updatedObjModel1 :: des6.models }, objModelId )
+  else if nodeType == TArray then
+    let
+      ( des5, dataSubType ) =
+        readType des4
+
+      updatedObjModel1 =
+        { updatedObjModel0 | dataSubType = Just dataSubType }
+    in
+    if isSimpleType dataSubType then
+      ( { des5 | models = updatedObjModel1 :: des5.models }, objModelId )
+    else if dataSubType == TObject then
+      -- nothing special here
+      ( { des5 | models = updatedObjModel1 :: des5.models }, objModelId )
+    else if dataSubType == TEnum then
+      Debug.crash "TODO" ( des5, objModelId )
+    else if dataSubType == TArray then
+      Debug.crash "TODO" ( des5, objModelId )
+    else
+      intentionalCrash ( des0, 0 ) ("unsupported array type: " ++ toString dataSubType)
+  else if nodeType == TEnum then
+    Debug.crash "TODO" ( des4, objModelId )
+  else if nodeType == TEnumValue then
+    Debug.crash "TODO" ( des4, objModelId )
+  else if nodeType == TEnumDescription then
+    Debug.crash "TODO" ( des4, objModelId )
+  else if isSimpleType nodeType then
+    -- nothing special here
+    ( { des4 | models = updatedObjModel0 :: des4.models }, objModelId )
+  else
+    intentionalCrash ( des0, 0 ) ("unsupported type: " ++ toString nodeType)
 
 
 

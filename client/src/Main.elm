@@ -30,7 +30,7 @@ main =
 type alias Model =
   { input : String
   , messages : List String
-  , modelNodes : List ObjectModelNode
+  , objModelNodes : List ObjectModelNode
   , entities : Dict Int EntityInfo
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
@@ -72,7 +72,7 @@ type alias ComponentTypeInfo =
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [ defaultModelNode ] Dict.empty [] [] [], Cmd.none )
+  ( Model "" [] [] Dict.empty [] [] [], Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -109,7 +109,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let
-    { input, messages, modelNodes } =
+    { input, messages, objModelNodes } =
       model
   in
   case msg of
@@ -126,13 +126,18 @@ update msg model =
 
     NewNetworkMessage (ArrayBuffer bytes) ->
       let
-        packet =
+        ( des, packet ) =
           deserializePacket bytes
 
         cmd =
           send packet
       in
-      ( { model | messages = (bytes |> bytesToDebugString) :: messages }, cmd )
+      ( { model
+          | messages = (bytes |> bytesToDebugString) :: messages
+          , objModelNodes = objModelNodes ++ des.models
+        }
+      , cmd
+      )
 
     Msg_Unknown ->
       model ! []
@@ -176,7 +181,7 @@ update msg model =
       { model | entities = Dict.remove id model.entities } ! []
 
 
-deserializePacket : ArrayBuffer -> Msg
+deserializePacket : ArrayBuffer -> ( DeserializationPoint, Msg )
 deserializePacket bytes =
   let
     ( des0, packetType ) =
@@ -200,13 +205,13 @@ deserializePacket bytes =
       ( des5, notTypes ) =
         readBitVector des4
     in
-    Msg_OnAddedSystem index (sure name) allTypes oneTypes notTypes
+    ( des5, Msg_OnAddedSystem index (sure name) allTypes oneTypes notTypes )
   else if packetType == type_AddedManager then
     let
       name =
         Tuple.second (readString des0) |> sure
     in
-    Msg_OnAddedManager name
+    ( des0, Msg_OnAddedManager name )
   else if packetType == type_AddedComponentType then
     let
       ( des1, index ) =
@@ -218,7 +223,7 @@ deserializePacket bytes =
       ( des3, objModelId ) =
         readDataDescription des2
     in
-    Msg_OnAddedComponentType index (sure name) objModelId
+    ( des3, Msg_OnAddedComponentType index (sure name) objModelId )
   else if packetType == type_AddedEntity then
     let
       ( des1, id ) =
@@ -227,15 +232,15 @@ deserializePacket bytes =
       ( des2, components ) =
         readBitVector des1
     in
-    Msg_OnAddedEntity id (sure components)
+    ( des2, Msg_OnAddedEntity id (sure components) )
   else if packetType == type_DeletedEntity then
     let
       ( des1, id ) =
         readInt des0
     in
-    Msg_OnDeletedEntity id
+    ( des1, Msg_OnDeletedEntity id )
   else
-    Debug.log ("unknown msg: " ++ toString packetType) Msg_Unknown
+    Debug.log ("unknown msg " ++ toString packetType) ( des0, Msg_Unknown )
 
 
 

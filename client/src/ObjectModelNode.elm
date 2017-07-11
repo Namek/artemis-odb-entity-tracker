@@ -6,6 +6,7 @@ module ObjectModelNode
     , createModelNode
     , defaultModelNode
     , intToType
+    , isSimpleType
     , typeToInt
     )
 
@@ -98,6 +99,40 @@ typeToInt theType =
 
     Nothing ->
       intentionalCrash -1 "Unexpected type->int conversion."
+
+
+isSimpleType : DataType -> Bool
+isSimpleType t =
+  case t of
+    TByte ->
+      True
+
+    TShort ->
+      True
+
+    TInt ->
+      True
+
+    TLong ->
+      True
+
+    TString ->
+      True
+
+    TBoolean ->
+      True
+
+    TFloat ->
+      True
+
+    TDouble ->
+      True
+
+    TBitVector ->
+      True
+
+    _ ->
+      False
 
 
 createModelNode : Int -> ObjectModelNode
