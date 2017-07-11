@@ -42,7 +42,7 @@ object TreeDataProviderTestImpl : TreeDataProvider {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        gameStateAsValueTree = deserializer.readObject(true)!!
+        gameStateAsValueTree = deserializer.readObject()!!
     }
 
     override fun getObjectId(): Int {

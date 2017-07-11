@@ -358,18 +358,14 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readObject(): ValueTree? {
-        return readObject(true)
+        return readObject(ObjectReadSession())
     }
 
-    fun readObject(joinDataToModel: Boolean): ValueTree? {
-        return readObject(joinDataToModel, ObjectReadSession())
-    }
-
-    private fun readObject(joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
+    private fun readObject(session: ObjectReadSession): ValueTree? {
         val model = possiblyReadDescriptions()
 
         if (model != null) {
-            return readObject(model, session, joinModelToData)
+            return readObject(model, session)
         }
         else if (checkNull()) {
             return null
@@ -378,7 +374,7 @@ class NetworkDeserializer : NetworkSerialization() {
             // This is hidden array in Object field.
             // Example: Object someField = new int[] { ... }
 
-            return readArray(joinModelToData, session)
+            return readArray(session)
         }
     }
 
@@ -424,19 +420,19 @@ class NetworkDeserializer : NetworkSerialization() {
 
 
     @JvmOverloads
-    fun readObject(model: ObjectModelNode, joinDataToModel: Boolean = false): ValueTree {
-        return readObject(model, ObjectReadSession(), joinDataToModel)
+    fun readObject(model: ObjectModelNode): ValueTree {
+        return readObject(model, ObjectReadSession())
     }
 
     @JvmOverloads
-    private fun readObject(model: ObjectModelNode, session: ObjectReadSession, joinDataToModel: Boolean = false): ValueTree {
+    private fun readObject(model: ObjectModelNode, session: ObjectReadSession): ValueTree {
         checkType(DataType.Object)
-        val root = readRawObject(model, null, session, joinDataToModel) as ValueTree?
+        val root = readRawObject(model, null, session) as ValueTree?
 
         return root!!
     }
 
-    private fun readRawObject(model: ObjectModelNode, parentTree: ValueTree?, session: ObjectReadSession, joinModelToData: Boolean): Any? {
+    private fun readRawObject(model: ObjectModelNode, parentTree: ValueTree?, session: ObjectReadSession): Any? {
         if (checkNull()) {
             return null
         }
@@ -454,12 +450,10 @@ class NetworkDeserializer : NetworkSerialization() {
 
                 for (i in 0..n - 1) {
                     val child = model.children!![i]
-                    tree.values[i] = readRawObject(child, tree, session, joinModelToData)
+                    tree.values[i] = readRawObject(child, tree, session)
                 }
 
-                if (joinModelToData) {
-                    tree.model = model
-                }
+                tree.model = model
 
                 return tree
             }
@@ -475,7 +469,7 @@ class NetworkDeserializer : NetworkSerialization() {
                 // So ID would included within beginArray()
                 _sourcePos -= 3
 
-                val arrayTree = readArray(joinModelToData, session)
+                val arrayTree = readArray(session)
 
                 if (arrayTree != null) {
                     arrayTree.parent = parentTree
@@ -501,7 +495,7 @@ class NetworkDeserializer : NetworkSerialization() {
             return enumVal
         }
         else if (model.isArray) {
-            val array = readArray(model, joinModelToData, session)
+            val array = readArray(model, session)
 
             if (array != null) {
                 array.parent = parentTree
@@ -514,8 +508,8 @@ class NetworkDeserializer : NetworkSerialization() {
         }
     }
 
-    fun readArray(model: ObjectModelNode, joinModelToData: Boolean = true): ValueTree? {
-        return readArray(model, joinModelToData, ObjectReadSession())
+    fun readArray(model: ObjectModelNode): ValueTree? {
+        return readArray(model, ObjectReadSession())
     }
 
     fun readPrimitiveBooleanArray(): BooleanArray {
@@ -732,21 +726,21 @@ class NetworkDeserializer : NetworkSerialization() {
     /**
      * Read array without a known model a priori.
      */
-    fun readArray(joinModelToData: Boolean = true): ValueTree? {
-        return readArray(joinModelToData, ObjectReadSession())
+    fun readArray(): ValueTree? {
+        return readArray(ObjectReadSession())
     }
 
     /**
      * Read array without a known model a priori.
      */
-    private fun readArray(joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
+    private fun readArray(session: ObjectReadSession): ValueTree? {
         val rootModel = possiblyReadDescriptions(false)
 
         if (checkNull())
             return null
 
         if (rootModel != null && rootModel.isArray) {
-            return readArray(rootModel, joinModelToData, session)
+            return readArray(rootModel, session)
         }
         else {
             val (isPrimitive, elementType, n) = peakArray()
@@ -769,7 +763,7 @@ class NetworkDeserializer : NetworkSerialization() {
         }
     }
 
-    private fun readArray(model: ObjectModelNode, joinModelToData: Boolean, session: ObjectReadSession): ValueTree? {
+    private fun readArray(model: ObjectModelNode, session: ObjectReadSession): ValueTree? {
         if (checkNull())
             return null
 
@@ -777,9 +771,7 @@ class NetworkDeserializer : NetworkSerialization() {
             val array = readPrimitiveArrayByType_asBoxedArray(model.arrayType())
             val node = ValueTree(array as Array<Any?>)
 
-            if (joinModelToData) {
-                node.model = model
-            }
+            node.model = model
 
             return node
         }
@@ -788,13 +780,11 @@ class NetworkDeserializer : NetworkSerialization() {
             val n = beginArray(arrayType, false)
             val node = ValueTree(n)
 
-            if (joinModelToData) {
-                node.model = model
-            }
+            node.model = model
 
             if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
                 for (i in 0..n - 1) {
-                    val value = readObject(joinModelToData, session)
+                    val value = readObject(session)
 
                     if (value != null) {
                         value.parent = node
@@ -825,7 +815,7 @@ class NetworkDeserializer : NetworkSerialization() {
                 val subModel = model.children!![0]
 
                 for (i in 0..n-1) {
-                    val subArray = readArray(subModel, joinModelToData, session)
+                    val subArray = readArray(subModel, session)
 
                     if (subArray != null) {
                         subArray.parent = node

@@ -77,7 +77,7 @@ class SophisticatedTest {
         val model2 = deserializer.readDataDescription()
         assertTrue(model2.equals(model))
 
-        val result = deserializer.readObject(model2, true)
+        val result = deserializer.readObject(model2)
         assertTrue(result.model!!.equals(model))
         assertTrue(result.model!!.equals(model2))
     }
@@ -93,7 +93,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)!!
+        val result = deserializer.readObject()!!
         assertTrue(result.model!!.equals(model))
 
         // boolean omg
@@ -128,7 +128,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)!!
+        val result = deserializer.readObject()!!
         val children = result.values[0] as ValueTree
         assert(children.values[0] === result)
     }
@@ -187,7 +187,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)!!
+        val result = deserializer.readObject()!!
         val a = (result.values[0] as ValueTree)
         val b = (a.values[0] as ValueTree)
         val c = (b.values[0] as ValueTree)
@@ -231,7 +231,7 @@ class SophisticatedTest {
         val serialized = serializer.result
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
-        val result = deserializer.readObject(true)!!
+        val result = deserializer.readObject()!!
         val a = result.values[0] as ValueTree
         val b = result.values[1] as ValueTree
         val c = a.values[0] as ValueTree

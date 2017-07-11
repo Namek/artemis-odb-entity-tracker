@@ -219,7 +219,7 @@ class SerializeCustomClassTest {
         val model2 = deserializer.readDataDescription()
         assertEquals(model, model2)
 
-        val result = deserializer.readObject(model2, true)
+        val result = deserializer.readObject(model2)
 
         // Test deserialized result
         assertNull(result.parent)
