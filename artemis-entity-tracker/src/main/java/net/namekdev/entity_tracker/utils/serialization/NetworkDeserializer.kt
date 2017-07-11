@@ -246,16 +246,12 @@ class NetworkDeserializer : NetworkSerialization() {
     }
 
     fun readDataDescription(): ObjectModelNode {
-        return readDataDescription(null)
-    }
-
-    private fun readDataDescription(parentNode: ObjectModelNode?): ObjectModelNode {
         val type = readType()
 
         var retModel: ObjectModelNode? = null
 
         if (type == DataType.Description) {
-            retModel = readRawDataDescription(null)
+            retModel = readRawDataDescription()
         }
         else if (type == DataType.DescriptionRef) {
             val modelId = readRawInt()
@@ -268,9 +264,9 @@ class NetworkDeserializer : NetworkSerialization() {
         return retModel!!
     }
 
-    private fun readRawDataDescription(parentNode: ObjectModelNode?): ObjectModelNode {
+    private fun readRawDataDescription(): ObjectModelNode {
         val modelId = readRawInt()
-        val node = ObjectModelNode(null, modelId, parentNode)
+        val node = ObjectModelNode(null, modelId, null)
         this._models.add(node)
         node.name = readString()
         node.isTypePrimitive = readBoolean()
@@ -283,7 +279,7 @@ class NetworkDeserializer : NetworkSerialization() {
             node.children = Vector<ObjectModelNode>(n)
 
             for (i in 0..n - 1) {
-                val child = readDataDescription(node)
+                val child = readDataDescription()
                 node.children!!.addElement(child)
             }
         }
@@ -295,10 +291,7 @@ class NetworkDeserializer : NetworkSerialization() {
                 // do nothing
             }
             else if (node.dataSubType == DataType.Object) {
-                //				int objModelId = readRawInt();
-
-                // TODO create model
-                //				throw new RuntimeException("TODO array of objects");
+                // do nothing more
             }
             else if (node.dataSubType == DataType.Enum) {
                 val enumModel = readDataDescription()

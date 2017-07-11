@@ -13,7 +13,7 @@ abstract class NetworkSerialization {
         EnumDescription,  //defines a list of possible values in enum
         EnumValue,
 
-        // simple timpes
+        // simple types
         Byte,
         Short,
         Int,
