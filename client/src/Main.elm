@@ -32,6 +32,7 @@ type alias Model =
   , modelNodes : List ObjectModelNode
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
+  , componentTypes : List ComponentTypeInfo
   }
 
 
@@ -50,9 +51,16 @@ type alias EntityManagerInfo =
   { name : String }
 
 
+type alias ComponentTypeInfo =
+  { name : String
+  , index : Int
+  , objModelId : Int
+  }
+
+
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [ defaultModelNode ] [] [], Cmd.none )
+  ( Model "" [] [ defaultModelNode ] [] [] [], Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -130,7 +138,11 @@ update msg model =
       { model | managers = newManager :: model.managers } ! []
 
     Msg_OnAddedComponentType index name objModelId ->
-      { model | messages = ("component type: " ++ toString index ++ ": " ++ name) :: messages } ! []
+      let
+        newComponentType =
+          { name = name, index = index, objModelId = objModelId }
+      in
+      { model | componentTypes = newComponentType :: model.componentTypes |> List.sortBy .index } ! []
 
     Msg_OnUpdatedEntitySystem index entitiesCount maxEntitiesCount ->
       let
@@ -207,7 +219,9 @@ view model =
     , div [] (List.map viewSystem model.systems)
     , h2 [] [ text "Managers" ]
     , div [] (List.map viewManager model.managers)
-    , h2 [] [ text "Debug" ]
+    , h2 [] [ text "Component types" ]
+    , div [] (List.map viewComponentType model.componentTypes)
+    , h2 [] [ text "Debug messages" ]
     , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []
     , button [ onClick Send ] [ text "Send" ]
@@ -237,6 +251,11 @@ viewSystem system =
 viewManager : EntityManagerInfo -> Html msg
 viewManager manager =
   div [] [ text manager.name ]
+
+
+viewComponentType : ComponentTypeInfo -> Html msg
+viewComponentType cmp =
+  div [] [ text (toString cmp.index ++ ": " ++ cmp.name) ]
 
 
 maybeBitsToString : Maybe BitVector -> String
