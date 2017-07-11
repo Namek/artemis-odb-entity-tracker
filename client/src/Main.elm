@@ -1,16 +1,16 @@
 module Main exposing (..)
 
+import Binary.ArrayBuffer exposing (ArrayBuffer, asUint8Array, byteLength, bytesToDebugString, getByte, stringToBufferArray)
+import Common exposing (send)
+import Constants exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Task
-import Binary.ArrayBuffer exposing (ArrayBuffer, stringToBufferArray, byteLength, getByte, asUint8Array, bytesToDebugString)
-import WebSocket
-import WebSocket.LowLevel exposing (MessageData(..))
-import Common exposing (send)
-import Constants exposing (..)
 import ObjectModelNode exposing (..)
 import Serialization exposing (..)
+import Task
+import WebSocket
+import WebSocket.LowLevel exposing (MessageData(..))
 
 
 main =
@@ -20,6 +20,7 @@ main =
     , update = update
     , subscriptions = subscriptions
     }
+
 
 
 -- MODEL
@@ -35,6 +36,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
   ( Model "" [] [ defaultModelNode ], Cmd.none )
+
 
 
 -- UPDATE
@@ -54,33 +56,33 @@ update msg model =
     { input, messages, modelNodes } =
       model
   in
-    case msg of
-      Input newInput ->
-        { model | input = newInput } ! []
+  case msg of
+    Input newInput ->
+      { model | input = newInput } ! []
 
-      Send ->
-        ( { model | input = "" }
-        , WebSocket.send websocketUrl (ArrayBuffer (stringToBufferArray input))
-        )
+    Send ->
+      ( { model | input = "" }
+      , WebSocket.send websocketUrl (ArrayBuffer (stringToBufferArray input))
+      )
 
-      NewNetworkMessage (String str) ->
-        { model | messages = (str :: messages) } ! []
+    NewNetworkMessage (String str) ->
+      { model | messages = str :: messages } ! []
 
-      NewNetworkMessage (ArrayBuffer bytes) ->
-        let
-          packet =
-            deserializePacket bytes
+    NewNetworkMessage (ArrayBuffer bytes) ->
+      let
+        packet =
+          deserializePacket bytes
 
-          cmd =
-            send packet
-        in
-          ( { model | messages = (bytes |> bytesToDebugString) :: messages }, cmd )
+        cmd =
+          send packet
+      in
+      ( { model | messages = (bytes |> bytesToDebugString) :: messages }, cmd )
 
-      Msg_Unknown ->
-        model ! []
+    Msg_Unknown ->
+      model ! []
 
-      Msg_OnAddedSystem index name allTypes oneTypes notTypes ->
-        { model | messages = ((index |> toString) ++ ": " ++ name) :: messages } ! []
+    Msg_OnAddedSystem index name allTypes oneTypes notTypes ->
+      { model | messages = ((index |> toString) ++ ": " ++ name) :: messages } ! []
 
 
 deserializePacket : ArrayBuffer -> Msg
@@ -90,26 +92,27 @@ deserializePacket bytes =
       beginDeserialization bytes
         |> readRawByte
   in
-    if packetType == type_AddedEntitySystem then
-      let
-        ( des1, index ) =
-          readInt des0
+  if packetType == type_AddedEntitySystem then
+    let
+      ( des1, index ) =
+        readInt des0
 
-        ( des2, name ) =
-          readString des1
+      ( des2, name ) =
+        readString des1
 
-        ( des3, allTypes ) =
-          readBitVector des2
+      ( des3, allTypes ) =
+        readBitVector des2
 
-        ( des4, oneTypes ) =
-          readBitVector des3
+      ( des4, oneTypes ) =
+        readBitVector des3
 
-        ( des5, notTypes ) =
-          readBitVector des4
-      in
-        Msg_OnAddedSystem index (Maybe.withDefault "" name) allTypes oneTypes notTypes
-    else
-      Msg_Unknown
+      ( des5, notTypes ) =
+        readBitVector des4
+    in
+    Msg_OnAddedSystem index (Maybe.withDefault "" name) allTypes oneTypes notTypes
+  else
+    Msg_Unknown
+
 
 
 -- SUBSCRIPTIONS
@@ -118,6 +121,7 @@ deserializePacket bytes =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   WebSocket.listen websocketUrl NewNetworkMessage
+
 
 
 -- VIEW

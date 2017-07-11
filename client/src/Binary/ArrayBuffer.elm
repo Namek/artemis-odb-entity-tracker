@@ -78,7 +78,7 @@ bytesToString buf =
   in
     rec 0 ""
 
-    
+
 bytesToDebugString : ArrayBuffer -> String
 bytesToDebugString buf =
   let

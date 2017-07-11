@@ -9,7 +9,7 @@ module ObjectModelNode
     )
 
 import Array exposing (..)
-import Common exposing (intentionalCrash, elemIndex)
+import Common exposing (elemIndex, intentionalCrash)
 
 
 type DataType
@@ -81,17 +81,17 @@ type alias ObjectModelNode =
 
 intToType : Int -> DataType
 intToType val =
-  case (Array.get val allDataTypes) of
+  case Array.get val allDataTypes of
     Just val ->
       val
 
     Nothing ->
-      intentionalCrash TUndefined ("Unexpected int->type conversion. Index " ++ (toString val) ++ " does not exist")
+      intentionalCrash TUndefined ("Unexpected int->type conversion. Index " ++ toString val ++ " does not exist")
 
 
 typeToInt : DataType -> Int
 typeToInt theType =
-  case (elemIndex allDataTypes theType) of
+  case elemIndex allDataTypes theType of
     Just val ->
       val
 

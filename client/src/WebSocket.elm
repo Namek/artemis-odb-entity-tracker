@@ -2,9 +2,9 @@ effect module WebSocket
   where { command = MyCmd, subscription = MySub }
   exposing
     ( MessageData
-    , send
-    , listen
     , keepAlive
+    , listen
+    , send
     )
 
 {-| Web sockets make it cheaper to talk to your servers.
@@ -12,17 +12,19 @@ effect module WebSocket
 Connecting to a server takes some time, so with web sockets, you make that
 connection once and then keep using. The major benefits of this are:
 
-  1. It faster to send messages. No need to do a bunch of work for every single
-  message.
+1.  It faster to send messages. No need to do a bunch of work for every single
+    message.
 
-  2. The server can push messages to you. With normal HTTP you would have to
-  keep *asking* for changes, but a web socket, the server can talk to you
-  whenever it wants. This means there is less unnecessary network traffic.
+2.  The server can push messages to you. With normal HTTP you would have to
+    keep _asking_ for changes, but a web socket, the server can talk to you
+    whenever it wants. This means there is less unnecessary network traffic.
 
 The API here attempts to cover the typical usage scenarios, but if you need
 many unique connections to the same endpoint, you need a different library.
 
+
 # Web Sockets
+
 @docs MessageData, listen, keepAlive, send
 
 -}
@@ -39,6 +41,7 @@ type alias MessageData =
   WS.MessageData
 
 
+
 -- COMMANDS
 
 
@@ -53,6 +56,7 @@ type MyCmd msg
 **Note:** It is important that you are also subscribed to this address with
 `listen` or `keepAlive`. If you are not, the web socket will be created to
 send one message and then closed. Not good!
+
 -}
 send : String -> MessageData -> Cmd msg
 send url message =
@@ -62,6 +66,7 @@ send url message =
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
 cmdMap _ (Send url msg) =
   Send url msg
+
 
 
 -- SUBSCRIPTIONS
@@ -83,6 +88,7 @@ like this:
 **Note:** If the connection goes down, the effect manager tries to reconnect
 with an exponential backoff strategy. Any messages you try to `send` while the
 connection is down are queued and will be sent as soon as possible.
+
 -}
 listen : String -> (MessageData -> msg) -> Sub msg
 listen url tagger =
@@ -99,6 +105,7 @@ you might say something like this:
 **Note:** If the connection goes down, the effect manager tries to reconnect
 with an exponential backoff strategy. Any messages you try to `send` while the
 connection is down are queued and will be sent as soon as possible.
+
 -}
 keepAlive : String -> Sub msg
 keepAlive url =
@@ -113,6 +120,7 @@ subMap func sub =
 
     KeepAlive url ->
       KeepAlive url
+
 
 
 -- MANAGER
@@ -145,6 +153,7 @@ type Connection
 init : Task Never (State msg)
 init =
   Task.succeed (State Dict.empty Dict.empty Dict.empty)
+
 
 
 -- HANDLE APP MESSAGES
@@ -190,14 +199,14 @@ onEffects router cmds subs state =
         collectNewSockets =
           Dict.merge leftStep bothStep rightStep newEntries state.sockets (Task.succeed Dict.empty)
       in
-        collectNewSockets
-          |> Task.andThen
-              (\newSockets ->
-                Task.succeed (State newSockets newQueues newSubs)
-              )
+      collectNewSockets
+        |> Task.andThen
+            (\newSockets ->
+              Task.succeed (State newSockets newQueues newSubs)
+            )
   in
-    sendMessagesGetNewQueues
-      |> Task.andThen cleanup
+  sendMessagesGetNewQueues
+    |> Task.andThen cleanup
 
 
 sendMessagesHelp : List (MyCmd msg) -> SocketsDict -> QueuesDict -> Task x QueuesDict
@@ -239,6 +248,7 @@ add value maybeList =
       Just (value :: list)
 
 
+
 -- HANDLE SELF MESSAGES
 
 
@@ -259,7 +269,7 @@ onSelfMsg router selfMsg state =
             |> Maybe.withDefault []
             |> List.map (\tagger -> Platform.sendToApp router (tagger messageData))
       in
-        Task.sequence sends &> Task.succeed state
+      Task.sequence sends &> Task.succeed state
 
     Die name ->
       case Dict.get name state.sockets of
@@ -310,6 +320,7 @@ removeQueue name state =
   { state | queues = Dict.remove name state.queues }
 
 
+
 -- OPENING WEBSOCKETS WITH EXPONENTIAL BACKOFF
 
 
@@ -327,7 +338,7 @@ attemptOpen router backoff name =
         |> Task.andThen goodOpen
         |> Task.onError badOpen
   in
-    Process.spawn (after backoff &> actuallyAttemptOpen)
+  Process.spawn (after backoff &> actuallyAttemptOpen)
 
 
 open : String -> Platform.Router msg Msg -> Task WS.BadOpen WS.WebSocket
@@ -344,6 +355,7 @@ after backoff =
     Task.succeed ()
   else
     Process.sleep (toFloat (10 * 2 ^ backoff))
+
 
 
 -- CLOSE CONNECTIONS

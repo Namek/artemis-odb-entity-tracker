@@ -10,7 +10,7 @@ intentionalCrash a str =
     _ =
       Debug.crash str
   in
-    a
+  a
 
 
 elemIndex : Array a -> a -> Maybe Int
@@ -25,19 +25,19 @@ elemIndex arr expectedElem =
           elem =
             Array.get idx arr
         in
-          case elem of
-            Just val ->
-              if val == expectedElem then
-                Just idx
-              else
-                find (idx + 1)
-
-            Nothing ->
+        case elem of
+          Just val ->
+            if val == expectedElem then
+              Just idx
+            else
               find (idx + 1)
+
+          Nothing ->
+            find (idx + 1)
       else
         Nothing
   in
-    find 0
+  find 0
 
 
 send : msg -> Cmd msg
