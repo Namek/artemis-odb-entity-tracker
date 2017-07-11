@@ -24,6 +24,11 @@ type alias BitVector =
   Array Bool
 
 
+integerSize : number
+integerSize =
+  32
+
+
 beginDeserialization : Buffer.ArrayBuffer -> DeserializationPoint
 beginDeserialization buf =
   let
@@ -265,9 +270,57 @@ readBitVector des0 =
 
       arr =
         Array.initialize allBitsCount (always False)
+
+      intsToRead =
+        allBitsCount % integerSize
+
+      saveIntToBits : Int -> Array Bool -> Int -> Int -> Array Bool
+      saveIntToBits int arr offset bitsCount =
+        if bitsCount > 0 then
+          let
+            bit =
+              Bitwise.and int 1
+
+            newArr =
+              Array.set offset (bit == 1) arr
+          in
+          saveIntToBits (Bitwise.shiftRightBy 1 int) newArr (offset + 1) (bitsCount - 1)
+        else
+          arr
+
+      readBits leftBits des offset out_arr =
+        if leftBits > 0 then
+          let
+            ( newDes, int ) =
+              readRawInt des
+
+            out_newArr =
+              saveIntToBits int out_arr offset (leftBits % 32)
+          in
+          readBits (leftBits - integerSize) newDes (offset + integerSize) out_newArr
+        else
+          ( des, out_arr )
+
+      ( finalDes, finalArr ) =
+        readBits intsToRead des3 0 arr
     in
-    -- TODO: read bits from integers and push them to the array
-    ( des1, Nothing )
+    ( finalDes, Just finalArr )
+
+
+bitVectorToDebugString : BitVector -> String
+bitVectorToDebugString bits =
+  Array.foldl
+    (\a acc ->
+      acc
+        ++ toString
+            (if a == True then
+              1
+             else
+              0
+            )
+    )
+    ""
+    bits
 
 
 readType : DeserializationPoint -> ( DeserializationPoint, DataType )

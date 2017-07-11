@@ -82,7 +82,32 @@ update msg model =
       model ! []
 
     Msg_OnAddedSystem index name allTypes oneTypes notTypes ->
-      { model | messages = ((index |> toString) ++ ": " ++ name) :: messages } ! []
+      let
+        msg =
+          (index |> toString)
+            ++ ": "
+            ++ name
+            ++ " all("
+            ++ maybeBitsToString allTypes
+            ++ ")"
+            ++ " one("
+            ++ maybeBitsToString oneTypes
+            ++ ")"
+            ++ " not("
+            ++ maybeBitsToString notTypes
+            ++ ")"
+      in
+      { model | messages = msg :: messages } ! []
+
+
+maybeBitsToString : Maybe BitVector -> String
+maybeBitsToString bits =
+  case bits of
+    Just bits ->
+      bitVectorToDebugString bits
+
+    Nothing ->
+      ""
 
 
 deserializePacket : ArrayBuffer -> Msg

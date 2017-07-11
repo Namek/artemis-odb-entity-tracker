@@ -19,6 +19,8 @@ fun main(args: Array<String>) {
 
     val world = World(WorldConfiguration()
         .setSystem(PositionSystem())
+        .setSystem(RenderSystem())
+        .setSystem(WeirdSystem())
         .setSystem(entityTracker)
     )
 
@@ -39,7 +41,25 @@ class Pos(
 
 class Speed(var speed: Float = 1f) : Component()
 
+class Renderable : Component()
 
-class PositionSystem : EntityProcessingSystem(Aspect.all(Pos::class.java, Speed::class.java)) {
+class Weird : Component()
+
+
+class PositionSystem : EntityProcessingSystem(
+    Aspect.all(Pos::class.java, Speed::class.java)
+) {
+    override fun process(e: Entity) { }
+}
+
+class RenderSystem : EntityProcessingSystem(
+    Aspect.all(Pos::class.java, Renderable::class.java)
+) {
+    override fun process(e: Entity) { }
+}
+
+class WeirdSystem : EntityProcessingSystem(
+    Aspect.all(Pos::class.java, Speed::class.java, Weird::class.java)
+) {
     override fun process(e: Entity) { }
 }

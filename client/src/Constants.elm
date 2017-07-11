@@ -1,6 +1,7 @@
 module Constants exposing (..)
 
 
+websocketUrl : String
 websocketUrl =
   "ws://localhost:8025/actions"
 
