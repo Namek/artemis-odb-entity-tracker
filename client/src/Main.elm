@@ -3,6 +3,7 @@ module Main exposing (..)
 import Binary.ArrayBuffer exposing (ArrayBuffer, asUint8Array, byteLength, bytesToDebugString, getByte, stringToBufferArray)
 import Common exposing (send, sure)
 import Constants exposing (..)
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -30,9 +31,20 @@ type alias Model =
   { input : String
   , messages : List String
   , modelNodes : List ObjectModelNode
+  , entities : Dict Int EntityInfo
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
   , componentTypes : List ComponentTypeInfo
+  }
+
+
+type alias EntityId =
+  Int
+
+
+type alias EntityInfo =
+  { id : EntityId
+  , components : BitVector
   }
 
 
@@ -60,7 +72,7 @@ type alias ComponentTypeInfo =
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [ defaultModelNode ] [] [] [], Cmd.none )
+  ( Model "" [] [ defaultModelNode ] Dict.empty [] [] [], Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -90,6 +102,8 @@ type Msg
   | Msg_OnAddedManager String
   | Msg_OnAddedComponentType Int String ObjectModelNodeId
   | Msg_OnUpdatedEntitySystem Int Int Int
+  | Msg_OnAddedEntity EntityId BitVector
+  | Msg_OnDeletedEntity EntityId
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -151,6 +165,16 @@ update msg model =
       in
       { model | systems = newSystems } ! []
 
+    Msg_OnAddedEntity id components ->
+      let
+        newEntity =
+          { id = id, components = components }
+      in
+      { model | entities = Dict.insert id newEntity model.entities } ! []
+
+    Msg_OnDeletedEntity id ->
+      { model | entities = Dict.remove id model.entities } ! []
+
 
 deserializePacket : ArrayBuffer -> Msg
 deserializePacket bytes =
@@ -195,6 +219,21 @@ deserializePacket bytes =
         readDataDescription des2
     in
     Msg_OnAddedComponentType index (sure name) objModelId
+  else if packetType == type_AddedEntity then
+    let
+      ( des1, id ) =
+        readInt des0
+
+      ( des2, components ) =
+        readBitVector des1
+    in
+    Msg_OnAddedEntity id (sure components)
+  else if packetType == type_DeletedEntity then
+    let
+      ( des1, id ) =
+        readInt des0
+    in
+    Msg_OnDeletedEntity id
   else
     Debug.log ("unknown msg: " ++ toString packetType) Msg_Unknown
 
@@ -221,6 +260,8 @@ view model =
     , div [] (List.map viewManager model.managers)
     , h2 [] [ text "Component types" ]
     , div [] (List.map viewComponentType model.componentTypes)
+    , h2 [] [ text "Entities" ]
+    , div [] (Dict.foldr viewEntity [] model.entities)
     , h2 [] [ text "Debug messages" ]
     , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []
@@ -266,6 +307,11 @@ maybeBitsToString bits =
 
     Nothing ->
       ""
+
+
+viewEntity : EntityId -> EntityInfo -> List (Html msg) -> List (Html msg)
+viewEntity id entity divs =
+  div [] [ text (toString entity.id ++ ": " ++ bitVectorToDebugString entity.components) ] :: divs
 
 
 viewMessage : String -> Html msg
