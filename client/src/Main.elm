@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Binary.ArrayBuffer exposing (ArrayBuffer, asUint8Array, byteLength, bytesToDebugString, getByte, stringToBufferArray)
-import Common exposing (send)
+import Common exposing (send, sure)
 import Constants exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -48,6 +48,8 @@ type Msg
   | NewNetworkMessage MessageData
   | Msg_Unknown
   | Msg_OnAddedSystem Int String (Maybe BitVector) (Maybe BitVector) (Maybe BitVector)
+  | Msg_OnAddedManager String
+  | Msg_OnAddedComponentType Int String ObjectModelNodeId
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -99,6 +101,12 @@ update msg model =
       in
       { model | messages = msg :: messages } ! []
 
+    Msg_OnAddedManager name ->
+      { model | messages = ("manager: " ++ name) :: messages } ! []
+
+    Msg_OnAddedComponentType index name objModelId ->
+      { model | messages = ("component type: " ++ toString index ++ ": " ++ name) :: messages } ! []
+
 
 maybeBitsToString : Maybe BitVector -> String
 maybeBitsToString bits =
@@ -135,8 +143,26 @@ deserializePacket bytes =
         readBitVector des4
     in
     Msg_OnAddedSystem index (Maybe.withDefault "" name) allTypes oneTypes notTypes
+  else if packetType == type_AddedManager then
+    let
+      name =
+        Tuple.second (readString des0) |> sure
+    in
+    Msg_OnAddedManager name
+  else if packetType == type_AddedComponentType then
+    let
+      ( des1, index ) =
+        readInt des0
+
+      ( des2, name ) =
+        readString des1
+
+      ( des3, objModelId ) =
+        readDataDescription des2
+    in
+    Msg_OnAddedComponentType index (sure name) objModelId
   else
-    Msg_Unknown
+    Debug.log ("unknown msg: " ++ toString packetType) Msg_Unknown
 
 
 

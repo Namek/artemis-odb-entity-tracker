@@ -376,6 +376,12 @@ checkNull des =
     ( des, False )
 
 
+readDataDescription : DeserializationPoint -> ( DeserializationPoint, ObjectModelNodeId )
+readDataDescription des0 =
+  -- TODO
+  ( des0, 0 )
+
+
 
 {-
    # TODO:

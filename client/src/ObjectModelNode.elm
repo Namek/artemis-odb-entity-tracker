@@ -2,6 +2,7 @@ module ObjectModelNode
   exposing
     ( DataType(..)
     , ObjectModelNode
+    , ObjectModelNodeId
     , createModelNode
     , defaultModelNode
     , intToType

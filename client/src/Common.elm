@@ -44,3 +44,13 @@ send : msg -> Cmd msg
 send msg =
   Task.succeed msg
     |> Task.perform identity
+
+
+sure : Maybe a -> a
+sure m =
+  case m of
+    Just val ->
+      val
+
+    Nothing ->
+      Debug.crash "unexpected: a value should be here"

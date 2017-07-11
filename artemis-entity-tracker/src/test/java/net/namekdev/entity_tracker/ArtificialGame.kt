@@ -29,9 +29,11 @@ fun main(args: Array<String>) {
         e.add(Pos(i * 6f, i * 2f))
 
         if (i % 3 == 0) {
-            e.add(Speed(i*10f))
+            e.add(Speed(i * 10f))
         }
     }
+
+    world.process()
 }
 
 class Pos(
