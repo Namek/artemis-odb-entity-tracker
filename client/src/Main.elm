@@ -6,6 +6,7 @@ import Constants exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import List.Extra
 import ObjectModelNode exposing (..)
 import Serialization exposing (..)
 import Task
@@ -30,12 +31,38 @@ type alias Model =
   { input : String
   , messages : List String
   , modelNodes : List ObjectModelNode
+  , systems : List EntitySystemInfo
+  }
+
+
+type alias EntitySystemInfo =
+  { name : String
+  , index : Int
+  , allTypes : Maybe BitVector
+  , oneTypes : Maybe BitVector
+  , notTypes : Maybe BitVector
+  , entitiesCount : Int
+  , maxEntitiesCount : Int
   }
 
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [ defaultModelNode ], Cmd.none )
+  ( Model "" [] [ defaultModelNode ] [], Cmd.none )
+
+
+createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
+createEntitySystemInfo name index allTypes oneTypes notTypes =
+  { name = name, index = index, allTypes = allTypes, oneTypes = oneTypes, notTypes = notTypes, entitiesCount = 0, maxEntitiesCount = 0 }
+
+
+updateSystemStats : List EntitySystemInfo -> Int -> Int -> Int -> List EntitySystemInfo
+updateSystemStats systems index entitiesCount maxEntitiesCount =
+  let
+    updateFunc s =
+      { s | entitiesCount = entitiesCount, maxEntitiesCount = maxEntitiesCount }
+  in
+  List.Extra.updateAt index updateFunc systems |> sure
 
 
 
@@ -50,6 +77,7 @@ type Msg
   | Msg_OnAddedSystem Int String (Maybe BitVector) (Maybe BitVector) (Maybe BitVector)
   | Msg_OnAddedManager String
   | Msg_OnAddedComponentType Int String ObjectModelNodeId
+  | Msg_OnUpdatedEntitySystem Int Int Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,21 +113,10 @@ update msg model =
 
     Msg_OnAddedSystem index name allTypes oneTypes notTypes ->
       let
-        msg =
-          (index |> toString)
-            ++ ": "
-            ++ name
-            ++ " all("
-            ++ maybeBitsToString allTypes
-            ++ ")"
-            ++ " one("
-            ++ maybeBitsToString oneTypes
-            ++ ")"
-            ++ " not("
-            ++ maybeBitsToString notTypes
-            ++ ")"
+        newSystemInfo =
+          createEntitySystemInfo name index allTypes oneTypes notTypes
       in
-      { model | messages = msg :: messages } ! []
+      { model | systems = newSystemInfo :: model.systems |> List.sortBy .index } ! []
 
     Msg_OnAddedManager name ->
       { model | messages = ("manager: " ++ name) :: messages } ! []
@@ -107,15 +124,12 @@ update msg model =
     Msg_OnAddedComponentType index name objModelId ->
       { model | messages = ("component type: " ++ toString index ++ ": " ++ name) :: messages } ! []
 
-
-maybeBitsToString : Maybe BitVector -> String
-maybeBitsToString bits =
-  case bits of
-    Just bits ->
-      bitVectorToDebugString bits
-
-    Nothing ->
-      ""
+    Msg_OnUpdatedEntitySystem index entitiesCount maxEntitiesCount ->
+      let
+        newSystems =
+          updateSystemStats model.systems index entitiesCount maxEntitiesCount
+      in
+      { model | systems = newSystems } ! []
 
 
 deserializePacket : ArrayBuffer -> Msg
@@ -142,7 +156,7 @@ deserializePacket bytes =
       ( des5, notTypes ) =
         readBitVector des4
     in
-    Msg_OnAddedSystem index (Maybe.withDefault "" name) allTypes oneTypes notTypes
+    Msg_OnAddedSystem index (sure name) allTypes oneTypes notTypes
   else if packetType == type_AddedManager then
     let
       name =
@@ -181,10 +195,42 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   div []
-    [ div [] (List.map viewMessage model.messages)
+    [ h2 [] [ text "Systems" ]
+    , div [] (List.map viewSystem model.systems)
+    , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []
     , button [ onClick Send ] [ text "Send" ]
     ]
+
+
+viewSystem : EntitySystemInfo -> Html msg
+viewSystem system =
+  let
+    aText =
+      (system.index |> toString)
+        ++ ": "
+        ++ system.name
+        ++ " all("
+        ++ maybeBitsToString system.allTypes
+        ++ ")"
+        ++ " one("
+        ++ maybeBitsToString system.oneTypes
+        ++ ")"
+        ++ " not("
+        ++ maybeBitsToString system.notTypes
+        ++ ")"
+  in
+  div [] [ text aText ]
+
+
+maybeBitsToString : Maybe BitVector -> String
+maybeBitsToString bits =
+  case bits of
+    Just bits ->
+      bitVectorToDebugString bits
+
+    Nothing ->
+      ""
 
 
 viewMessage : String -> Html msg
