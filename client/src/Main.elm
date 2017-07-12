@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Array exposing (Array)
 import Binary.ArrayBuffer exposing (ArrayBuffer, asUint8Array, byteLength, bytesToDebugString, getByte, stringToBufferArray)
 import Common exposing (send, sure)
 import Constants exposing (..)
@@ -10,6 +11,7 @@ import Html.Events exposing (..)
 import List.Extra
 import ObjectModelNode exposing (..)
 import Serialization exposing (..)
+import ValueTree exposing (..)
 import WebSocket
 import WebSocket.LowLevel exposing (MessageData(..))
 
@@ -31,10 +33,11 @@ type alias Model =
   { input : String
   , messages : List String
   , objModelNodes : List ObjectModelNode
+  , valueTrees : List ValueTree
   , entities : Dict Int EntityInfo
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
-  , componentTypes : List ComponentTypeInfo
+  , componentTypes : Array ComponentTypeInfo
   }
 
 
@@ -66,13 +69,13 @@ type alias EntityManagerInfo =
 type alias ComponentTypeInfo =
   { name : String
   , index : Int
-  , objModelId : Int
+  , objModelId : ObjectModelNodeId
   }
 
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [] Dict.empty [] [] [], Cmd.none )
+  ( Model "" [] [] [] Dict.empty [] [] Array.empty, Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -104,12 +107,13 @@ type Msg
   | Msg_OnUpdatedEntitySystem Int Int Int
   | Msg_OnAddedEntity EntityId BitVector
   | Msg_OnDeletedEntity EntityId
+  | Msg_OnUpdatedComponentState EntityId Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let
-    { input, messages, objModelNodes } =
+    { input, messages, objModelNodes, valueTrees, componentTypes } =
       model
   in
   case msg of
@@ -127,14 +131,15 @@ update msg model =
     NewNetworkMessage (ArrayBuffer bytes) ->
       let
         ( des, packet ) =
-          deserializePacket bytes
+          deserializePacket objModelNodes valueTrees componentTypes bytes
 
         cmd =
           send packet
       in
       ( { model
           | messages = (bytes |> bytesToDebugString) :: messages
-          , objModelNodes = objModelNodes ++ des.models
+          , objModelNodes = des.models
+          , valueTrees = valueTrees
         }
       , cmd
       )
@@ -158,10 +163,11 @@ update msg model =
 
     Msg_OnAddedComponentType index name objModelId ->
       let
+        newComponentType : ComponentTypeInfo
         newComponentType =
           { name = name, index = index, objModelId = objModelId }
       in
-      { model | componentTypes = newComponentType :: model.componentTypes |> List.sortBy .index } ! []
+      { model | componentTypes = Array.push newComponentType model.componentTypes } ! []
 
     Msg_OnUpdatedEntitySystem index entitiesCount maxEntitiesCount ->
       let
@@ -180,12 +186,16 @@ update msg model =
     Msg_OnDeletedEntity id ->
       { model | entities = Dict.remove id model.entities } ! []
 
+    Msg_OnUpdatedComponentState entityId componentIndex ->
+      -- TODO
+      model ! []
 
-deserializePacket : ArrayBuffer -> ( DeserializationPoint, Msg )
-deserializePacket bytes =
+
+deserializePacket : List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
+deserializePacket objModelNodes valueTrees componentTypes bytes =
   let
     ( des0, packetType ) =
-      beginDeserialization bytes
+      beginDeserialization objModelNodes valueTrees bytes
         |> readRawByte
   in
   if packetType == type_AddedEntitySystem then
@@ -233,12 +243,42 @@ deserializePacket bytes =
         readBitVector des1
     in
     ( des2, Msg_OnAddedEntity id (sure components) )
+  else if packetType == type_UpdatedEntitySystem then
+    let
+      ( des1, index ) =
+        readInt des0
+
+      ( des2, entitiesCount ) =
+        readInt des1
+
+      ( des3, maxEntitiesCount ) =
+        readInt des2
+    in
+    ( des3, Msg_OnUpdatedEntitySystem index entitiesCount maxEntitiesCount )
   else if packetType == type_DeletedEntity then
     let
       ( des1, id ) =
         readInt des0
     in
     ( des1, Msg_OnDeletedEntity id )
+  else if packetType == type_UpdatedComponentState then
+    let
+      ( des1, entityId ) =
+        readInt des0
+
+      ( des2, componentIndex ) =
+        readInt des1
+
+      componentTypeInfo =
+        Array.get componentIndex componentTypes
+          |> sure
+
+      ( des3, _, valueTreeId ) =
+        readObject des0 componentTypeInfo.objModelId
+
+      -- TODO do something with the valueTree!
+    in
+    ( des3, Msg_OnUpdatedComponentState entityId componentIndex )
   else
     Debug.log ("unknown msg " ++ toString packetType) ( des0, Msg_Unknown )
 
@@ -264,7 +304,7 @@ view model =
     , h2 [] [ text "Managers" ]
     , div [] (List.map viewManager model.managers)
     , h2 [] [ text "Component types" ]
-    , div [] (List.map viewComponentType model.componentTypes)
+    , div [] (List.map viewComponentType (Array.toList model.componentTypes))
     , h2 [] [ text "Entities" ]
     , div [] (Dict.foldr viewEntity [] model.entities)
     , h2 [] [ text "Debug messages" ]

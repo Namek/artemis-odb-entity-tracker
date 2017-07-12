@@ -1,12 +1,43 @@
-module Serialization exposing (..)
+module Serialization
+  exposing
+    ( BitVector
+    , DeserializationPoint
+    , ObjectReadSession
+    , beginDeserialization
+    , bitVectorToDebugString
+    , checkNull
+    , expectTypeOrNull
+    , isDone
+    , readBitVector
+    , readBoolean
+    , readByte
+    , readDataDescription
+    , readFloat
+    , readInt
+    , readLong
+    , readObject
+    , readRawBoolean
+    , readRawByte
+    , readRawBytes
+    , readRawDataDescription
+    , readRawFloat
+    , readRawInt
+    , readRawLong
+    , readRawObject
+    , readRawShort
+    , readShort
+    , readString
+    , readType
+    )
 
 import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
-import Common exposing (intentionalCrash, iterateFoldl)
+import Common exposing (intentionalCrash, iterateFoldl, sure)
 import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
+import ValueTree exposing (..)
 
 
 type alias DeserializationPoint =
@@ -14,6 +45,12 @@ type alias DeserializationPoint =
   , len : Int
   , arr : Buffer.Uint8Array
   , models : List ObjectModelNode
+  , valueTrees : List ValueTree
+  }
+
+
+type alias ObjectReadSession =
+  { valueTrees : List ( ValueTreeId, Maybe ObjectModelNodeId )
   }
 
 
@@ -30,13 +67,13 @@ integerSize =
   32
 
 
-beginDeserialization : Buffer.ArrayBuffer -> DeserializationPoint
-beginDeserialization buf =
+beginDeserialization : List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
+beginDeserialization objModels valueTrees buf =
   let
     arr =
       Buffer.asUint8Array buf
   in
-  { pos = 0, len = Buffer.byteLength buf, arr = arr, models = [] }
+  { pos = 0, len = Buffer.byteLength buf, arr = arr, models = objModels, valueTrees = valueTrees }
 
 
 intBitsToFloat : Int -> Float
@@ -430,7 +467,7 @@ readRawDataDescription des0 =
               ( newDes, childObjModelId ) =
                 readDataDescription des
             in
-            Just ( newDes, childObjModelId :: childrenIds )
+            ( newDes, childObjModelId :: childrenIds )
           )
           ( des5, [] )
           0
@@ -472,15 +509,105 @@ readRawDataDescription des0 =
     intentionalCrash ( des0, 0 ) ("unsupported type: " ++ toString nodeType)
 
 
+readObject : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readObject des0 objModelId =
+  let
+    session : ObjectReadSession
+    session =
+      { valueTrees = [] }
+  in
+  readObjectWithSession des0 objModelId session
+
+
+readObjectWithSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readObjectWithSession des0 objModelId objReadSession =
+  let
+    des1 =
+      checkType des0 TObject
+  in
+  readRawObject des1 objModelId Nothing objReadSession
+
+
+readRawObject : DeserializationPoint -> ObjectModelNodeId -> Maybe ValueTreeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
+  let
+    ( des1, isNull ) =
+      checkNull des0
+
+    objModel =
+      getObjectModelById des0.models objModelId
+  in
+  if isNull then
+    ( des1, objReadSession0, Nothing )
+  else if objModel.dataType == TObject || objModel.dataType == TUnknown then
+    let
+      ( des2, dataType ) =
+        readType des1
+
+      ( des3, id ) =
+        readRawShort des2
+    in
+    if dataType == TObject then
+      let
+        n =
+          List.length (Maybe.withDefault [] objModel.children)
+
+        tree : ValueTree
+        tree =
+          createValueTree id maybeParentValueTreeId (Just objModelId)
+
+        objReadSession1 =
+          rememberInSession objReadSession0 id (Just objModelId)
+
+        ( des4, objReadSession2, valueTreeIds ) =
+          iterateFoldl
+            (\( des, session, valueTreeIds ) idx ->
+              let
+                childObjModelId =
+                  List.Extra.getAt idx (sure objModel.children)
+
+                ( des1, session1, valueTreeId ) =
+                  readRawObject des (sure childObjModelId) (Just id) session
+              in
+              ( des1, session1, valueTreeId :: valueTreeIds )
+            )
+            ( des3, objReadSession1, [] )
+            0
+            (n - 1)
+      in
+      -- other valueTrees are saved inside at this point
+      ( { des4 | valueTrees = tree :: des4.valueTrees }, objReadSession2, Just id )
+    else if dataType == TObjectRef then
+      -- TODO
+      ( des1, objReadSession0, Nothing )
+    else if dataType == TArray then
+      -- TODO
+      ( des1, objReadSession0, Nothing )
+    else
+      intentionalCrash ( des3, objReadSession0, Nothing ) ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
+  else if isSimpleType objModel.dataType then
+    -- TODO
+    ( des1, objReadSession0, Nothing )
+  else if objModel.dataType == TEnum then
+    -- TODO
+    ( des1, objReadSession0, Nothing )
+  else if objModel.dataType == TArray then
+    -- TODO
+    ( des1, objReadSession0, Nothing )
+  else
+    intentionalCrash ( des1, objReadSession0, Nothing ) ("unsupported type:" ++ (toString objModel.dataType ++ ", subtype: " ++ toString objModel.dataSubType))
+
+
+rememberInSession : ObjectReadSession -> ValueTreeId -> Maybe ObjectModelNodeId -> ObjectReadSession
+rememberInSession session id objModelId =
+  { session | valueTrees = ( id, objModelId ) :: session.valueTrees }
+
+
 
 {-
    # TODO:
-    * readDataDescription
-    * readRawDataDescription
     * readObject
-    * readRawObject
     * possiblyReadDescriptions
     * readArray
     * readPrimitive*Array
-    * ObjectReadSession
 -}

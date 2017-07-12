@@ -5,13 +5,15 @@ module ObjectModelNode
     , ObjectModelNodeId
     , createModelNode
     , defaultModelNode
+    , getObjectModelById
     , intToType
     , isSimpleType
     , typeToInt
     )
 
 import Array exposing (..)
-import Common exposing (elemIndex, intentionalCrash)
+import Common exposing (elemIndex, intentionalCrash, sure)
+import List.Extra
 
 
 type DataType
@@ -152,3 +154,9 @@ createModelNode id =
 defaultModelNode : ObjectModelNode
 defaultModelNode =
   createModelNode -1
+
+
+getObjectModelById : List ObjectModelNode -> ObjectModelNodeId -> ObjectModelNode
+getObjectModelById models id =
+  List.Extra.find (\m -> m.id == id) models
+    |> sure

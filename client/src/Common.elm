@@ -40,15 +40,14 @@ elemIndex arr expectedElem =
   find 0
 
 
-iterateFoldl : (a -> Int -> Maybe a) -> a -> Int -> Int -> a
+iterateFoldl : (a -> Int -> a) -> a -> Int -> Int -> a
 iterateFoldl callback acc startIndex endIndex =
   if startIndex <= endIndex then
-    case callback acc startIndex of
-      Just newAcc ->
-        iterateFoldl callback newAcc (startIndex + 1) endIndex
-
-      Nothing ->
-        acc
+    let
+      newAcc =
+        callback acc startIndex
+    in
+    iterateFoldl callback newAcc (startIndex + 1) endIndex
   else
     acc
 
