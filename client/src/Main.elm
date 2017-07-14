@@ -99,6 +99,8 @@ updateSystemStats systems index entitiesCount maxEntitiesCount =
 type Msg
   = Input String
   | Send
+  | OnWebsocketOpen String
+  | OnWebsocketClose String
   | NewNetworkMessage MessageData
   | Msg_Unknown
   | Msg_OnAddedSystem Int String (Maybe BitVector) (Maybe BitVector) (Maybe BitVector)
@@ -124,6 +126,20 @@ update msg model =
       ( { model | input = "" }
       , WebSocket.send websocketUrl (ArrayBuffer (stringToBufferArray input))
       )
+
+    OnWebsocketOpen url ->
+      let
+        _ =
+          Debug.log "websocket open" url
+      in
+      model ! []
+
+    OnWebsocketClose url ->
+      let
+        _ =
+          Debug.log "websocket close" url
+      in
+      model ! []
 
     NewNetworkMessage (String str) ->
       { model | messages = str :: messages } ! []
@@ -289,7 +305,11 @@ deserializePacket objModelNodes valueTrees componentTypes bytes =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  WebSocket.listen websocketUrl NewNetworkMessage
+  Sub.batch
+    [ WebSocket.listen websocketUrl NewNetworkMessage
+    , WebSocket.onOpen OnWebsocketOpen
+    , WebSocket.onClose OnWebsocketClose
+    ]
 
 
 
