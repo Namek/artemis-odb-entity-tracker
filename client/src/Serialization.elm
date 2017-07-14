@@ -579,10 +579,19 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
       ( { des4 | valueTrees = tree :: des4.valueTrees }, objReadSession2, Just id )
     else if dataType == TObjectRef then
       -- TODO
-      ( des1, objReadSession0, Nothing )
+      ( des3, objReadSession0, Just id )
     else if dataType == TArray then
-      -- TODO
-      ( des1, objReadSession0, Nothing )
+      let
+        {- TODO HACK: we should identify every array. A hack copied from original project. -}
+        des4 =
+          { des3 | pos = des3.pos - 3 }
+
+        ( des5, session, arrayValueId ) =
+          readArrayWithSession des4 objReadSession0
+
+        -- TODO assign parent vtree
+      in
+      ( des5, objReadSession0, Nothing )
     else
       intentionalCrash ( des3, objReadSession0, Nothing ) ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
   else if isSimpleType objModel.dataType then
@@ -596,6 +605,162 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
     ( des1, objReadSession0, Nothing )
   else
     intentionalCrash ( des1, objReadSession0, Nothing ) ("unsupported type:" ++ (toString objModel.dataType ++ ", subtype: " ++ toString objModel.dataSubType))
+
+
+beginArray :
+  DeserializationPoint
+  -> ( DeserializationPoint, Bool, DataType, Int )
+beginArray des0 =
+  let
+    des1 =
+      checkType des0 TArray
+
+    ( des2, isPrimitive ) =
+      readRawBoolean des1
+
+    ( des3, elementType ) =
+      readType des2
+
+    ( des4, size ) =
+      readRawInt des3
+  in
+  ( des1, isPrimitive, elementType, size )
+
+
+peekArray :
+  DeserializationPoint
+  -> ( Bool, DataType, Int )
+peekArray des =
+  let
+    ( _, isPrimitive, elementType, size ) =
+      beginArray des
+  in
+  ( isPrimitive, elementType, size )
+
+
+readArray :
+  DeserializationPoint
+  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readArray des0 =
+  let
+    session : ObjectReadSession
+    session =
+      { valueTrees = [] }
+  in
+  readArrayWithSession des0 session
+
+
+{-| Read array without a known model a priori.
+-}
+readArrayWithSession :
+  DeserializationPoint
+  -> ObjectReadSession
+  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readArrayWithSession des0 session =
+  let
+    ( des1, objModelId ) =
+      possiblyReadDescriptions des0 False
+
+    ( des2, isNull ) =
+      checkNull des1
+  in
+  case objModelId of
+    Just objModelId ->
+      let
+        objModel =
+          getObjectModelById des2.models objModelId
+      in
+      if objModel.dataType == TArray then
+        -- TODO
+        ( des2, session, Nothing )
+      else
+        -- TODO
+        ( des2, session, Nothing )
+
+    Nothing ->
+      -- TODO
+      ( des0, session, Nothing )
+
+
+readArrayWithSessionAndModel :
+  DeserializationPoint
+  -> ObjectReadSession
+  -> ObjectModelNodeId
+  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readArrayWithSessionAndModel des0 session0 objModelId =
+  let
+    ( des1, isNull ) =
+      checkNull des0
+
+    objModel =
+      getObjectModelById des0.models objModelId
+  in
+  if isNull then
+    ( des1, session0, Nothing )
+  else if objModel.isSubTypePrimitive then
+    ( des1, session0, Nothing )
+  else
+    ( des1, session0, Nothing )
+
+
+possiblyReadDescriptions :
+  DeserializationPoint
+  -> Bool
+  -> ( DeserializationPoint, Maybe ObjectModelNodeId )
+possiblyReadDescriptions des0 force =
+  let
+    ( des1, isOk ) =
+      checkIfHasDescription des0 force
+  in
+  if not isOk then
+    ( des1, Nothing )
+  else
+    let
+      ( des2, descrCount ) =
+        readRawInt des1
+    in
+    if descrCount > 0 then
+      let
+        ( des3, lastModelId ) =
+          iterateFoldl
+            (\( des, lastModelId ) idx ->
+              let
+                ( newDes, objModelId ) =
+                  readDataDescription des
+              in
+              ( newDes, Just objModelId )
+            )
+            ( des2, Nothing )
+            0
+            (descrCount - 1)
+      in
+      ( des3, lastModelId )
+    else
+      let
+        des3 =
+          checkType des2 TDescriptionRef
+
+        ( des4, objModelId ) =
+          readRawInt des3
+      in
+      ( des4, Just objModelId )
+
+
+checkIfHasDescription :
+  DeserializationPoint
+  -> Bool
+  -> ( DeserializationPoint, Bool )
+checkIfHasDescription des0 force =
+  if force then
+    let
+      des1 =
+        checkType des0 TMultipleDescriptions
+    in
+    ( des1, True )
+  else if not <| peekType des0 TMultipleDescriptions then
+    ( des0, False )
+  else
+    ( des0, True )
 
 
 rememberInSession : ObjectReadSession -> ValueTreeId -> Maybe ObjectModelNodeId -> ObjectReadSession
