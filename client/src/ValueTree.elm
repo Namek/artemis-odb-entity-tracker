@@ -1,12 +1,14 @@
 module ValueTree
   exposing
     ( AValue
-    , ValueHolder
+    , ValueHolder(..)
     , ValueTree
     , ValueTreeId
+    , assignParentValueId
     , createValueTree
     )
 
+import Common exposing (replaceOne)
 import ObjectModelNode exposing (..)
 
 
@@ -35,15 +37,27 @@ type ValueHolder
   | AInt Int
   | AChar Char
   | AFloat Float
-  | ACharList List Char
-  | AIntList List Int
-  | AFloatList List Float
-  | AValueList List AValue
+  | ABooleanList (List Bool)
+  | ACharList (List Char)
+  | AIntList (List Int)
+  | AFloatList (List Float)
+  | AValueList (List AValue)
 
 
 createValueTree : ValueTreeId -> Maybe ValueTreeId -> Maybe ObjectModelNodeId -> ValueTree
 createValueTree id parentId objModelId =
   { id = id, parentId = parentId, modelId = objModelId, values = [] }
+
+
+assignParentValueId : List ValueTree -> ValueTreeId -> ValueTreeId -> List ValueTree
+assignParentValueId valueTrees id parentId =
+  replaceOne valueTrees
+    (\aTree ->
+      if aTree.id == id then
+        Just { aTree | parentId = Just parentId }
+      else
+        Nothing
+    )
 
 
 d1 : ValueTree

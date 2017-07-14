@@ -52,6 +52,35 @@ iterateFoldl callback acc startIndex endIndex =
     acc
 
 
+{-| Replace one element in collection.
+
+`replaceFunc` should return `Nothing` to continue iteration.
+
+-}
+replaceOne : List a -> (a -> Maybe a) -> List a
+replaceOne list replaceFunc =
+  let
+    rec subList acc_list =
+      case subList of
+        x :: xs ->
+          let
+            newX =
+              case replaceFunc x of
+                Just val ->
+                  val
+
+                Nothing ->
+                  x
+          in
+          rec xs (newX :: acc_list)
+
+        [] ->
+          acc_list
+  in
+  rec list []
+    |> List.reverse
+
+
 send : msg -> Cmd msg
 send msg =
   Task.succeed msg

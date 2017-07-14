@@ -33,7 +33,7 @@ module Serialization
 import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
-import Common exposing (intentionalCrash, iterateFoldl, sure)
+import Common exposing (intentionalCrash, iterateFoldl, replaceOne, sure)
 import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
@@ -578,20 +578,37 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
       -- other valueTrees are saved inside at this point
       ( { des4 | valueTrees = tree :: des4.valueTrees }, objReadSession2, Just id )
     else if dataType == TObjectRef then
-      -- TODO
-      ( des3, objReadSession0, Just id )
+      let
+        aRef =
+          AValueTreeRef id
+
+        des4 =
+          { des3 | valueTrees = des3.valueTrees }
+      in
+      ( des4, objReadSession0, Just id )
     else if dataType == TArray then
       let
         {- TODO HACK: we should identify every array. A hack copied from original project. -}
         des4 =
           { des3 | pos = des3.pos - 3 }
 
-        ( des5, session, arrayValueId ) =
+        ( des5, objReadSession1, maybeArrayValueId ) =
           readArrayWithSession des4 objReadSession0
-
-        -- TODO assign parent vtree
       in
-      ( des5, objReadSession0, Nothing )
+      case maybeArrayValueId of
+        Nothing ->
+          ( des5, objReadSession1, Nothing )
+
+        Just arrayValueId ->
+          -- assign parent vtree
+          let
+            updatedValueTrees =
+              assignParentValueId des5.valueTrees id arrayValueId
+
+            des6 =
+              { des5 | valueTrees = updatedValueTrees }
+          in
+          ( des6, objReadSession1, Just id )
     else
       intentionalCrash ( des3, objReadSession0, Nothing ) ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
   else if isSimpleType objModel.dataType then
@@ -625,6 +642,25 @@ beginArray des0 =
       readRawInt des3
   in
   ( des1, isPrimitive, elementType, size )
+
+
+beginTypedArray : DeserializationPoint -> DataType -> Bool -> ( DeserializationPoint, Int )
+beginTypedArray des0 arrayElType shouldBePrimitive =
+  let
+    des1 =
+      checkType des0 TArray
+
+    ( des2, isPrimitive ) =
+      readRawBoolean des1
+  in
+  if isPrimitive /= shouldBePrimitive then
+    intentionalCrash ( des0, 0 ) ("Array primitiveness was expected be: " ++ toString shouldBePrimitive ++ ", got: " ++ toString isPrimitive)
+  else
+    let
+      des3 =
+        checkType des2 arrayElType
+    in
+    readRawInt des3
 
 
 peekArray :
@@ -663,22 +699,46 @@ readArrayWithSession des0 session =
 
     ( des2, isNull ) =
       checkNull des1
-  in
-  case objModelId of
-    Just objModelId ->
-      let
-        objModel =
-          getObjectModelById des2.models objModelId
-      in
-      if objModel.dataType == TArray then
-        -- TODO
-        ( des2, session, Nothing )
-      else
-        -- TODO
-        ( des2, session, Nothing )
 
-    Nothing ->
-      -- TODO
+    shouldReadBasedOnModel =
+      case objModelId of
+        Just objModelId ->
+          let
+            objModel =
+              getObjectModelById des2.models objModelId
+          in
+          if objModel.dataType == TArray then
+            True
+          else
+            False
+
+        Nothing ->
+          False
+  in
+  if shouldReadBasedOnModel then
+    readArrayWithSessionAndModel des2 session (sure objModelId)
+  else
+    let
+      ( isPrimitive, elementType, n ) =
+        peekArray des2
+    in
+    if isPrimitive then
+      let
+        ( des3, array ) =
+          readPrimitiveArrayByType des2 elementType
+      in
+      -- TODO create ValueTree here!
+      ( des3, session, Nothing )
+    else if elementType == TUnknown then
+      let
+        ( des3, n ) =
+          beginTypedArray des2 TUnknown False
+      in
+      -- TODO create ValueTree here!
+      ( des0, session, Nothing )
+    else
+      -- TODO create ValueTree here!
+      -- readArrayByType des2 elementType
       ( des0, session, Nothing )
 
 
@@ -761,6 +821,62 @@ checkIfHasDescription des0 force =
     ( des0, False )
   else
     ( des0, True )
+
+
+{-| Read array of non-primitives (can contain nulls).
+-}
+readArrayByType :
+  DeserializationPoint
+  -> DataType
+  -> ( DeserializationPoint, ValueHolder )
+readArrayByType des0 arrayElType =
+  --TODO
+  ( des0, AValueList [] )
+
+
+readPrimitiveArrayByType :
+  DeserializationPoint
+  -> DataType
+  -> ( DeserializationPoint, ValueHolder )
+readPrimitiveArrayByType des0 arrayElType =
+  -- TODO support all cases
+  case arrayElType of
+    TBoolean ->
+      ( des0, AValueList [] )
+
+    TByte ->
+      ( des0, AValueList [] )
+
+    TShort ->
+      ( des0, AValueList [] )
+
+    TInt ->
+      ( des0, AValueList [] )
+
+    _ ->
+      ( des0, AValueList [] )
+
+
+readPrimitiveBooleanArray : DeserializationPoint -> ( DeserializationPoint, List Bool )
+readPrimitiveBooleanArray des0 =
+  let
+    ( des1, n ) =
+      beginTypedArray des0 TBoolean True
+
+    ( des2, arr ) =
+      iterateFoldl
+        (\( des, arr ) idx ->
+          let
+            ( newDes, val ) =
+              readRawBoolean des
+          in
+          ( newDes, val :: arr )
+        )
+        ( des1, [] )
+        0
+        (n - 1)
+  in
+  ( des2, List.reverse arr )
 
 
 rememberInSession : ObjectReadSession -> ValueTreeId -> Maybe ObjectModelNodeId -> ObjectReadSession
