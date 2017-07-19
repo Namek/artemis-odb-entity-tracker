@@ -27,9 +27,14 @@ fun main(args: Array<String>) {
     for (i in 0..10) {
         val e = world.createEntity().edit()
         e.add(Pos(i * 6f, i * 2f))
+        e.add(Renderable())
 
         if (i % 3 == 0) {
             e.add(Speed(i * 10f))
+        }
+
+        if (i == 0) {
+            e.add(Weird())
         }
     }
 
@@ -43,9 +48,9 @@ class Pos(
 
 class Speed(var speed: Float = 1f) : Component()
 
-class Renderable : Component()
+class Renderable(var flags: Long = Long.MAX_VALUE) : Component()
 
-class Weird : Component()
+class Weird(var weirdness: Double = Double.MAX_VALUE) : Component()
 
 
 class PositionSystem : EntityProcessingSystem(

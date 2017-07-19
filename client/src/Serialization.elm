@@ -87,6 +87,11 @@ intBitsToFloat int =
   Native.Serialization.intBitsToFloat int
 
 
+intBitsToDouble : Int -> Int -> Float
+intBitsToDouble int1 int2 =
+  Native.Serialization.intBitsToDouble int1 int2
+
+
 isDone : DeserializationPoint -> Bool
 isDone des =
   des.pos >= des.len
@@ -289,6 +294,18 @@ readRawFloat des0 =
       readRawInt des0
   in
   ( des1, intBitsToFloat int )
+
+
+readRawDouble : DeserializationPoint -> ( DeserializationPoint, Float )
+readRawDouble des0 =
+  let
+    ( des1, int1 ) =
+      readRawInt des0
+
+    ( des2, int2 ) =
+      readRawInt des1
+  in
+  ( des2, intBitsToDouble int1 int2 )
 
 
 readFloat : DeserializationPoint -> ( DeserializationPoint, Float )
@@ -856,10 +873,13 @@ readArrayByType des0 arrayElType =
     TInt ->
       readIntArray des0
 
+    -- TODO: readLongArray
     TFloat ->
       readFloatArray des0
 
-    -- TODO: Long, Double
+    TDouble ->
+      readDoubleArray des0
+
     _ ->
       intentionalCrash ( des0, ANonPrimitiveArray [] ) ("unknown primitive array type: " ++ toString arrayElType)
 
@@ -941,6 +961,11 @@ readFloatArray des0 =
   readNonPrimitiveArrayByType des0 TFloat readRawFloat AFloat
 
 
+readDoubleArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readDoubleArray des0 =
+  readNonPrimitiveArrayByType des0 TDouble readRawFloat AFloat
+
+
 readPrimitiveArrayByType :
   DeserializationPoint
   -> DataType
@@ -974,7 +999,11 @@ readPrimitiveArrayByType des0 arrayElType =
       read TFloat readRawFloat AFloat
         |> pack TFloat
 
-    -- TODO: Double, Long
+    TDouble ->
+      read TDouble readRawDouble AFloat
+        |> pack TDouble
+
+    -- TODO: Long
     _ ->
       intentionalCrash ( des0, APrimitiveArray TUnknown [] ) ("unknown primitive array type: " ++ toString arrayElType)
 
@@ -1033,7 +1062,10 @@ readRawByType des0 dataType =
     TFloat ->
       repackValue AFloat (readRawFloat des0)
 
-    -- TODO: Long, Double
+    TDouble ->
+      repackValue AFloat (readRawDouble des0)
+
+    -- TODO: Long
     _ ->
       intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
 
