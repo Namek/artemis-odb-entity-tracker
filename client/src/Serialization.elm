@@ -92,6 +92,14 @@ isDone des =
   des.pos >= des.len
 
 
+repackValue packFunc readFunc =
+  let
+    ( arg0, val ) =
+      readFunc
+  in
+  ( arg0, packFunc val )
+
+
 readRawByte : DeserializationPoint -> ( DeserializationPoint, Int )
 readRawByte des =
   let
@@ -856,12 +864,26 @@ readArrayByType des0 arrayElType =
       intentionalCrash ( des0, ANonPrimitiveArray [] ) ("unknown primitive array type: " ++ toString arrayElType)
 
 
-readArrayByType_ :
+readNonPrimitiveArrayByType :
   DeserializationPoint
   -> DataType
   -> (DeserializationPoint -> ( DeserializationPoint, a ))
   -> (a -> AValue)
   -> ( DeserializationPoint, AValueList )
+readNonPrimitiveArrayByType des0 theType readValue packValue =
+  let
+    ( des1, arr ) =
+      readArrayByType_ des0 theType readValue packValue
+  in
+  ( des1, ANonPrimitiveArray arr )
+
+
+readArrayByType_ :
+  DeserializationPoint
+  -> DataType
+  -> (DeserializationPoint -> ( DeserializationPoint, a ))
+  -> (a -> AValue)
+  -> ( DeserializationPoint, List AValue )
 readArrayByType_ des0 theType readValue packValue =
   let
     ( des1, n ) =
@@ -889,110 +911,127 @@ readArrayByType_ des0 theType readValue packValue =
 
     arr =
       --TODO: avoid reversing list. Maybe change List to Array?
-      ANonPrimitiveArray <| List.reverse <| reversedArr
+      reversedArr |> List.reverse
   in
   ( des2, arr )
 
 
 readBooleanArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readBooleanArray des0 =
-  readArrayByType_ des0 TBoolean readRawBoolean ABool
+  readNonPrimitiveArrayByType des0 TBoolean readRawBoolean ABool
 
 
 readByteArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readByteArray des0 =
-  readArrayByType_ des0 TByte readRawByte AInt
+  readNonPrimitiveArrayByType des0 TByte readRawByte AInt
 
 
 readShortArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readShortArray des0 =
-  readArrayByType_ des0 TShort readRawShort AInt
+  readNonPrimitiveArrayByType des0 TShort readRawShort AInt
 
 
 readIntArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readIntArray des0 =
-  readArrayByType_ des0 TInt readRawInt AInt
+  readNonPrimitiveArrayByType des0 TInt readRawInt AInt
 
 
 readFloatArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readFloatArray des0 =
-  readArrayByType_ des0 TFloat readRawFloat AFloat
+  readNonPrimitiveArrayByType des0 TFloat readRawFloat AFloat
 
 
 readPrimitiveArrayByType :
   DeserializationPoint
   -> DataType
-  -> ( DeserializationPoint, APrimitivesList )
+  -> ( DeserializationPoint, AValueList )
 readPrimitiveArrayByType des0 arrayElType =
-  -- TODO support all cases
+  let
+    read =
+      readPrimitiveArray des0
+
+    pack t =
+      repackValue (APrimitiveArray t)
+  in
   case arrayElType of
     TBoolean ->
-      ( des0, APrimitiveArray TBoolean [] )
+      read TBoolean readRawBoolean ABool
+        |> pack TBoolean
 
     TByte ->
-      ( des0, APrimitiveArray TByte [] )
+      read TByte readRawByte AInt
+        |> pack TByte
 
     TShort ->
-      ( des0, APrimitiveArray TShort [] )
+      read TShort readRawShort AInt
+        |> pack TShort
 
     TInt ->
-      ( des0, APrimitiveArray TInt [] )
+      read TInt readRawInt AInt
+        |> pack TInt
 
+    TFloat ->
+      read TFloat readRawFloat AFloat
+        |> pack TFloat
+
+    -- TODO: Double, Long
     _ ->
-      ( des0, APrimitiveArray TUnknown [] )
+      intentionalCrash ( des0, APrimitiveArray TUnknown [] ) ("unknown primitive array type: " ++ toString arrayElType)
 
 
 readPrimitiveBooleanArray : DeserializationPoint -> ( DeserializationPoint, List Bool )
 readPrimitiveBooleanArray des0 =
+  readPrimitiveArray des0 TBoolean readRawBoolean identity
+
+
+readPrimitiveArray :
+  DeserializationPoint
+  -> DataType
+  -> (DeserializationPoint -> ( DeserializationPoint, a ))
+  -> (a -> b)
+  -> ( DeserializationPoint, List b )
+readPrimitiveArray des0 theType readFunc packValue =
   let
     ( des1, n ) =
-      beginTypedArray des0 TBoolean True
+      beginTypedArray des0 theType True
 
     ( des2, arr ) =
       iterateFoldl
         (\( des, arr ) idx ->
           let
             ( newDes, val ) =
-              readRawBoolean des
+              readFunc des
           in
-          ( newDes, val :: arr )
+          ( newDes, packValue val :: arr )
         )
         ( des1, [] )
         0
         (n - 1)
   in
+  -- TODO get rid of reversing a list
   ( des2, List.reverse arr )
-
-
-repackValue : a -> (a -> ( DeserializationPoint, b )) -> (b -> c) -> ( DeserializationPoint, c )
-repackValue des0 readFunc packFunc =
-  let
-    ( des1, val ) =
-      readFunc des0
-  in
-  ( des1, packFunc val )
 
 
 readRawByType : DeserializationPoint -> DataType -> ( DeserializationPoint, AValue )
 readRawByType des0 dataType =
   case dataType of
     TByte ->
-      repackValue des0 readRawByte AInt
+      repackValue AInt (readRawByte des0)
 
     TShort ->
-      repackValue des0 readRawShort AInt
+      repackValue AInt (readRawShort des0)
 
     TInt ->
-      repackValue des0 readRawInt AInt
+      repackValue AInt (readRawInt des0)
 
     TString ->
-      repackValue des0 readString AString
+      repackValue AString (readString des0)
 
     TBoolean ->
-      repackValue des0 readRawBoolean ABool
+      repackValue ABool (readRawBoolean des0)
 
     TFloat ->
-      repackValue des0 readRawFloat AFloat
+      repackValue AFloat (readRawFloat des0)
 
     -- TODO: Long, Double
     _ ->

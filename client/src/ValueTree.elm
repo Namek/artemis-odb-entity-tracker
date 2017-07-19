@@ -1,7 +1,6 @@
 module ValueTree
   exposing
-    ( APrimitivesList(..)
-    , AValue(..)
+    ( AValue(..)
     , AValueList(..)
     , ValueContainer
     , ValueTree
@@ -41,15 +40,16 @@ type AValue
   | AString (Maybe String) --it's not made as "reference" because it's immutable
   | AReference (Maybe ValueTreeId)
   | AValueList AValueList
-  | APrimitivesList APrimitivesList
 
 
 type AValueList
   = ANonPrimitiveArray (List AValue)
+  | APrimitiveArray DataType (List AValue)
 
 
-type APrimitivesList
-  = APrimitiveArray DataType (List AValue)
+v1 : AValueList
+v1 =
+  APrimitiveArray TBoolean [ ABool False, ABool True ]
 
 
 createValueTree : ValueTreeId -> Maybe ValueTreeId -> Maybe ObjectModelNodeId -> ValueTree
