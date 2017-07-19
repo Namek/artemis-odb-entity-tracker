@@ -40,6 +40,7 @@ import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
 import Common exposing (assert, intentionalCrash, iterateFoldl, replaceOne, sure)
+import Dict exposing (Dict)
 import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
@@ -51,7 +52,7 @@ type alias DeserializationPoint =
   , len : Int
   , arr : Buffer.Uint8Array
   , models : List ObjectModelNode
-  , valueTrees : List ValueTree
+  , valueTrees : Dict ValueTreeId ValueTree
   }
 
 
@@ -73,13 +74,18 @@ integerSize =
   32
 
 
-beginDeserialization : List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
+beginDeserialization : List ObjectModelNode -> Dict ValueTreeId ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
 beginDeserialization objModels valueTrees buf =
   let
     arr =
       Buffer.asUint8Array buf
   in
-  { pos = 0, len = Buffer.byteLength buf, arr = arr, models = objModels, valueTrees = valueTrees }
+  { pos = 0
+  , len = Buffer.byteLength buf
+  , arr = arr
+  , models = objModels
+  , valueTrees = valueTrees
+  }
 
 
 intBitsToFloat : Int -> Float
@@ -620,9 +626,12 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
             ( des3, objReadSession1, [] )
             0
             (n - 1)
+
+        updatedValueTrees =
+          Dict.insert id tree des4.valueTrees
       in
       -- other valueTrees are saved inside at this point
-      ( { des4 | valueTrees = tree :: des4.valueTrees }, objReadSession2, Just id )
+      ( { des4 | valueTrees = updatedValueTrees }, objReadSession2, Just id )
     else if dataType == TObjectRef then
       ( des3, objReadSession0, Just id )
     else if dataType == TArray then
@@ -644,12 +653,15 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
             updatedValueTrees =
               assignParentValueId des5.valueTrees id arrayValueId
 
+            des6 : DeserializationPoint
             des6 =
               { des5 | valueTrees = updatedValueTrees }
           in
           ( des6, objReadSession1, Just id )
     else
-      intentionalCrash ( des3, objReadSession0, Nothing ) ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
+      intentionalCrash
+        ( des3, objReadSession0, Nothing )
+        ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
   else if isSimpleType objModel.dataType then
     let
       _ =
@@ -771,6 +783,14 @@ readArrayWithSession des0 session =
       let
         ( des3, array ) =
           readPrimitiveArrayByType des2 elementType
+
+        tree : ValueTree
+        tree =
+          { id = Nothing
+          , values = []
+          , modelId = Nothing
+          , parentId = Nothing
+          }
       in
       -- TODO create ValueTree here!
       ( des3, session, Nothing )

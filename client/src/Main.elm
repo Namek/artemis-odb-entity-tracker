@@ -33,7 +33,7 @@ type alias Model =
   { input : String
   , messages : List String
   , objModelNodes : List ObjectModelNode
-  , valueTrees : List ValueTree
+  , valueTrees : Dict ValueTreeId ValueTree
   , entities : Dict Int EntityInfo
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
@@ -75,7 +75,7 @@ type alias ComponentTypeInfo =
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [] [] Dict.empty [] [] Array.empty, Cmd.none )
+  ( Model "" [] [] Dict.empty Dict.empty [] [] Array.empty, Cmd.none )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -207,7 +207,7 @@ update msg model =
       model ! []
 
 
-deserializePacket : List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
+deserializePacket : List ObjectModelNode -> Dict ValueTreeId ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
 deserializePacket objModelNodes valueTrees componentTypes bytes =
   let
     ( des0, packetType ) =

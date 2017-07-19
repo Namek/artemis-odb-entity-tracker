@@ -15,10 +15,10 @@ import ObjectModelNode exposing (..)
 
 
 type alias ValueTree =
-  { id : ValueTreeId
+  { id : Maybe ValueTreeId
   , parentId : Maybe ValueTreeId
   , modelId : Maybe ObjectModelNodeId
-  , values : Dict ValueTreeId ValueContainer
+  , values : List ValueContainer
   }
 
 
@@ -54,15 +54,27 @@ v1 =
 
 createValueTree : ValueTreeId -> Maybe ValueTreeId -> Maybe ObjectModelNodeId -> ValueTree
 createValueTree id parentId objModelId =
-  { id = id, parentId = parentId, modelId = objModelId, values = Dict.empty }
+  { id = Just id, parentId = parentId, modelId = objModelId, values = [] }
 
 
-assignParentValueId : List ValueTree -> ValueTreeId -> ValueTreeId -> List ValueTree
+createOneValueTree : ValueContainer -> ValueTree
+createOneValueTree val =
+  { id = Nothing
+  , parentId = Nothing
+  , modelId = Nothing
+  , values = [ val ]
+  }
+
+
+assignParentValueId : Dict ValueTreeId ValueTree -> ValueTreeId -> ValueTreeId -> Dict ValueTreeId ValueTree
 assignParentValueId valueTrees id parentId =
-  replaceOne valueTrees
-    (\aTree ->
-      if aTree.id == id then
-        Just { aTree | parentId = Just parentId }
-      else
-        Nothing
+  Dict.update id
+    (\tree ->
+      case tree of
+        Just tree ->
+          Just { tree | parentId = Just parentId }
+
+        Nothing ->
+          Nothing
     )
+    valueTrees
