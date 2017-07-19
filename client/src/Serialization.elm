@@ -8,12 +8,17 @@ module Serialization
     , checkNull
     , expectTypeOrNull
     , isDone
+    , readArrayByType
     , readBitVector
     , readBoolean
+    , readBooleanArray
     , readByte
+    , readByteArray
     , readDataDescription
     , readFloat
+    , readFloatArray
     , readInt
+    , readIntArray
     , readLong
     , readObject
     , readRawBoolean
@@ -26,6 +31,7 @@ module Serialization
     , readRawObject
     , readRawShort
     , readShort
+    , readShortArray
     , readString
     , readType
     )
@@ -33,7 +39,7 @@ module Serialization
 import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
-import Common exposing (intentionalCrash, iterateFoldl, replaceOne, sure)
+import Common exposing (assert, intentionalCrash, iterateFoldl, replaceOne, sure)
 import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
@@ -578,14 +584,7 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
       -- other valueTrees are saved inside at this point
       ( { des4 | valueTrees = tree :: des4.valueTrees }, objReadSession2, Just id )
     else if dataType == TObjectRef then
-      let
-        aRef =
-          AValueTreeRef id
-
-        des4 =
-          { des3 | valueTrees = des3.valueTrees }
-      in
-      ( des4, objReadSession0, Just id )
+      ( des3, objReadSession0, Just id )
     else if dataType == TArray then
       let
         {- TODO HACK: we should identify every array. A hack copied from original project. -}
@@ -612,8 +611,14 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
     else
       intentionalCrash ( des3, objReadSession0, Nothing ) ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
   else if isSimpleType objModel.dataType then
-    -- TODO
-    ( des1, objReadSession0, Nothing )
+    let
+      _ =
+        assert objModel.isTypePrimitive
+
+      ( des2, valueId ) =
+        readRawByType des1 objModel.dataType
+    in
+    ( des2, objReadSession0, Nothing )
   else if objModel.dataType == TEnum then
     -- TODO
     ( des1, objReadSession0, Nothing )
@@ -828,33 +833,113 @@ checkIfHasDescription des0 force =
 readArrayByType :
   DeserializationPoint
   -> DataType
-  -> ( DeserializationPoint, ValueHolder )
+  -> ( DeserializationPoint, AValueList )
 readArrayByType des0 arrayElType =
-  --TODO
-  ( des0, AValueList [] )
+  case arrayElType of
+    TBoolean ->
+      readBooleanArray des0
+
+    TByte ->
+      readByteArray des0
+
+    TShort ->
+      readShortArray des0
+
+    TInt ->
+      readIntArray des0
+
+    TFloat ->
+      readFloatArray des0
+
+    -- TODO: Long, Double
+    _ ->
+      intentionalCrash ( des0, ANonPrimitiveArray [] ) ("unknown primitive array type: " ++ toString arrayElType)
+
+
+readArrayByType_ :
+  DeserializationPoint
+  -> DataType
+  -> (DeserializationPoint -> ( DeserializationPoint, a ))
+  -> (a -> AValue)
+  -> ( DeserializationPoint, AValueList )
+readArrayByType_ des0 theType readValue packValue =
+  let
+    ( des1, n ) =
+      beginTypedArray des0 theType False
+
+    ( des2, reversedArr ) =
+      iterateFoldl
+        (\( des0, arr ) idx ->
+          let
+            ( des1, isTheType ) =
+              expectTypeOrNull des0 theType
+          in
+          if isTheType then
+            let
+              ( des2, val ) =
+                readValue des1
+            in
+            ( des2, packValue val :: arr )
+          else
+            ( des1, AReference Nothing :: arr )
+        )
+        ( des1, [] )
+        0
+        (n - 1)
+
+    arr =
+      --TODO: avoid reversing list. Maybe change List to Array?
+      ANonPrimitiveArray <| List.reverse <| reversedArr
+  in
+  ( des2, arr )
+
+
+readBooleanArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readBooleanArray des0 =
+  readArrayByType_ des0 TBoolean readRawBoolean ABool
+
+
+readByteArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readByteArray des0 =
+  readArrayByType_ des0 TByte readRawByte AInt
+
+
+readShortArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readShortArray des0 =
+  readArrayByType_ des0 TShort readRawShort AInt
+
+
+readIntArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readIntArray des0 =
+  readArrayByType_ des0 TInt readRawInt AInt
+
+
+readFloatArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readFloatArray des0 =
+  readArrayByType_ des0 TFloat readRawFloat AFloat
 
 
 readPrimitiveArrayByType :
   DeserializationPoint
   -> DataType
-  -> ( DeserializationPoint, ValueHolder )
+  -> ( DeserializationPoint, APrimitivesList )
 readPrimitiveArrayByType des0 arrayElType =
   -- TODO support all cases
   case arrayElType of
     TBoolean ->
-      ( des0, AValueList [] )
+      ( des0, APrimitiveArray TBoolean [] )
 
     TByte ->
-      ( des0, AValueList [] )
+      ( des0, APrimitiveArray TByte [] )
 
     TShort ->
-      ( des0, AValueList [] )
+      ( des0, APrimitiveArray TShort [] )
 
     TInt ->
-      ( des0, AValueList [] )
+      ( des0, APrimitiveArray TInt [] )
 
     _ ->
-      ( des0, AValueList [] )
+      ( des0, APrimitiveArray TUnknown [] )
 
 
 readPrimitiveBooleanArray : DeserializationPoint -> ( DeserializationPoint, List Bool )
@@ -879,16 +964,41 @@ readPrimitiveBooleanArray des0 =
   ( des2, List.reverse arr )
 
 
+repackValue : a -> (a -> ( DeserializationPoint, b )) -> (b -> c) -> ( DeserializationPoint, c )
+repackValue des0 readFunc packFunc =
+  let
+    ( des1, val ) =
+      readFunc des0
+  in
+  ( des1, packFunc val )
+
+
+readRawByType : DeserializationPoint -> DataType -> ( DeserializationPoint, AValue )
+readRawByType des0 dataType =
+  case dataType of
+    TByte ->
+      repackValue des0 readRawByte AInt
+
+    TShort ->
+      repackValue des0 readRawShort AInt
+
+    TInt ->
+      repackValue des0 readRawInt AInt
+
+    TString ->
+      repackValue des0 readString AString
+
+    TBoolean ->
+      repackValue des0 readRawBoolean ABool
+
+    TFloat ->
+      repackValue des0 readRawFloat AFloat
+
+    -- TODO: Long, Double
+    _ ->
+      intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
+
+
 rememberInSession : ObjectReadSession -> ValueTreeId -> Maybe ObjectModelNodeId -> ObjectReadSession
 rememberInSession session id objModelId =
   { session | valueTrees = ( id, objModelId ) :: session.valueTrees }
-
-
-
-{-
-   # TODO:
-    * readObject
-    * possiblyReadDescriptions
-    * readArray
-    * readPrimitive*Array
--}

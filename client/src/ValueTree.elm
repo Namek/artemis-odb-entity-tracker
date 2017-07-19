@@ -1,7 +1,9 @@
 module ValueTree
   exposing
-    ( AValue
-    , ValueHolder(..)
+    ( APrimitivesList(..)
+    , AValue(..)
+    , AValueList(..)
+    , ValueContainer
     , ValueTree
     , ValueTreeId
     , assignParentValueId
@@ -9,6 +11,7 @@ module ValueTree
     )
 
 import Common exposing (replaceOne)
+import Dict exposing (Dict)
 import ObjectModelNode exposing (..)
 
 
@@ -16,7 +19,7 @@ type alias ValueTree =
   { id : ValueTreeId
   , parentId : Maybe ValueTreeId
   , modelId : Maybe ObjectModelNodeId
-  , values : List AValue
+  , values : Dict ValueTreeId ValueContainer
   }
 
 
@@ -24,29 +27,34 @@ type alias ValueTreeId =
   Int
 
 
-type alias AValue =
+type alias ValueContainer =
   { dataType : DataType
-  , value : ValueHolder
+  , value : AValue
+  , id : ValueTreeId
   }
 
 
-type ValueHolder
-  = ANull
-  | AValueTreeRef Int
-  | AString String
+type AValue
+  = ABool Bool
   | AInt Int
-  | AChar Char
   | AFloat Float
-  | ABooleanList (List Bool)
-  | ACharList (List Char)
-  | AIntList (List Int)
-  | AFloatList (List Float)
-  | AValueList (List AValue)
+  | AString (Maybe String) --it's not made as "reference" because it's immutable
+  | AReference (Maybe ValueTreeId)
+  | AValueList AValueList
+  | APrimitivesList APrimitivesList
+
+
+type AValueList
+  = ANonPrimitiveArray (List AValue)
+
+
+type APrimitivesList
+  = APrimitiveArray DataType (List AValue)
 
 
 createValueTree : ValueTreeId -> Maybe ValueTreeId -> Maybe ObjectModelNodeId -> ValueTree
 createValueTree id parentId objModelId =
-  { id = id, parentId = parentId, modelId = objModelId, values = [] }
+  { id = id, parentId = parentId, modelId = objModelId, values = Dict.empty }
 
 
 assignParentValueId : List ValueTree -> ValueTreeId -> ValueTreeId -> List ValueTree
@@ -58,15 +66,3 @@ assignParentValueId valueTrees id parentId =
       else
         Nothing
     )
-
-
-d1 : ValueTree
-d1 =
-  { id = 1
-  , parentId = Just 2
-  , modelId = Just 10
-  , values =
-      [ { dataType = TString, value = AString "omg" }
-      , { dataType = TInt, value = AInt 2 }
-      ]
-  }

@@ -13,6 +13,22 @@ intentionalCrash a str =
   a
 
 
+assert : Bool -> ()
+assert a =
+  if not a then
+    intentionalCrash () "assertion failure"
+  else
+    ()
+
+
+assertMsg : Bool -> String -> ()
+assertMsg a str =
+  if not a then
+    intentionalCrash () str
+  else
+    ()
+
+
 elemIndex : Array a -> a -> Maybe Int
 elemIndex arr expectedElem =
   let
