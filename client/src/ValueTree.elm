@@ -2,16 +2,25 @@ module ValueTree
   exposing
     ( AValue(..)
     , AValueList(..)
+    , JObjectId
+    , JavaObject
+    , JavaObjects
     , ValueContainer
     , ValueTree
     , ValueTreeId
+    , addJObject
     , assignParentValueId
     , createValueTree
+    , generateJObjectId
+    , replaceValueById
     )
 
 import Common exposing (replaceOne)
 import Dict exposing (Dict)
 import ObjectModelNode exposing (..)
+
+
+-- Value Tree
 
 
 type alias ValueTree =
@@ -29,7 +38,7 @@ type alias ValueTreeId =
 type alias ValueContainer =
   { dataType : DataType
   , value : AValue
-  , id : ValueTreeId
+  , id : Maybe ValueTreeId
   }
 
 
@@ -38,7 +47,7 @@ type AValue
   | AInt Int
   | AFloat Float
   | AString (Maybe String) --it's not made as "reference" because it's immutable
-  | AReference (Maybe ValueTreeId)
+  | AReference (Maybe JObjectId)
   | AValueList AValueList
 
 
@@ -66,15 +75,64 @@ createOneValueTree val =
   }
 
 
-assignParentValueId : Dict ValueTreeId ValueTree -> ValueTreeId -> ValueTreeId -> Dict ValueTreeId ValueTree
+assignParentValueId : List ValueTree -> ValueTreeId -> ValueTreeId -> List ValueTree
 assignParentValueId valueTrees id parentId =
-  Dict.update id
+  replaceValueById valueTrees
+    id
+    (\tree -> { tree | parentId = Just parentId })
+
+
+replaceValueById : List ValueTree -> ValueTreeId -> (ValueTree -> ValueTree) -> List ValueTree
+replaceValueById valueTrees id replaceFunc =
+  replaceOne valueTrees
     (\tree ->
-      case tree of
-        Just tree ->
-          Just { tree | parentId = Just parentId }
+      case tree.id of
+        Just anId ->
+          if anId == id then
+            Just <| replaceFunc tree
+          else
+            Nothing
 
         Nothing ->
           Nothing
     )
-    valueTrees
+
+
+
+-- Java objects
+
+
+type alias JavaObjects =
+  { objects : Dict JObjectId JavaObject
+  , lastObjectId : JObjectId
+  }
+
+
+type alias JObjectId =
+  Int
+
+
+type JavaObject
+  = JObject ValueContainer
+
+
+generateJObjectId : JavaObjects -> ( JavaObjects, JObjectId )
+generateJObjectId javaObjects =
+  let
+    newId =
+      javaObjects.lastObjectId + 1
+  in
+  ( { javaObjects | lastObjectId = newId }, newId )
+
+
+addJObject : JavaObjects -> ValueContainer -> ( JavaObjects, JObjectId )
+addJObject objs0 value =
+  let
+    ( objs1, id ) =
+      generateJObjectId objs0
+
+    objs2 : JavaObjects
+    objs2 =
+      { objs1 | objects = Dict.insert id (JObject value) objs1.objects }
+  in
+  ( objs2, id )

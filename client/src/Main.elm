@@ -32,8 +32,9 @@ main =
 type alias Model =
   { input : String
   , messages : List String
+  , javaObjects : JavaObjects
   , objModelNodes : List ObjectModelNode
-  , valueTrees : Dict ValueTreeId ValueTree
+  , valueTrees : List ValueTree
   , entities : Dict Int EntityInfo
   , systems : List EntitySystemInfo
   , managers : List EntityManagerInfo
@@ -75,7 +76,20 @@ type alias ComponentTypeInfo =
 
 init : ( Model, Cmd Msg )
 init =
-  ( Model "" [] [] Dict.empty Dict.empty [] [] Array.empty, Cmd.none )
+  ( Model ""
+      []
+      (JavaObjects
+        Dict.empty
+        0
+      )
+      []
+      []
+      Dict.empty
+      []
+      []
+      Array.empty
+  , Cmd.none
+  )
 
 
 createEntitySystemInfo : String -> Int -> Maybe BitVector -> Maybe BitVector -> Maybe BitVector -> EntitySystemInfo
@@ -115,7 +129,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let
-    { input, messages, objModelNodes, valueTrees, componentTypes } =
+    { input, messages, javaObjects, objModelNodes, valueTrees, componentTypes } =
       model
   in
   case msg of
@@ -147,13 +161,14 @@ update msg model =
     NewNetworkMessage (ArrayBuffer bytes) ->
       let
         ( des, packet ) =
-          deserializePacket objModelNodes valueTrees componentTypes bytes
+          deserializePacket javaObjects objModelNodes valueTrees componentTypes bytes
 
         cmd =
           send packet
       in
       ( { model
           | messages = (bytes |> bytesToDebugString) :: messages
+          , javaObjects = des.objects
           , objModelNodes = des.models
           , valueTrees = valueTrees
         }
@@ -207,11 +222,11 @@ update msg model =
       model ! []
 
 
-deserializePacket : List ObjectModelNode -> Dict ValueTreeId ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
-deserializePacket objModelNodes valueTrees componentTypes bytes =
+deserializePacket : JavaObjects -> List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
+deserializePacket objects objModelNodes valueTrees componentTypes bytes =
   let
     ( des0, packetType ) =
-      beginDeserialization objModelNodes valueTrees bytes
+      beginDeserialization objects objModelNodes valueTrees bytes
         |> readRawByte
   in
   if packetType == type_AddedEntitySystem then

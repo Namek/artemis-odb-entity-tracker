@@ -40,7 +40,6 @@ import Array exposing (Array)
 import Binary.ArrayBuffer as Buffer
 import Bitwise
 import Common exposing (assert, intentionalCrash, iterateFoldl, replaceOne, sure)
-import Dict exposing (Dict)
 import List.Extra
 import Native.Serialization
 import ObjectModelNode exposing (..)
@@ -50,14 +49,15 @@ import ValueTree exposing (..)
 type alias DeserializationPoint =
   { pos : Int
   , len : Int
+  , objects : JavaObjects
   , arr : Buffer.Uint8Array
   , models : List ObjectModelNode
-  , valueTrees : Dict ValueTreeId ValueTree
+  , valueTrees : List ValueTree
   }
 
 
 type alias ObjectReadSession =
-  { valueTrees : List ( ValueTreeId, Maybe ObjectModelNodeId )
+  { objectIds : List JObjectId
   }
 
 
@@ -74,8 +74,8 @@ integerSize =
   32
 
 
-beginDeserialization : List ObjectModelNode -> Dict ValueTreeId ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
-beginDeserialization objModels valueTrees buf =
+beginDeserialization : JavaObjects -> List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
+beginDeserialization objects objModels valueTrees buf =
   let
     arr =
       Buffer.asUint8Array buf
@@ -83,6 +83,7 @@ beginDeserialization objModels valueTrees buf =
   { pos = 0
   , len = Buffer.byteLength buf
   , arr = arr
+  , objects = objects
   , models = objModels
   , valueTrees = valueTrees
   }
@@ -561,17 +562,17 @@ readRawDataDescription des0 =
     intentionalCrash ( des0, 0 ) ("unsupported type: " ++ toString nodeType)
 
 
-readObject : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readObject : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readObject des0 objModelId =
   let
     session : ObjectReadSession
     session =
-      { valueTrees = [] }
+      { objectIds = [] }
   in
   readObjectWithSession des0 objModelId session
 
 
-readObjectWithSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readObjectWithSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readObjectWithSession des0 objModelId objReadSession =
   let
     des1 =
@@ -580,7 +581,7 @@ readObjectWithSession des0 objModelId objReadSession =
   readRawObject des1 objModelId Nothing objReadSession
 
 
-readRawObject : DeserializationPoint -> ObjectModelNodeId -> Maybe ValueTreeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+readRawObject : DeserializationPoint -> ObjectModelNodeId -> Maybe ValueTreeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
   let
     ( des1, isNull ) =
@@ -609,7 +610,7 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
           createValueTree id maybeParentValueTreeId (Just objModelId)
 
         objReadSession1 =
-          rememberInSession objReadSession0 id (Just objModelId)
+          rememberInSession objReadSession0 id
 
         ( des4, objReadSession2, valueTreeIds ) =
           iterateFoldl
@@ -628,7 +629,7 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
             (n - 1)
 
         updatedValueTrees =
-          Dict.insert id tree des4.valueTrees
+          replaceValueById des4.valueTrees id (always tree)
       in
       -- other valueTrees are saved inside at this point
       ( { des4 | valueTrees = updatedValueTrees }, objReadSession2, Just id )
@@ -733,12 +734,12 @@ peekArray des =
 
 readArray :
   DeserializationPoint
-  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+  -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readArray des0 =
   let
     session : ObjectReadSession
     session =
-      { valueTrees = [] }
+      { objectIds = [] }
   in
   readArrayWithSession des0 session
 
@@ -748,7 +749,7 @@ readArray des0 =
 readArrayWithSession :
   DeserializationPoint
   -> ObjectReadSession
-  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+  -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readArrayWithSession des0 session =
   let
     ( des1, objModelId ) =
@@ -784,16 +785,17 @@ readArrayWithSession des0 session =
         ( des3, array ) =
           readPrimitiveArrayByType des2 elementType
 
-        tree : ValueTree
-        tree =
-          { id = Nothing
-          , values = []
-          , modelId = Nothing
-          , parentId = Nothing
-          }
+        arrayContainer : ValueContainer
+        arrayContainer =
+          { dataType = TArray, value = AValueList array, id = Nothing }
+
+        ( objects, objId ) =
+          addJObject des3.objects arrayContainer
+
+        des4 =
+          { des3 | objects = objects }
       in
-      -- TODO create ValueTree here!
-      ( des3, session, Nothing )
+      ( des4, session, Just objId )
     else if elementType == TUnknown then
       let
         ( des3, n ) =
@@ -811,7 +813,7 @@ readArrayWithSessionAndModel :
   DeserializationPoint
   -> ObjectReadSession
   -> ObjectModelNodeId
-  -> ( DeserializationPoint, ObjectReadSession, Maybe ValueTreeId )
+  -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
 readArrayWithSessionAndModel des0 session0 objModelId =
   let
     ( des1, isNull ) =
@@ -1117,6 +1119,6 @@ readRawByType des0 dataType =
       intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
 
 
-rememberInSession : ObjectReadSession -> ValueTreeId -> Maybe ObjectModelNodeId -> ObjectReadSession
-rememberInSession session id objModelId =
-  { session | valueTrees = ( id, objModelId ) :: session.valueTrees }
+rememberInSession : ObjectReadSession -> ValueTreeId -> ObjectReadSession
+rememberInSession session id =
+  { session | objectIds = id :: session.objectIds }
