@@ -92,6 +92,11 @@ intBitsToDouble int1 int2 =
   Native.Serialization.intBitsToDouble int1 int2
 
 
+intBitsToLong : Int -> Int -> Int
+intBitsToLong int1 int2 =
+  Native.Serialization.intBitsToLong int1 int2
+
+
 isDone : DeserializationPoint -> Bool
 isDone des =
   des.pos >= des.len
@@ -201,7 +206,9 @@ readInt des =
   readRawInt newDes
 
 
-readRawLong : DeserializationPoint -> ( DeserializationPoint, LongContainer )
+{-| Reads long with 53-bits precision.
+-}
+readRawLong : DeserializationPoint -> ( DeserializationPoint, Int )
 readRawLong des =
   let
     ( des1, int1 ) =
@@ -209,11 +216,14 @@ readRawLong des =
 
     ( des2, int2 ) =
       readRawInt des1
+
+    long =
+      intBitsToLong int1 int2
   in
-  ( des2, ( int1, int2 ) )
+  ( des2, long )
 
 
-readLong : DeserializationPoint -> ( DeserializationPoint, LongContainer )
+readLong : DeserializationPoint -> ( DeserializationPoint, Int )
 readLong des =
   let
     newDes =
@@ -296,6 +306,15 @@ readRawFloat des0 =
   ( des1, intBitsToFloat int )
 
 
+readFloat : DeserializationPoint -> ( DeserializationPoint, Float )
+readFloat des0 =
+  let
+    des1 =
+      checkType des0 TFloat
+  in
+  readRawFloat des1
+
+
 readRawDouble : DeserializationPoint -> ( DeserializationPoint, Float )
 readRawDouble des0 =
   let
@@ -308,17 +327,13 @@ readRawDouble des0 =
   ( des2, intBitsToDouble int1 int2 )
 
 
-readFloat : DeserializationPoint -> ( DeserializationPoint, Float )
-readFloat des0 =
+readDouble : DeserializationPoint -> ( DeserializationPoint, Float )
+readDouble des0 =
   let
     des1 =
-      checkType des0 TFloat
+      checkType des0 TDouble
   in
-  readRawFloat des1
-
-
-
--- TODO: readDouble??? there is no such type in Elm
+  readRawDouble des1
 
 
 readBitVector : DeserializationPoint -> ( DeserializationPoint, Maybe BitVector )
@@ -873,7 +888,9 @@ readArrayByType des0 arrayElType =
     TInt ->
       readIntArray des0
 
-    -- TODO: readLongArray
+    TLong ->
+      readLongArray des0
+
     TFloat ->
       readFloatArray des0
 
@@ -956,6 +973,11 @@ readIntArray des0 =
   readNonPrimitiveArrayByType des0 TInt readRawInt AInt
 
 
+readLongArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
+readLongArray des0 =
+  readNonPrimitiveArrayByType des0 TLong readRawLong AInt
+
+
 readFloatArray : DeserializationPoint -> ( DeserializationPoint, AValueList )
 readFloatArray des0 =
   readNonPrimitiveArrayByType des0 TFloat readRawFloat AFloat
@@ -995,6 +1017,10 @@ readPrimitiveArrayByType des0 arrayElType =
       read TInt readRawInt AInt
         |> pack TInt
 
+    TLong ->
+      read TLong readRawLong AInt
+        |> pack TInt
+
     TFloat ->
       read TFloat readRawFloat AFloat
         |> pack TFloat
@@ -1003,7 +1029,6 @@ readPrimitiveArrayByType des0 arrayElType =
       read TDouble readRawDouble AFloat
         |> pack TDouble
 
-    -- TODO: Long
     _ ->
       intentionalCrash ( des0, APrimitiveArray TUnknown [] ) ("unknown primitive array type: " ++ toString arrayElType)
 
@@ -1053,6 +1078,9 @@ readRawByType des0 dataType =
     TInt ->
       repackValue AInt (readRawInt des0)
 
+    TLong ->
+      repackValue AInt (readRawLong des0)
+
     TString ->
       repackValue AString (readString des0)
 
@@ -1065,7 +1093,6 @@ readRawByType des0 dataType =
     TDouble ->
       repackValue AFloat (readRawDouble des0)
 
-    -- TODO: Long
     _ ->
       intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
 
