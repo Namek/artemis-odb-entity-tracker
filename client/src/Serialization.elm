@@ -21,6 +21,7 @@ module Serialization
     , readIntArray
     , readLong
     , readObject
+    , readObjectWithModel
     , readRawBoolean
     , readRawByte
     , readRawBytes
@@ -562,18 +563,51 @@ readRawDataDescription des0 =
     intentionalCrash ( des0, 0 ) ("unsupported type: " ++ toString nodeType)
 
 
-readObject : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
-readObject des0 objModelId =
+readObject : DeserializationPoint -> ( DeserializationPoint, Maybe JObjectId )
+readObject des0 =
+  let
+    session0 =
+      { objectIds = [] }
+
+    ( des1, session1, maybeObjId ) =
+      readObjectWithSession des0 session0
+  in
+  ( des1, maybeObjId )
+
+
+readObjectWithSession : DeserializationPoint -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithSession des0 session0 =
+  let
+    ( des1, maybeObjModelId ) =
+      possiblyReadDescriptions des0 True
+  in
+  case maybeObjModelId of
+    Just objModelId ->
+      readObjectWithModelAndSession des1 objModelId session0
+
+    Nothing ->
+      let
+        ( des2, isNull ) =
+          checkNull des0
+      in
+      if isNull then
+        ( des2, session0, Nothing )
+      else
+        readArrayWithSession des2 session0
+
+
+readObjectWithModel : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithModel des0 objModelId =
   let
     session : ObjectReadSession
     session =
       { objectIds = [] }
   in
-  readObjectWithSession des0 objModelId session
+  readObjectWithModelAndSession des0 objModelId session
 
 
-readObjectWithSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
-readObjectWithSession des0 objModelId objReadSession =
+readObjectWithModelAndSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithModelAndSession des0 objModelId objReadSession =
   let
     des1 =
       checkType des0 TObject
@@ -800,6 +834,22 @@ readArrayWithSession des0 session =
       let
         ( des3, n ) =
           beginTypedArray des2 TUnknown False
+
+        ( des4, reversedObjIds ) =
+          iterateFoldl
+            (\( des0, objIds ) idx ->
+              let
+                ( des1, objId ) =
+                  readObject des0
+              in
+              ( des1, objId :: objIds )
+            )
+            ( des3, [] )
+            0
+            (n - 1)
+
+        objIds =
+          List.reverse reversedObjIds
       in
       -- TODO create ValueTree here!
       ( des0, session, Nothing )

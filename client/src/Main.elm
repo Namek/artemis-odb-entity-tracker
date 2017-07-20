@@ -305,7 +305,7 @@ deserializePacket objects objModelNodes valueTrees componentTypes bytes =
           |> sure
 
       ( des3, _, valueTreeId ) =
-        readObject des0 componentTypeInfo.objModelId
+        readObjectWithModel des0 componentTypeInfo.objModelId
 
       -- TODO do something with the valueTree!
     in
