@@ -52,7 +52,12 @@ class WebSocketServer(val listeningPort: Int = 8025) : IServer() {
         }
 
         override fun onMessage(connection: WebSocketConnection, msg: ByteArray) {
-            System.out.println("WebSocket binary message: " + msg.size)
+            val client = _clients.find { it.connection == connection }
+
+            if (client != null)
+                client.comm.bytesReceived(msg, 0, msg.size)
+            else
+                System.out.println("WebSocket binary message: " + msg.size)
         }
 
         override fun onClose(connection: WebSocketConnection) {

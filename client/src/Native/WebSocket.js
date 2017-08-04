@@ -87,7 +87,8 @@ function send(socket, messageData)
 				socket.send(messageData._0);
 				break;
 			case 'ArrayBuffer':
-				socket.send(messageData._0, { });
+				var buf = new Uint8Array(messageData._0, messageData._1, messageData._2);
+				socket.send(buf, { });
 				break;
 			default:
 				throw "Unexpected data type"

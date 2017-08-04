@@ -426,7 +426,7 @@ viewEntitiesHeader componentTypes =
   tr [] (td [] [ text "id" ] :: componentColumns)
 
 
-viewEntityRow : Int -> EntityId -> EntityInfo -> List (Html msg) -> List (Html msg)
+viewEntityRow : Int -> EntityId -> EntityInfo -> List (Html Msg) -> List (Html Msg)
 viewEntityRow componentTypesCount id entity rows =
   let
     idxToBool : Int -> Bool
@@ -441,11 +441,22 @@ viewEntityRow componentTypesCount id entity rows =
     idCell =
       td [] [ text <| toString id ]
 
-    componentCell idx =
-      td [] [ text (idxToBool idx |> toString) ]
+    componentCell cmpIdx =
+      let
+        hasComponent =
+          idxToBool cmpIdx
+      in
+      td
+        (if hasComponent then
+          [ onClick (Request_ComponentState id cmpIdx) ]
+         else
+          []
+        )
+        [ text (hasComponent |> toString) ]
 
     componentCells =
       Common.iterateFoldl (\acc idx -> componentCell idx :: acc) [] 0 (componentTypesCount - 1)
+        |> List.reverse
 
     row =
       tr [] (idCell :: componentCells)
