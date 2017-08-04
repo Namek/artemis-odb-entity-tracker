@@ -68,7 +68,7 @@ open =
 -}
 type MessageData
   = String String
-  | ArrayBuffer ArrayBuffer
+  | ArrayBuffer ArrayBuffer Int Int
 
 
 {-| The settings describe how a `WebSocket` works as long as it is still open.

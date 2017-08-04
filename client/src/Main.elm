@@ -141,7 +141,7 @@ update msg model =
 
     Send ->
       ( { model | input = "" }
-      , WebSocket.send websocketUrl (ArrayBuffer (stringToBufferArray input))
+      , WebSocket.send websocketUrl (ArrayBuffer (stringToBufferArray input) 0 (String.length input))
       )
 
     OnWebsocketOpen url ->
@@ -161,7 +161,7 @@ update msg model =
     NewNetworkMessage (String str) ->
       { model | messages = str :: messages } ! []
 
-    NewNetworkMessage (ArrayBuffer bytes) ->
+    NewNetworkMessage (ArrayBuffer bytes offset len) ->
       let
         ( des, packet ) =
           deserializePacket javaObjects objModelNodes valueTrees componentTypes bytes
@@ -232,8 +232,9 @@ update msg model =
             |> addInt entityId
             |> addInt componentIndex
       in
-      -- TODO send it through websocket
-      model ! []
+      model
+        ! [ WebSocket.send websocketUrl (ArrayBuffer ser.buf 0 ser.pos)
+          ]
 
 
 deserializePacket : JavaObjects -> List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
@@ -350,15 +351,25 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
+  let
+    componentTypes =
+      Array.toList model.componentTypes
+
+    componentTypeCount =
+      List.length componentTypes
+  in
   div []
     [ h2 [] [ text "Systems" ]
     , div [] (List.map viewSystem model.systems)
     , h2 [] [ text "Managers" ]
     , div [] (List.map viewManager model.managers)
     , h2 [] [ text "Component types" ]
-    , div [] (List.map viewComponentType (Array.toList model.componentTypes))
+    , div [] (List.map viewComponentType componentTypes)
     , h2 [] [ text "Entities" ]
-    , div [] (Dict.foldr viewEntity [] model.entities)
+    , table []
+        [ thead [] [ viewEntitiesHeader componentTypes ]
+        , tbody [] (Dict.foldr (viewEntityRow componentTypeCount) [] model.entities)
+        ]
     , h2 [] [ text "Debug messages" ]
     , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []
@@ -406,9 +417,40 @@ maybeBitsToString bits =
       ""
 
 
-viewEntity : EntityId -> EntityInfo -> List (Html msg) -> List (Html msg)
-viewEntity id entity divs =
-  div [] [ text (toString entity.id ++ ": " ++ bitVectorToDebugString entity.components) ] :: divs
+viewEntitiesHeader : List ComponentTypeInfo -> Html msg
+viewEntitiesHeader componentTypes =
+  let
+    componentColumns =
+      List.map (\t -> td [] [ text <| toString t.name ]) componentTypes
+  in
+  tr [] (td [] [ text "id" ] :: componentColumns)
+
+
+viewEntityRow : Int -> EntityId -> EntityInfo -> List (Html msg) -> List (Html msg)
+viewEntityRow componentTypesCount id entity rows =
+  let
+    idxToBool : Int -> Bool
+    idxToBool idx =
+      case Array.get idx entity.components of
+        Just bool ->
+          bool
+
+        Nothing ->
+          False
+
+    idCell =
+      td [] [ text <| toString id ]
+
+    componentCell idx =
+      td [] [ text (idxToBool idx |> toString) ]
+
+    componentCells =
+      Common.iterateFoldl (\acc idx -> componentCell idx :: acc) [] 0 (componentTypesCount - 1)
+
+    row =
+      tr [] (idCell :: componentCells)
+  in
+  row :: rows
 
 
 viewMessage : String -> Html msg

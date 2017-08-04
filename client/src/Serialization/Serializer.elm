@@ -9,12 +9,8 @@ import Serialization.ObjectModelNode exposing (..)
 type alias SerializationPoint =
   { pos : Int
   , len : Int
-
-  --   , objects : JavaObjects
+  , buf : Buffer.ArrayBuffer
   , arr : Buffer.Uint8Array
-
-  --   , models : List ObjectModelNode
-  --   , valueTrees : List ValueTree
   }
 
 
@@ -32,11 +28,8 @@ beginSerialization =
   in
   { pos = 0
   , len = bufSize
+  , buf = buf
   , arr = arr
-
-  --   , objects = objects
-  --   , models = objModels
-  --   , valueTrees = valueTrees
   }
 
 
