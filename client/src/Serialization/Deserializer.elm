@@ -77,32 +77,9 @@ beginDeserialization objects objModels valueTrees buf =
   }
 
 
-intBitsToFloat : Int -> Float
-intBitsToFloat int =
-  Native.Serialization.intBitsToFloat int
-
-
-intBitsToDouble : Int -> Int -> Float
-intBitsToDouble int1 int2 =
-  Native.Serialization.intBitsToDouble int1 int2
-
-
-intBitsToLong : Int -> Int -> Int
-intBitsToLong int1 int2 =
-  Native.Serialization.intBitsToLong int1 int2
-
-
 isDone : DeserializationPoint -> Bool
 isDone des =
   des.pos >= des.len
-
-
-repackValue packFunc readFunc =
-  let
-    ( arg0, val ) =
-      readFunc
-  in
-  ( arg0, packFunc val )
 
 
 readRawByte : DeserializationPoint -> ( DeserializationPoint, Int )

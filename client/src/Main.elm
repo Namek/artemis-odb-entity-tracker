@@ -225,7 +225,14 @@ update msg model =
       model ! []
 
     Request_ComponentState entityId componentIndex ->
-      -- type_RequestComponentState
+      let
+        ser =
+          beginSerialization
+            |> addRawByte type_RequestComponentState
+            |> addInt entityId
+            |> addInt componentIndex
+      in
+      -- TODO send it through websocket
       model ! []
 
 
