@@ -1,4 +1,4 @@
-module ObjectModelNode
+module Serialization.ObjectModelNode
   exposing
     ( DataType(..)
     , ObjectModelNode

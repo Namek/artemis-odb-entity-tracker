@@ -9,9 +9,11 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import List.Extra
-import ObjectModelNode exposing (..)
-import Serialization exposing (..)
-import ValueTree exposing (..)
+import Serialization.Common exposing (..)
+import Serialization.Deserializer exposing (..)
+import Serialization.ObjectModelNode exposing (..)
+import Serialization.Serializer exposing (..)
+import Serialization.ValueTree exposing (..)
 import WebSocket
 import WebSocket.LowLevel exposing (MessageData(..))
 
@@ -124,6 +126,7 @@ type Msg
   | Msg_OnAddedEntity EntityId BitVector
   | Msg_OnDeletedEntity EntityId
   | Msg_OnUpdatedComponentState EntityId Int
+  | Request_ComponentState EntityId Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -221,6 +224,10 @@ update msg model =
       -- TODO
       model ! []
 
+    Request_ComponentState entityId componentIndex ->
+      -- type_RequestComponentState
+      model ! []
+
 
 deserializePacket : JavaObjects -> List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
 deserializePacket objects objModelNodes valueTrees componentTypes bytes =
@@ -306,6 +313,9 @@ deserializePacket objects objModelNodes valueTrees componentTypes bytes =
 
       ( des3, _, valueTreeId ) =
         readObjectWithModel des0 componentTypeInfo.objModelId
+
+      e =
+        Debug.log "valueTreeId" valueTreeId
 
       -- TODO do something with the valueTree!
     in

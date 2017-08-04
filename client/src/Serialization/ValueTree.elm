@@ -1,4 +1,4 @@
-module ValueTree
+module Serialization.ValueTree
   exposing
     ( AValue(..)
     , AValueList(..)
@@ -10,6 +10,7 @@ module ValueTree
     , ValueTreeId
     , addJObject
     , assignParentValueId
+    , createOneValueTree
     , createValueTree
     , generateJObjectId
     , replaceValueById
@@ -17,7 +18,7 @@ module ValueTree
 
 import Common exposing (replaceOne)
 import Dict exposing (Dict)
-import ObjectModelNode exposing (..)
+import Serialization.ObjectModelNode exposing (..)
 
 
 -- Value Tree
@@ -48,7 +49,9 @@ type AValue
   | AFloat Float
   | AString (Maybe String) --it's not made as "reference" because it's immutable
   | AReference (Maybe JObjectId)
+  | AReferenceList (List (Maybe JObjectId))
   | AValueList AValueList
+  | AValueTree ValueTree
 
 
 type AValueList

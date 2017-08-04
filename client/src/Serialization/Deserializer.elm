@@ -1,7 +1,6 @@
-module Serialization
+module Serialization.Deserializer
   exposing
-    ( BitVector
-    , DeserializationPoint
+    ( DeserializationPoint
     , ObjectReadSession
     , beginDeserialization
     , bitVectorToDebugString
@@ -43,8 +42,9 @@ import Bitwise
 import Common exposing (assert, intentionalCrash, iterateFoldl, replaceOne, sure)
 import List.Extra
 import Native.Serialization
-import ObjectModelNode exposing (..)
-import ValueTree exposing (..)
+import Serialization.Common exposing (..)
+import Serialization.ObjectModelNode exposing (..)
+import Serialization.ValueTree exposing (..)
 
 
 type alias DeserializationPoint =
@@ -60,19 +60,6 @@ type alias DeserializationPoint =
 type alias ObjectReadSession =
   { objectIds : List JObjectId
   }
-
-
-type alias LongContainer =
-  ( Int, Int )
-
-
-type alias BitVector =
-  Array Bool
-
-
-integerSize : number
-integerSize =
-  32
 
 
 beginDeserialization : JavaObjects -> List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
@@ -850,9 +837,18 @@ readArrayWithSession des0 session =
 
         objIds =
           List.reverse reversedObjIds
+
+        valueTree : ValueTree
+        valueTree =
+          createOneValueTree (ValueContainer TArray (AReferenceList objIds) Nothing)
+
+        ( objects, valueTree_JObjId ) =
+          addJObject des4.objects (ValueContainer TObject (AValueTree valueTree) Nothing)
+
+        des5 =
+          { des4 | objects = objects }
       in
-      -- TODO create ValueTree here!
-      ( des0, session, Nothing )
+      ( des5, session, Just valueTree_JObjId )
     else
       -- TODO create ValueTree here!
       -- readArrayByType des2 elementType
