@@ -34,7 +34,7 @@ main =
 type alias Model =
   { input : String
   , messages : List String
-  , javaObjects : JavaObjects
+  , javaObjects : JavaObjectsCollection
   , objModelNodes : List ObjectModelNode
   , valueTrees : List ValueTree
   , entities : Dict Int EntityInfo
@@ -80,7 +80,7 @@ init : ( Model, Cmd Msg )
 init =
   ( Model ""
       []
-      (JavaObjects
+      (JavaObjectsCollection
         Dict.empty
         0
       )
@@ -237,7 +237,7 @@ update msg model =
           ]
 
 
-deserializePacket : JavaObjects -> List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
+deserializePacket : JavaObjectsCollection -> List ObjectModelNode -> List ValueTree -> Array ComponentTypeInfo -> ArrayBuffer -> ( DeserializationPoint, Msg )
 deserializePacket objects objModelNodes valueTrees componentTypes bytes =
   let
     ( des0, packetType ) =
@@ -320,7 +320,7 @@ deserializePacket objects objModelNodes valueTrees componentTypes bytes =
           |> sure
 
       ( des3, _, valueTreeId ) =
-        readObjectWithModel des0 componentTypeInfo.objModelId
+        readObjectWithModel des2 componentTypeInfo.objModelId
 
       e =
         Debug.log "valueTreeId" valueTreeId
@@ -359,17 +359,17 @@ view model =
       List.length componentTypes
   in
   div []
-    [ h2 [] [ text "Systems" ]
+    [ h2 [] [ text "Entities" ]
+    , table []
+        [ thead [] [ viewEntitiesHeader componentTypes ]
+        , tbody [] (Dict.foldr (viewEntityRow componentTypeCount) [] model.entities)
+        ]
+    , h2 [] [ text "Systems" ]
     , div [] (List.map viewSystem model.systems)
     , h2 [] [ text "Managers" ]
     , div [] (List.map viewManager model.managers)
     , h2 [] [ text "Component types" ]
     , div [] (List.map viewComponentType componentTypes)
-    , h2 [] [ text "Entities" ]
-    , table []
-        [ thead [] [ viewEntitiesHeader componentTypes ]
-        , tbody [] (Dict.foldr (viewEntityRow componentTypeCount) [] model.entities)
-        ]
     , h2 [] [ text "Debug messages" ]
     , div [] (List.map viewMessage model.messages)
     , input [ onInput Input, value model.input ] []

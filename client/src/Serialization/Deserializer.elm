@@ -50,7 +50,7 @@ import Serialization.ValueTree exposing (..)
 type alias DeserializationPoint =
   { pos : Int
   , len : Int
-  , objects : JavaObjects
+  , objects : JavaObjectsCollection
   , arr : Buffer.Uint8Array
   , models : List ObjectModelNode
   , valueTrees : List ValueTree
@@ -62,7 +62,7 @@ type alias ObjectReadSession =
   }
 
 
-beginDeserialization : JavaObjects -> List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
+beginDeserialization : JavaObjectsCollection -> List ObjectModelNode -> List ValueTree -> Buffer.ArrayBuffer -> DeserializationPoint
 beginDeserialization objects objModels valueTrees buf =
   let
     arr =
@@ -527,7 +527,7 @@ readRawDataDescription des0 =
     intentionalCrash ( des0, 0 ) ("unsupported type: " ++ toString nodeType)
 
 
-readObject : DeserializationPoint -> ( DeserializationPoint, Maybe JObjectId )
+readObject : DeserializationPoint -> ( DeserializationPoint, JavaType )
 readObject des0 =
   let
     session0 =
@@ -539,7 +539,7 @@ readObject des0 =
   ( des1, maybeObjId )
 
 
-readObjectWithSession : DeserializationPoint -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithSession : DeserializationPoint -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, JavaType )
 readObjectWithSession des0 session0 =
   let
     ( des1, maybeObjModelId ) =
@@ -555,12 +555,16 @@ readObjectWithSession des0 session0 =
           checkNull des0
       in
       if isNull then
-        ( des2, session0, Nothing )
+        ( des2, session0, JavaNull )
       else
-        readArrayWithSession des2 session0
+        let
+          ( des3, session1, maybeArrayObjId ) =
+            readArrayWithSession des2 session0
+        in
+        ( des3, session1, repackJavaObjectId maybeArrayObjId )
 
 
-readObjectWithModel : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithModel : DeserializationPoint -> ObjectModelNodeId -> ( DeserializationPoint, ObjectReadSession, JavaType )
 readObjectWithModel des0 objModelId =
   let
     session : ObjectReadSession
@@ -570,7 +574,7 @@ readObjectWithModel des0 objModelId =
   readObjectWithModelAndSession des0 objModelId session
 
 
-readObjectWithModelAndSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readObjectWithModelAndSession : DeserializationPoint -> ObjectModelNodeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, JavaType )
 readObjectWithModelAndSession des0 objModelId objReadSession =
   let
     des1 =
@@ -579,7 +583,7 @@ readObjectWithModelAndSession des0 objModelId objReadSession =
   readRawObject des1 objModelId Nothing objReadSession
 
 
-readRawObject : DeserializationPoint -> ObjectModelNodeId -> Maybe ValueTreeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, Maybe JObjectId )
+readRawObject : DeserializationPoint -> ObjectModelNodeId -> Maybe ValueTreeId -> ObjectReadSession -> ( DeserializationPoint, ObjectReadSession, JavaType )
 readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
   let
     ( des1, isNull ) =
@@ -589,7 +593,7 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
       getObjectModelById des0.models objModelId
   in
   if isNull then
-    ( des1, objReadSession0, Nothing )
+    ( des1, objReadSession0, JavaNull )
   else if objModel.dataType == TObject || objModel.dataType == TUnknown then
     let
       ( des2, dataType ) =
@@ -626,13 +630,16 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
             0
             (n - 1)
 
+        treeWithValues =
+          { tree | values = Just valueTreeIds }
+
         updatedValueTrees =
-          replaceValueById des4.valueTrees id (always tree)
+          replaceValueById des4.valueTrees id (always treeWithValues)
       in
       -- other valueTrees are saved inside at this point
-      ( { des4 | valueTrees = updatedValueTrees }, objReadSession2, Just id )
+      ( { des4 | valueTrees = updatedValueTrees }, objReadSession2, JavaObject id )
     else if dataType == TObjectRef then
-      ( des3, objReadSession0, Just id )
+      ( des3, objReadSession0, JavaObject id )
     else if dataType == TArray then
       let
         {- TODO HACK: we should identify every array. A hack copied from original project. -}
@@ -644,7 +651,7 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
       in
       case maybeArrayValueId of
         Nothing ->
-          ( des5, objReadSession1, Nothing )
+          ( des5, objReadSession1, JavaNull )
 
         Just arrayValueId ->
           -- assign parent vtree
@@ -656,28 +663,30 @@ readRawObject des0 objModelId maybeParentValueTreeId objReadSession0 =
             des6 =
               { des5 | valueTrees = updatedValueTrees }
           in
-          ( des6, objReadSession1, Just id )
+          ( des6, objReadSession1, JavaObject id )
     else
       intentionalCrash
-        ( des3, objReadSession0, Nothing )
+        ( des3, objReadSession0, JavaNull )
         ("Types are divergent, expected: " ++ toString TObject ++ " or " ++ toString TObjectRef ++ ", got: " ++ toString dataType)
   else if isSimpleType objModel.dataType then
     let
       _ =
         assert objModel.isTypePrimitive
 
-      ( des2, valueId ) =
+      ( des2, value ) =
         readRawByType des1 objModel.dataType
+
+      -- TODO: save that value to parent!
     in
-    ( des2, objReadSession0, Nothing )
+    ( des2, objReadSession0, JavaNull )
   else if objModel.dataType == TEnum then
     -- TODO
-    ( des1, objReadSession0, Nothing )
+    ( des1, objReadSession0, JavaNull )
   else if objModel.dataType == TArray then
     -- TODO
-    ( des1, objReadSession0, Nothing )
+    ( des1, objReadSession0, JavaNull )
   else
-    intentionalCrash ( des1, objReadSession0, Nothing ) ("unsupported type:" ++ (toString objModel.dataType ++ ", subtype: " ++ toString objModel.dataSubType))
+    intentionalCrash ( des1, objReadSession0, JavaNull ) ("unsupported type:" ++ (toString objModel.dataType ++ ", subtype: " ++ toString objModel.dataSubType))
 
 
 beginArray :
@@ -785,10 +794,10 @@ readArrayWithSession des0 session =
 
         arrayContainer : ValueContainer
         arrayContainer =
-          { dataType = TArray, value = AValueList array, id = Nothing }
+          { dataType = TArray, value = AValueList array }
 
         ( objects, objId ) =
-          addJObject des3.objects arrayContainer
+          saveValueAsJObject des3.objects arrayContainer
 
         des4 =
           { des3 | objects = objects }
@@ -817,10 +826,10 @@ readArrayWithSession des0 session =
 
         valueTree : ValueTree
         valueTree =
-          createOneValueTree (ValueContainer TArray (AReferenceList objIds) Nothing)
+          createOneValueTree (ValueContainer TArray (AJavaObjectList objIds))
 
         ( objects, valueTree_JObjId ) =
-          addJObject des4.objects (ValueContainer TObject (AValueTree valueTree) Nothing)
+          saveValueAsJObject des4.objects (ValueContainer TObject (AValueTree valueTree))
 
         des5 =
           { des4 | objects = objects }
@@ -1113,33 +1122,37 @@ readPrimitiveArray des0 theType readFunc packValue =
 
 readRawByType : DeserializationPoint -> DataType -> ( DeserializationPoint, AValue )
 readRawByType des0 dataType =
-  case dataType of
-    TByte ->
-      repackValue AInt (readRawByte des0)
+  let
+    ( des1, val ) =
+      case dataType of
+        TByte ->
+          repackValue AInt (readRawByte des0)
 
-    TShort ->
-      repackValue AInt (readRawShort des0)
+        TShort ->
+          repackValue AInt (readRawShort des0)
 
-    TInt ->
-      repackValue AInt (readRawInt des0)
+        TInt ->
+          repackValue AInt (readRawInt des0)
 
-    TLong ->
-      repackValue AInt (readRawLong des0)
+        TLong ->
+          repackValue AInt (readRawLong des0)
 
-    TString ->
-      repackValue AString (readString des0)
+        TString ->
+          repackValue AString (readString des0)
 
-    TBoolean ->
-      repackValue ABool (readRawBoolean des0)
+        TBoolean ->
+          repackValue ABool (readRawBoolean des0)
 
-    TFloat ->
-      repackValue AFloat (readRawFloat des0)
+        TFloat ->
+          repackValue AFloat (readRawFloat des0)
 
-    TDouble ->
-      repackValue AFloat (readRawDouble des0)
+        TDouble ->
+          repackValue AFloat (readRawDouble des0)
 
-    _ ->
-      intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
+        _ ->
+          intentionalCrash ( des0, AInt -1 ) ("type not supported: " ++ toString dataType)
+  in
+  ( des1, Debug.log "SimpleVal" val )
 
 
 rememberInSession : ObjectReadSession -> ValueTreeId -> ObjectReadSession

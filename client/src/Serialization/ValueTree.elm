@@ -3,17 +3,18 @@ module Serialization.ValueTree
     ( AValue(..)
     , AValueList(..)
     , JObjectId
-    , JavaObject
-    , JavaObjects
+    , JavaObjectsCollection
+    , JavaType(..)
     , ValueContainer
     , ValueTree
     , ValueTreeId
-    , addJObject
     , assignParentValueId
     , createOneValueTree
     , createValueTree
     , generateJObjectId
+    , repackJavaObjectId
     , replaceValueById
+    , saveValueAsJObject
     )
 
 import Common exposing (replaceOne)
@@ -28,7 +29,7 @@ type alias ValueTree =
   { id : Maybe ValueTreeId
   , parentId : Maybe ValueTreeId
   , modelId : Maybe ObjectModelNodeId
-  , values : List ValueContainer
+  , values : Maybe (List JavaType) --old: List ValueContainer
   }
 
 
@@ -36,10 +37,16 @@ type alias ValueTreeId =
   Int
 
 
+
+--
+-- type ValueTreeNodeValues
+--   = SomeValues (List ValueContainer)
+--   | SomeReferences (List (Maybe JObjectId))
+
+
 type alias ValueContainer =
   { dataType : DataType
   , value : AValue
-  , id : Maybe ValueTreeId
   }
 
 
@@ -52,6 +59,8 @@ type AValue
   | AReferenceList (List (Maybe JObjectId))
   | AValueList AValueList
   | AValueTree ValueTree
+  | AJavaObjectList (List JavaType) --TODO: replace reference/list all above with this one?
+  | AJavaObject JavaType
 
 
 type AValueList
@@ -66,7 +75,7 @@ v1 =
 
 createValueTree : ValueTreeId -> Maybe ValueTreeId -> Maybe ObjectModelNodeId -> ValueTree
 createValueTree id parentId objModelId =
-  { id = Just id, parentId = parentId, modelId = objModelId, values = [] }
+  { id = Just id, parentId = parentId, modelId = objModelId, values = Nothing }
 
 
 createOneValueTree : ValueContainer -> ValueTree
@@ -74,7 +83,7 @@ createOneValueTree val =
   { id = Nothing
   , parentId = Nothing
   , modelId = Nothing
-  , values = [ val ]
+  , values = Just [ JavaSimple val ]
   }
 
 
@@ -105,8 +114,8 @@ replaceValueById valueTrees id replaceFunc =
 -- Java objects
 
 
-type alias JavaObjects =
-  { objects : Dict JObjectId JavaObject
+type alias JavaObjectsCollection =
+  { objects : Dict JObjectId ValueContainer
   , lastObjectId : JObjectId
   }
 
@@ -115,11 +124,29 @@ type alias JObjectId =
   Int
 
 
-type JavaObject
-  = JObject ValueContainer
+
+--
+-- type JavaObject
+--   = JObject ValueContainer
 
 
-generateJObjectId : JavaObjects -> ( JavaObjects, JObjectId )
+type JavaType
+  = JavaNull
+  | JavaObject JObjectId
+  | JavaSimple ValueContainer
+
+
+repackJavaObjectId : Maybe JObjectId -> JavaType
+repackJavaObjectId jObjectIdMaybe =
+  case jObjectIdMaybe of
+    Just jObjectId ->
+      JavaObject jObjectId
+
+    Nothing ->
+      JavaNull
+
+
+generateJObjectId : JavaObjectsCollection -> ( JavaObjectsCollection, JObjectId )
 generateJObjectId javaObjects =
   let
     newId =
@@ -128,14 +155,21 @@ generateJObjectId javaObjects =
   ( { javaObjects | lastObjectId = newId }, newId )
 
 
-addJObject : JavaObjects -> ValueContainer -> ( JavaObjects, JObjectId )
-addJObject objs0 value =
+saveValueAsJObject : JavaObjectsCollection -> ValueContainer -> ( JavaObjectsCollection, JObjectId )
+saveValueAsJObject objs0 value =
   let
     ( objs1, id ) =
       generateJObjectId objs0
 
-    objs2 : JavaObjects
+    objs2 : JavaObjectsCollection
     objs2 =
-      { objs1 | objects = Dict.insert id (JObject value) objs1.objects }
+      { objs1 | objects = Dict.insert id value objs1.objects }
   in
   ( objs2, id )
+
+
+
+--
+--
+--
+-- saveJavaArray : JavaObjectsCollection -> List JavaType -> (JavaObjectsCollection)

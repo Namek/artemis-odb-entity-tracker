@@ -30,8 +30,8 @@ function intBitsToLong(int1, int2) {
 return {
   intBitsToFloat: intBitsToFloat
 , floatToIntBits: floatToIntBits
-, intBitsToDouble: intBitsToDouble
-, intBitsToLong: intBitsToLong
+, intBitsToDouble: F2(intBitsToDouble)
+, intBitsToLong: F2(intBitsToLong)
 };
 
 }();
