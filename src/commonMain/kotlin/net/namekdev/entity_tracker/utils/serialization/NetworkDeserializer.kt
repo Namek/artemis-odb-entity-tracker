@@ -11,7 +11,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
     private var _sourcePos: Int = 0
     private var _sourceBeginPos: Int = 0
 
-    private val _models = object : ObjectModelsCollection {
+    protected val _models = object : ObjectModelsCollection {
         private val models = ArrayList<ObjectModelNode>()
 
         override fun size(): Int {
