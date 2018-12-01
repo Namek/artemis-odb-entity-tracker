@@ -35,17 +35,15 @@ import com.artemis.utils.reflect.ClassReflection
 import com.artemis.utils.reflect.Field
 import com.artemis.utils.reflect.Method
 import com.artemis.utils.reflect.ReflectionException
-import net.namekdev.entity_tracker.utils.CommonBitVector
-import net.namekdev.entity_tracker.utils.ofOriginal
 
 /**
  * @author Namek
  */
 class EntityTracker @JvmOverloads constructor(
     private val componentInspector: ObjectTypeInspector = ObjectTypeInspector(),
-    listener: WorldUpdateListener? = null
+    listener: WorldUpdateListener<BitVector>? = null
 ) : Manager(), WorldController {
-    private var updateListener: WorldUpdateListener? = null
+    private var updateListener: WorldUpdateListener<BitVector>? = null
 
     val systemsInfo = Bag<SystemInfo>()
     val systemsInfoByName: MutableMap<String, SystemInfo> = HashMap()
@@ -65,13 +63,13 @@ class EntityTracker @JvmOverloads constructor(
     private var _notifiedComponentTypesCount = 0
     private val _objectArrPool = ArrayPool(Any::class.java)
 
-    constructor(listener: WorldUpdateListener) : this(ObjectTypeInspector(), listener) {}
+    constructor(listener: WorldUpdateListener<BitVector>) : this(ObjectTypeInspector(), listener) {}
 
     init {
         setUpdateListener(listener)
     }
 
-    fun setUpdateListener(listener: WorldUpdateListener?) {
+    fun setUpdateListener(listener: WorldUpdateListener<BitVector>?) {
         this.updateListener = listener
         listener?.injectWorldController(this)
     }
@@ -113,9 +111,9 @@ class EntityTracker @JvmOverloads constructor(
 
                 val aspectInfo = AspectInfo()
                 if (aspect != null) {
-                    aspectInfo.allTypes = CommonBitVector.ofOriginal(aspect.allSet)
-                    aspectInfo.oneTypes = CommonBitVector.ofOriginal(aspect.oneSet)
-                    aspectInfo.exclusionTypes = CommonBitVector.ofOriginal(aspect.exclusionSet)
+                    aspectInfo.allTypes = aspect.allSet
+                    aspectInfo.oneTypes = aspect.oneSet
+                    aspectInfo.exclusionTypes = aspect.exclusionSet
                 }
 
                 val info = SystemInfo(index, systemName, system, aspect, aspectInfo, actives, subscription)
@@ -198,7 +196,7 @@ class EntityTracker @JvmOverloads constructor(
             inspectNewComponentTypesAndNotify()
         }
 
-        updateListener!!.addedEntity(e!!.id, CommonBitVector.ofOriginal(componentBitVector))
+        updateListener!!.addedEntity(e!!.id, componentBitVector)
     }
 
     override fun deleted(e: Entity?) {

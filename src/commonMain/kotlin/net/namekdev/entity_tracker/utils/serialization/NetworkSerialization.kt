@@ -35,13 +35,13 @@ abstract class NetworkSerialization {
 
 
     companion object {
-        fun createSerializer(): NetworkSerializer {
-            return NetworkSerializer()
-        }
-
-        fun createDeserializer(): NetworkDeserializer {
-            return NetworkDeserializer()
-        }
+//        fun createSerializer(): NetworkSerializer {
+//            return NetworkSerializer()
+//        }
+//
+//        fun createDeserializer(): NetworkDeserializer {
+//            return NetworkDeserializer()
+//        }
 
         fun isSimpleType(valueType: DataType?): Boolean {
             if (valueType == null)

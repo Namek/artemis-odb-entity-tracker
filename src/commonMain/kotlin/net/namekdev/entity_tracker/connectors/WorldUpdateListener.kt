@@ -1,20 +1,19 @@
 package net.namekdev.entity_tracker.connectors
 
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.utils.CommonBitVector
 
 /**
  *
  * @author Namek
  */
-interface WorldUpdateListener {
+interface WorldUpdateListener<BitVectorType> {
 	fun injectWorldController(controller: WorldController)
 	val listeningBitset: Int
-	fun addedSystem(index: Int, name: String, allTypes: CommonBitVector?, oneTypes: CommonBitVector?, notTypes: CommonBitVector?)
+	fun addedSystem(index: Int, name: String, allTypes: BitVectorType?, oneTypes: BitVectorType?, notTypes: BitVectorType?)
 	fun addedManager(name: String)
 	fun addedComponentType(index: Int, info: ComponentTypeInfo)
 	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int)
-	fun addedEntity(entityId: Int, components: CommonBitVector)
+	fun addedEntity(entityId: Int, components: BitVectorType)
 	//	void changed(Entity e);
 	fun deletedEntity(entityId: Int)
 

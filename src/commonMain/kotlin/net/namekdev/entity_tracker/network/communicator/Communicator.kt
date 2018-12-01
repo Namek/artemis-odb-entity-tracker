@@ -7,7 +7,7 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 
 /**
  * Defines basics of network protocol for communication between EntityTracker Manager and external UI.
-
+ *
  * @author Namek
  */
 abstract class Communicator : RawConnectionCommunicator {

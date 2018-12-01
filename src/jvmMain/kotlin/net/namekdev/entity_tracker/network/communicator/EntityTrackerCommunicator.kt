@@ -6,17 +6,16 @@ import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.AutoSizedArray
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
 
 /**
  * Deserializes data from network and serializes data sent to the network.
  * Manages between logic events and pure network bytes.
-
- * Communicator used by EntityTracker manager (server), one such communicator per client.
-
+ *
+ * Used by EntityTracker manager (server).
+ *
  * @author Namek
  */
-open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener {
+open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVector> {
     private lateinit var _worldController: WorldController
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
@@ -69,9 +68,9 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener {
             beginPacket(Communicator.TYPE_ADDED_ENTITY_SYSTEM)
                 .addInt(index)
                 .addString(name)
-                .addBitVector(allTypes)
-                .addBitVector(oneTypes)
-                .addBitVector(notTypes)
+                .addBitVectorOrNull(allTypes)
+                .addBitVectorOrNull(oneTypes)
+                .addBitVectorOrNull(notTypes)
         )
     }
 

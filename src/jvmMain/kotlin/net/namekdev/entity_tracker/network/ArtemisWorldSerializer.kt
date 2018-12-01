@@ -23,7 +23,7 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
  *
  * @author Namek
  */
-class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener {
+class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener<BitVector> {
     private lateinit var _worldController: WorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 

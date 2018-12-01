@@ -10,7 +10,7 @@ import net.namekdev.entity_tracker.utils.AutoSizedArray
 
 /**
  * Communicator used by UI (client).
-
+ *
  * @author Namek
  */
 class ExternalInterfaceCommunicator(
