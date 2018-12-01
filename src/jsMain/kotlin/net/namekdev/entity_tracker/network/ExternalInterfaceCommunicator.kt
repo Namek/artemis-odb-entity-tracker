@@ -1,4 +1,4 @@
-package net.namekdev.entity_tracker.network.communicator
+package net.namekdev.entity_tracker.network
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 
@@ -6,18 +6,26 @@ import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
+import net.namekdev.entity_tracker.network.communicator.Communicator
 import net.namekdev.entity_tracker.utils.AutoSizedArray
+import net.namekdev.entity_tracker.utils.CommonBitVector
+import net.namekdev.entity_tracker.utils.serialization.ClientNetworkDeserializer
+import net.namekdev.entity_tracker.utils.serialization.ClientNetworkSerializer
 
 /**
- * Communicator used by UI (client).
+ * Used by UI (client).
  *
  * @author Namek
  */
 class ExternalInterfaceCommunicator(
-    private val _listener: WorldUpdateInterfaceListener
+    private val _listener: WorldUpdateInterfaceListener<CommonBitVector>
 ) : Communicator(), WorldController {
     //	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
+
+    private val _serializer = ClientNetworkSerializer()
+    private val _deserializer = ClientNetworkDeserializer()
+
 
     override fun connected(identifier: String, output: RawConnectionOutputListener) {
         super.connected(identifier, output)
@@ -83,6 +91,15 @@ class ExternalInterfaceCommunicator(
 
             else -> throw RuntimeException("Unknown packet type: " + packetType.toInt())
         }
+    }
+
+    private fun send(serializer: ClientNetworkSerializer) {
+        val data = serializer.result
+        _output.send(data.buffer, 0, data.size)
+    }
+
+    private fun beginPacket(packetType: Byte): ClientNetworkSerializer {
+        return _serializer.reset().addRawByte(packetType)
     }
 
     override fun setSystemState(name: String, isOn: Boolean) {

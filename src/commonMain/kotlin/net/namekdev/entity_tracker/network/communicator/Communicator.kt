@@ -12,9 +12,6 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
  */
 abstract class Communicator : RawConnectionCommunicator {
     protected lateinit var _output: RawConnectionOutputListener
-    protected val _serializer = NetworkSerialization.createSerializer()
-    protected val _deserializer = NetworkSerialization.createDeserializer()
-
 
     override fun connected(identifier: String, output: RawConnectionOutputListener) {
         _output = output
@@ -22,14 +19,6 @@ abstract class Communicator : RawConnectionCommunicator {
 
     override fun disconnected() {}
 
-    protected fun send(serializer: NetworkSerializer) {
-        val data = serializer.result
-        _output.send(data.buffer, 0, data.size)
-    }
-
-    protected fun beginPacket(packetType: Byte): NetworkSerializer {
-        return _serializer.reset().addRawByte(packetType)
-    }
 
     companion object {
 

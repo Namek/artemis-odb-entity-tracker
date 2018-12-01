@@ -6,6 +6,8 @@ import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.AutoSizedArray
+import net.namekdev.entity_tracker.utils.serialization.JvmDeserializer
+import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
 
 /**
  * Deserializes data from network and serializes data sent to the network.
@@ -18,6 +20,9 @@ import net.namekdev.entity_tracker.utils.AutoSizedArray
 open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVector> {
     private lateinit var _worldController: WorldController
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
+
+    private val _serializer = JvmSerializer()
+    private val _deserializer = JvmDeserializer()
 
 
     override fun bytesReceived(bytes: ByteArray, offset: Int, length: Int) {
@@ -59,6 +64,15 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVe
         _worldController = controller
     }
 
+
+    private fun send(serializer: JvmSerializer) {
+        val data = serializer.result
+        _output.send(data.buffer, 0, data.size)
+    }
+
+    private fun beginPacket(packetType: Byte): JvmSerializer {
+        return _serializer.reset().addRawByte(packetType)
+    }
 
     override val listeningBitset: Int
         get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
