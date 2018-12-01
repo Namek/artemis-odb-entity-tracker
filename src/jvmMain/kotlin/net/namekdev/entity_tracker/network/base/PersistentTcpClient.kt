@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker.network.base
 
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+
 
 /**
  * Client that automatically reconnects.

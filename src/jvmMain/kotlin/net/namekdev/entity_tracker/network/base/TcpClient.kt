@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker.network.base
 
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionOutputListener
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream

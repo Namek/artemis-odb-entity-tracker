@@ -5,8 +5,6 @@ import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.network.communicator.Communicator
 import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.CommonBitVector
 import net.namekdev.entity_tracker.utils.serialization.ClientNetworkDeserializer

@@ -5,6 +5,8 @@ import java.net.ServerSocket
 import java.net.Socket
 
 import com.artemis.utils.Bag
+import net.namekdev.entity_tracker.network.IServer
+import net.namekdev.entity_tracker.network.RawConnectionCommunicatorProvider
 
 /**
  * Multi-threaded multi-client server.

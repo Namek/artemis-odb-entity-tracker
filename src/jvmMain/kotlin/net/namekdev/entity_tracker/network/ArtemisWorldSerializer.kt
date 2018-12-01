@@ -9,11 +9,11 @@ import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.model.AspectInfo
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.network.base.IServer
-import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator
-import net.namekdev.entity_tracker.network.base.RawConnectionCommunicatorProvider
-import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.network.communicator.EntityTrackerCommunicator
+import net.namekdev.entity_tracker.network.IServer
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionCommunicatorProvider
+import net.namekdev.entity_tracker.network.RawConnectionOutputListener
+import net.namekdev.entity_tracker.network.EntityTrackerCommunicator
 import net.namekdev.entity_tracker.utils.tuple.Tuple3
 
 

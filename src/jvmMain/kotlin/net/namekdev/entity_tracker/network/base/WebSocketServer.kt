@@ -1,6 +1,10 @@
 package net.namekdev.entity_tracker.network.base
 
 import com.artemis.utils.Bag
+import net.namekdev.entity_tracker.network.IServer
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionCommunicatorProvider
+import net.namekdev.entity_tracker.network.RawConnectionOutputListener
 import org.webbitserver.WebServer
 import org.webbitserver.WebServers
 import org.webbitserver.WebSocketConnection

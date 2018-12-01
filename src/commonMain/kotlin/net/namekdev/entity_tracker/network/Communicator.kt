@@ -1,9 +1,4 @@
-package net.namekdev.entity_tracker.network.communicator
-
-import net.namekdev.entity_tracker.network.base.RawConnectionCommunicator
-import net.namekdev.entity_tracker.network.base.RawConnectionOutputListener
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerializer
+package net.namekdev.entity_tracker.network
 
 /**
  * Defines basics of network protocol for communication between EntityTracker Manager and external UI.

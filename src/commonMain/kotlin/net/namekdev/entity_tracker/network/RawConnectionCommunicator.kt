@@ -1,4 +1,4 @@
-package net.namekdev.entity_tracker.network.base
+package net.namekdev.entity_tracker.network
 
 interface RawConnectionCommunicator {
     fun connected(identifier: String, output: RawConnectionOutputListener)

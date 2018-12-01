@@ -1,4 +1,4 @@
-package net.namekdev.entity_tracker.network.communicator
+package net.namekdev.entity_tracker.network
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import com.artemis.utils.BitVector
