@@ -10,7 +10,7 @@ import kotlin.reflect.KClass
 
 class ObjectTypeInspector {
     private val registeredModels = ArrayList<RegisteredModel>()
-    private var lastId = 0
+    private var nextId = 0
 
     private val registeredModelsAsCollection = object : ObjectModelsCollection {
 
@@ -80,10 +80,15 @@ class ObjectTypeInspector {
         val dataType = determineType(type).first
         assert(dataType == DataType.Unknown || dataType == DataType.Enum)
 
-        return inspectLevels(type, null, null, null)
+        val model = inspectLevels(type, null, null, null)
+        return model
     }
 
-    private fun inspectLevels(type: Class<*>, parentType: Class<*>?, parentOfRoot: ObjectModelNode?, parentRegisteredModel: RegisteredModel?): ObjectModelNode {
+    private fun inspectLevels(
+        type: Class<*>, parentType: Class<*>?, parentOfRoot: ObjectModelNode?, parentRegisteredModel: RegisteredModel?,
+        deferredOpsForModelIds: MutableMap<Int, MutableList<() -> Unit>> = mutableMapOf(),
+        visitingModelIds: MutableList<Int> = mutableListOf()): ObjectModelNode
+    {
         var registeredModel = findModel(type, parentType, parentOfRoot)
 
         if (registeredModel != null) {
@@ -96,8 +101,10 @@ class ObjectTypeInspector {
             val fields = ReflectionUtils.getDeclaredFields(type)
                 .filter { !it.name.startsWith("this$") } // cover hidden field in non-static inner class
 
-            val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, /* TODO: it was: root*/ null)
+            val model = ObjectModelNode(registeredModelsAsCollection, ++nextId, /* TODO: it was: root*/ null)
             model.dataType = DataType.Object
+
+            visitingModelIds.add(model.id)
 
             registeredModel = rememberType(type, parentType, model, parentRegisteredModel)
             root = registeredModel.model
@@ -118,14 +125,23 @@ class ObjectTypeInspector {
                         val registeredChildModel = findModel(fieldType, type, root)
 
                         if (registeredChildModel == null) {
-                            child = inspectLevels(fieldType, type, root, registeredModel)
+                            child = inspectLevels(fieldType, type, root, registeredModel, deferredOpsForModelIds, visitingModelIds)
                         }
                         else {
-                            child = ObjectModelNode(registeredModelsAsCollection, 0, root).copyFrom(
-                                registeredChildModel.model
-                            )
-                            child.id = ++lastId
-                            child.name = null
+                            // model.children is not initialized yet but some ascendant here wants to copy it right here... so defer it!
+                            child = ObjectModelNode(registeredModelsAsCollection, 0, root)
+
+                            val closuredChild = child
+                            val closuredId = ++nextId
+                            val closuredName = field.name
+                            child.id = closuredId
+
+                            val ops = deferredOpsForModelIds.getOrPut(registeredChildModel.model.id) { mutableListOf() }
+                            ops.add {
+                                closuredChild.copyFrom(registeredChildModel.model)
+                                closuredChild.id = closuredId
+                                closuredChild.name = closuredName
+                            }
 
                             rememberType(fieldType, type, root, registeredModel)
                         }
@@ -134,18 +150,27 @@ class ObjectTypeInspector {
                         child = inspectEnum(fieldType as Class<Enum<*>>, type, registeredModel)
                     }
                     else {
-                        child = ObjectModelNode(registeredModelsAsCollection, ++lastId, root)
+                        child = ObjectModelNode(registeredModelsAsCollection, ++nextId, root)
                         child.dataType = dataType
                         child.isTypePrimitive = isTypePrimitive
                     }
                 }
 
                 // Every object field has is a unique model
-                // so make sure we have a new model here! Then give it a name.
+                // so make sure we have a new model made just right here! Then give it a name.
                 assert(child.name == null)
                 child.name = field.name
 
                 child
+            }
+
+            assert(model.id == visitingModelIds.removeAt(visitingModelIds.lastIndex))
+            for ((id, ops) in deferredOpsForModelIds) {
+                if (!visitingModelIds.contains(id)) {
+                    ops.forEach { it() }
+                    ops.clear()
+                }
+
             }
 
             return model
@@ -156,7 +181,7 @@ class ObjectTypeInspector {
     }
 
     private fun inspectArrayType(fieldType: Class<*>, parentType: Class<*>?, parentRegisteredModel: RegisteredModel?): ObjectModelNode {
-        val model = ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel?.model)
+        val model = ObjectModelNode(registeredModelsAsCollection, ++nextId, parentRegisteredModel?.model)
         val registeredModel = rememberType(fieldType, parentType, model, parentRegisteredModel)
 
         val arrayElType = fieldType.componentType
@@ -195,7 +220,7 @@ class ObjectTypeInspector {
         var registeredEnumTypeModel = findModel(enumType, null, null)
 
         if (registeredEnumTypeModel == null) {
-            val enumTypeModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, null)
+            val enumTypeModel = ObjectModelNode(registeredModelsAsCollection, ++nextId, null)
             enumTypeModel.dataType = DataType.EnumDescription
             enumTypeModel.name = enumType.simpleName
 
@@ -204,7 +229,7 @@ class ObjectTypeInspector {
 
             enumTypeModel.children = Array<ObjectModelNode>(possibleValues.size) {i ->
                 val value = possibleValues[i]
-                val enumValueModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, enumTypeModel)
+                val enumValueModel = ObjectModelNode(registeredModelsAsCollection, ++nextId, enumTypeModel)
                 enumValueModel.dataType = DataType.EnumValue
                 enumValueModel.enumValue = value.ordinal
                 enumValueModel.name = value.name
@@ -214,7 +239,7 @@ class ObjectTypeInspector {
             }
         }
 
-        val enumFieldModel = ObjectModelNode(registeredModelsAsCollection, ++lastId, parentRegisteredModel.model)
+        val enumFieldModel = ObjectModelNode(registeredModelsAsCollection, ++nextId, parentRegisteredModel.model)
         enumFieldModel.dataType = DataType.Enum
         enumFieldModel.children = arrayOf(registeredEnumTypeModel.model)
 

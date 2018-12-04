@@ -21,7 +21,7 @@ public class OuterClass {
                 boolean d = false;
 
                 EvenMoreInnerClass() {
-                    // at this point `a`, `b` and `c` are null because there's still not constructed
+                    // at this point `a`, `b` and `c` are null because they're still not constructed
                 }
 
                 void mutate(OuterClass _a) {

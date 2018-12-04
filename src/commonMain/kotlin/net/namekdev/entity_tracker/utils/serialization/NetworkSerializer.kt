@@ -238,10 +238,10 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
 
     fun addDataDescriptionOrRef(model: ObjectModelNode): Self {
         if (!_modelsMarkedAsSent.contains(model.id)) {
+            _modelsMarkedAsSent.add(model.id)
+
             addType(DataType.Description)
             addRawDataDescription(model)
-
-            _modelsMarkedAsSent.add(model.id)
         }
         else {
             addType(DataType.DescriptionRef)
