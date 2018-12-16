@@ -1,6 +1,14 @@
 package net.namekdev.entity_tracker
 
+import net.namekdev.entity_tracker.connectors.WorldController
+import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_ADDED
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_DELETED
+import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
+import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.column
 import net.namekdev.entity_tracker.ui.row
 import net.namekdev.entity_tracker.utils.CommonBitVector
@@ -49,7 +57,7 @@ class EntityTableModel {
     }
 }
 
-class Main(container: HTMLElement) {
+class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVector> {
     val patch = Snabbdom.init(
         arrayOf(
             ClassModule(),
@@ -65,15 +73,16 @@ class Main(container: HTMLElement) {
     var demoStep = 0
     val entities = EntityTableModel()
 
-
+    var worldController: WorldController? = null
+    var client: WebSocketClient? = null
 
     init {
-        var i = 0
-        for (col in arrayOf("Position", "Velocity", "Orientation"))
-            entities.setComponentType(i++, ComponentTypeInfo(col))
-
-        for (i in 1..10)
-            entities.addEntity(i, CommonBitVector(longArrayOf(7)))
+//        var i = 0
+//        for (col in arrayOf("Position", "Velocity", "Orientation"))
+//            entities.setComponentType(i++, ComponentTypeInfo(col))
+//
+//        for (i in 1..10)
+//            entities.addEntity(i, CommonBitVector(longArrayOf(7)))
 
         lastVnode = patch(container, view())
 
@@ -83,7 +92,74 @@ class Main(container: HTMLElement) {
 //                update()
 //            }, 50)
         }
+//        update()
+
+        client = WebSocketClient(ExternalInterfaceCommunicator(this))
+        client!!.connect("ws://localhost:8025/actions")
+    }
+
+    override fun disconnected() {
+        entities.clear()
+    }
+
+    override fun injectWorldController(controller: WorldController) {
+        worldController = controller
+    }
+
+    override val listeningBitset: Int
+        get() = ENTITY_ADDED or ENTITY_DELETED or ENTITY_SYSTEM_STATS
+
+    override fun addedSystem(
+        index: Int,
+        name: String,
+        allTypes: CommonBitVector?,
+        oneTypes: CommonBitVector?,
+        notTypes: CommonBitVector?
+    ) {
+        val hasAspect = allTypes != null || oneTypes != null || notTypes != null
+
+//        baseSystemsTableModel!!.setSystem(index, name)
+
+        if (hasAspect) {
+//            entitySystemsTableModel!!.setSystem(index, name)
+        }
         update()
+    }
+
+    override fun addedManager(name: String) {
+        //  managersTableModel!!.addManager(name)
+        update()
+    }
+
+    override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
+        entities.setComponentType(index, info)
+        update()
+    }
+
+    override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
+//        entitySystemsTableModel!!.updateSystem(systemIndex, entitiesCount, maxEntitiesCount)
+        update()
+    }
+
+    override fun addedEntity(entityId: Int, components: CommonBitVector) {
+        entities.addEntity(entityId, components)
+        update()
+    }
+
+    override fun deletedEntity(entityId: Int) {
+        entities.removeEntity(entityId)
+        update()
+    }
+
+
+    override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
+        //         context.eventBus.updatedComponentState(entityId, componentIndex, valueTree)
+        update()
+    }
+
+    fun update() {
+        lastVnode = patch(lastVnode, view())
+        console.log("update")
     }
 
     fun view() =
@@ -116,13 +192,11 @@ class Main(container: HTMLElement) {
     fun viewEntitiesFilters() =
         row(arrayOf(h("span", "TODO filters here?")))
 
-    fun viewSystems(): VNode {
-        TODO()
-    }
+    fun viewSystems(): VNode =
+        h("div", "systems")
 
-    fun viewCurrentEntity(): VNode {
-        TODO()
-    }
+    fun viewCurrentEntity(): VNode =
+        h("div", "current entity")
 
 
     fun demoClicked(){

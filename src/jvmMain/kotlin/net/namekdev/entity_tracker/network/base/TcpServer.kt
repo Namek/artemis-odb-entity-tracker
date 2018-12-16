@@ -29,7 +29,7 @@ class TcpServer : IServer {
         this.listeningPort = listeningPort
     }
 
-    override fun setCommunicator(communicatorProvider: RawConnectionCommunicatorProvider) {
+    override fun setClientCommunicatorProvider(communicatorProvider: RawConnectionCommunicatorProvider) {
         clientListenerProvider = communicatorProvider
     }
 

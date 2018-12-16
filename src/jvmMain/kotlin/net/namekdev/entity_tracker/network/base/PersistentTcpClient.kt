@@ -5,7 +5,7 @@ import net.namekdev.entity_tracker.network.RawConnectionCommunicator
 
 /**
  * Client that automatically reconnects.
-
+ *
  * @author Namek
  */
 class PersistentTcpClient(connectionListener: RawConnectionCommunicator) : TcpClient() {

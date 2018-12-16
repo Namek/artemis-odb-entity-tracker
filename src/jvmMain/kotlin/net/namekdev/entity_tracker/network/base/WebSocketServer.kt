@@ -20,7 +20,7 @@ class WebSocketServer(val listeningPort: Int = 8025) : IServer() {
     private var _clientCounter = 0
 
 
-    override fun setCommunicator(communicatorProvider: RawConnectionCommunicatorProvider) {
+    override fun setClientCommunicatorProvider(communicatorProvider: RawConnectionCommunicatorProvider) {
         _clientListenerProvider = communicatorProvider
     }
 

@@ -6,7 +6,7 @@ import net.namekdev.entity_tracker.network.base.TcpServer
 object SocketTest {
     @JvmStatic fun main(args: Array<String>) {
         val server = TcpServer()
-        server.setCommunicator(object : RawConnectionCommunicatorProvider {
+        server.setClientCommunicatorProvider(object : RawConnectionCommunicatorProvider {
             override fun getListener(remoteName: String): RawConnectionCommunicator {
                 return object : RawConnectionCommunicator {
 
