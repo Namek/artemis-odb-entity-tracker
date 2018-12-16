@@ -9,10 +9,10 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTI
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
 import net.namekdev.entity_tracker.network.WebSocketClient
-import net.namekdev.entity_tracker.ui.column
-import net.namekdev.entity_tracker.ui.row
+import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.utils.CommonBitVector
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.get
 import snabbdom.modules.*
 import snabbdom.*
 import kotlin.browser.document
@@ -21,7 +21,19 @@ import kotlin.browser.window
 
 fun main(args: Array<String>) {
     window.onload = {
-        Main(document.body!!)
+        val style = document.createElement("style")
+        style.asDynamic().type = "text/css"
+        style.innerHTML = globalStylesheet
+        document.getElementsByTagName("head")[0]!!.appendChild(style)
+
+        val root = document.createElement("div") as HTMLElement
+        root.classList.add("$any")
+        root.classList.add("root")
+        document.body!!.appendChild(root)
+        val container = document.createElement("div") as HTMLElement
+        root.appendChild(container)
+
+        Main(container)
     }
 }
 
@@ -164,6 +176,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
     fun view() =
         column(
+            Flag.widthFill, // TODO this is ignored, we need to implement `div` function as in elm-ui
             viewEntitiesTable(),
             viewEntitiesFilters(),
             row(viewSystems(), viewCurrentEntity())

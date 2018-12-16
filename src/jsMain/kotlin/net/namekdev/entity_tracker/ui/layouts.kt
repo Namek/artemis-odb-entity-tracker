@@ -16,7 +16,7 @@ fun row(vararg nodes: VNode): VNode =
     row(uiFlags = 0, nodes = *nodes)
 
 fun row(uiFlags: Int, vararg nodes: VNode): VNode {
-    val html = h("div", *nodes)
+    val html = h("div.$row", *nodes)
 
     return if (uiFlags and Flag.widthFill != 0 && uiFlags and Flag.widthBetween == 0) {
         html
@@ -38,7 +38,7 @@ fun column(vararg nodes: VNode): VNode =
     column(0, *nodes)
 
 fun column(uiFlags: Int, vararg nodes: VNode): VNode {
-    val html = h("div", arrayOf(*nodes))
+    val html = h("div.$column", arrayOf(*nodes))
 
     return when {
         uiFlags and Flag.heightFill != 0 && uiFlags and Flag.heightBetween == 0 ->
@@ -155,7 +155,7 @@ fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<St
 }
 
 fun rule(content: String, indiv: String): Pair<String, String> =
-    Pair("{ $content }", "{ $indiv }")
+    Pair(" { $content } ", " { $indiv } ")
 
 
 fun describeAlignments_column(parentDescriptor: String): String =
