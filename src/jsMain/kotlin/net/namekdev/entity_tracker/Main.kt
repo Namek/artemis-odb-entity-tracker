@@ -2,7 +2,6 @@ package net.namekdev.entity_tracker
 
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_ADDED
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_DELETED
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
@@ -10,6 +9,7 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
 import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
+import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.CommonBitVector
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
@@ -26,12 +26,13 @@ fun main(args: Array<String>) {
         style.innerHTML = globalStylesheet
         document.getElementsByTagName("head")[0]!!.appendChild(style)
 
-        val root = document.createElement("div") as HTMLElement
-        root.classList.add("$any")
-        root.classList.add("root")
-        document.body!!.appendChild(root)
+        val rootEl = document.createElement("div") as HTMLElement
+        rootEl.classList.add(Classes.root)
+        rootEl.classList.add(Classes.any)
+        rootEl.classList.add(Classes.single)
+        document.body!!.appendChild(rootEl)
         val container = document.createElement("div") as HTMLElement
-        root.appendChild(container)
+        rootEl.appendChild(container)
 
         Main(container)
     }
@@ -175,20 +176,19 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun view() =
-        column(
-            Flag.widthFill, // TODO this is ignored, we need to implement `div` function as in elm-ui
+        column(arrayOf(width(fill)),
             viewEntitiesTable(),
             viewEntitiesFilters(),
-            row(viewSystems(), viewCurrentEntity())
+            row(arrayOf(width(fill)),
+                viewSystems(),
+                viewCurrentEntity())
         )
 
 
     fun viewEntitiesTable(): VNode {
         val idCol = h("th", "entity id")
-
         val componentCols = entities.componentTypes.map { h("th", it.name) }.toTypedArray()
-
-        val entitiesData: Array<VNode> = entities.entityComponents.map { (entityId, components) ->
+        val entitiesDataRows: Array<VNode> = entities.entityComponents.map { (entityId, components) ->
             val entityComponents = entities.componentTypes.indices.map { cmpIndex ->
                 h("td", if (components[cmpIndex]) "x" else "")
             }.toTypedArray()
@@ -196,17 +196,15 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             h("tr", arrayOf(h("td", entityId.toString()), *entityComponents))
         }.toTypedArray()
 
-
-        return h("table.entities",
-            arrayOf(h("tr", arrayOf(idCol, *componentCols)), *entitiesData)
-        )
+        val headerAndRows = arrayOf(h("tr", arrayOf(idCol, *componentCols)), *entitiesDataRows)
+        return el("table", attrs = arrayOf(width(fill)), nodes = headerAndRows)
     }
 
     fun viewEntitiesFilters() =
         row(arrayOf(h("span", "TODO filters here?")))
 
     fun viewSystems(): VNode =
-        h("div", "systems")
+        text("systems")
 
     fun viewCurrentEntity(): VNode =
         h("div", "current entity")
@@ -233,7 +231,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                 ))
 
             else ->
-                h_("div#container.two.classes", arrayOf(
+                h_("div#container.two.Classes", arrayOf(
                     h("span", VNodeData(style = j("fontWeight" to "normal")), "This is normal"),
                     " and this is just normal text",
                     h("a", VNodeData(props = j("href" to "/foo")), "I\"ll take you places!")

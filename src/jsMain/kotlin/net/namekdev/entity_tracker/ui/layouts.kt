@@ -5,59 +5,229 @@ package net.namekdev.entity_tracker.ui
 
 import snabbdom.VNode
 import snabbdom.h
+import net.namekdev.entity_tracker.ui.Attribute.*
+import net.namekdev.entity_tracker.ui.LayoutContext.*
+import org.w3c.dom.Attr
 
 fun row(nodes: Array<VNode>): VNode =
-    row(0, *nodes)
+    row(arrayOf(), *nodes)
 
-fun row(uiFlags: Int, nodes: Array<VNode>): VNode =
-    row(uiFlags, *nodes)
+fun row(attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+    row(attrs, *nodes)
 
-fun row(vararg nodes: VNode): VNode =
-    row(uiFlags = 0, nodes = *nodes)
+fun row(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
+    element(LayoutContext.AsRow, Generic,
+        arrayOf(
+            Attribute.Class(0, "${Classes.contentLeft} ${Classes.contentCenterY}"),
+            Attribute.Width.Content, Attribute.Height.Content
+        ) + attrs,
+        *nodes
+    )
 
-fun row(uiFlags: Int, vararg nodes: VNode): VNode {
-    val html = h("div.$row", *nodes)
-
-    return if (uiFlags and Flag.widthFill != 0 && uiFlags and Flag.widthBetween == 0) {
-        html
-    } else if (uiFlags and Flag.alignRight != 0) {
-        h("u.$any.$single.$container.$contentCenterY.$alignContainerRight", arrayOf(html))
-    } else if (uiFlags and Flag.centerX != 0) {
-        h("s.$any.$single.$container.$contentCenterY.$alignContainerCenterX", arrayOf(html))
-    } else html
-}
-
-
-fun column(uiFlags: Int, nodes: Array<VNode>): VNode =
-    column(uiFlags, *nodes)
+// TODO fun wrappedRow
 
 fun column(nodes: Array<VNode>): VNode =
-    column(uiFlags = 0, nodes = *nodes)
+    column(arrayOf(), *nodes)
 
-fun column(vararg nodes: VNode): VNode =
-    column(0, *nodes)
+fun column(attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+    column(attrs, *nodes)
 
-fun column(uiFlags: Int, vararg nodes: VNode): VNode {
-    val html = h("div.$column", arrayOf(*nodes))
+fun column(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
+    element(LayoutContext.AsColumn, Generic,
+        arrayOf(
+            Attribute.Class(0, "${Classes.contentTop} ${Classes.contentLeft}"),
+            Attribute.Width.Content, Attribute.Height.Content
+        ) + attrs,
+        *nodes
+    )
 
-    return when {
-        uiFlags and Flag.heightFill != 0 && uiFlags and Flag.heightBetween == 0 ->
-            html
 
-        uiFlags and Flag.centerY != 0 ->
-            h("s.$any.$single.$container.$alignContainerCenterY", html)
+fun el(tag: String, attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+    element(AsEl, ANodeName(tag), attrs, *nodes)
 
-        uiFlags and Flag.alignBottom != 0 ->
-            h("u.$any.$single.$container.$alignContainerBottom", html)
+fun el(tag: String, vararg nodes: VNode): VNode =
+    element(AsEl, ANodeName(tag), null, *nodes)
 
-        else -> html
+fun text(txt: String): VNode =
+    h("span", txt)
+
+private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Attribute>? = null, vararg nodes: VNode): VNode {
+    var classes = '.' + contextClasses(context).split(' ').joinToString(".")
+    var uiFlags = 0
+
+    if (attrs != null) {
+        for (i in attrs.size-1 .. 0) {
+            val attr = attrs[i]
+            val r: SizingRender? = when(attr) {
+                is Width ->
+                    if (uiFlags and Flag.width == 0)
+                        renderWidth(attr)
+                    else null
+
+                is Height ->
+                    if (uiFlags and Flag.height == 0)
+                        renderHeight(attr)
+                    else null
+
+                is Class -> {
+                    if (uiFlags and attr.flag == 0)
+                        SizingRender(attr.flag, attr.exactClassName)
+                    else null
+                }
+
+                is StyleClass -> {
+                    if (uiFlags and attr.flag == 0)
+                        SizingRender(attr.flag, getStyleName(attr.style), arrayOf(attr.style))
+                    else null
+                }
+            }
+
+            if (r != null) {
+                classes += '.' + r.classes.split(' ').joinToString(".")
+                uiFlags = uiFlags or r.flags
+
+                // TODO do something with styles
+                //r.styles
+            }
+        }
     }
+
+    // TODO put styles into VNodeData
+    val tag = when(nodeName) {
+        Generic -> "div"
+        else -> nodeName.nodeName
+    }
+    var html = h("$tag.$classes", *nodes)
+
+    when(context) {
+        AsColumn -> {
+            html = when {
+                uiFlags and Flag.heightFill != 0 && uiFlags and Flag.heightBetween == 0 ->
+                    html
+
+                uiFlags and Flag.centerY != 0 ->
+                    h("s.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerCenterY}", html)
+
+                uiFlags and Flag.alignBottom != 0 ->
+                    h("u.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerBottom}", html)
+
+                else -> html
+            }
+        }
+
+        AsRow -> {
+            html =
+                if (uiFlags and Flag.widthFill != 0 && uiFlags and Flag.widthBetween == 0) {
+                    html
+                }
+                else if (uiFlags and Flag.alignRight != 0) {
+                    h("u.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.contentCenterY}.${Classes.alignContainerRight}", arrayOf(html))
+                }
+                else if (uiFlags and Flag.centerX != 0) {
+                    h("s.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.contentCenterY}.${Classes.alignContainerCenterX}", arrayOf(html))
+                }
+                else html
+        }
+    }
+
+    return html
 }
 
+fun width(length: Length): Attribute.Width =
+    when(length) {
+        is Length.Px ->
+            Attribute.Width.Px(length.px)
+        is Length.Fill ->
+            Attribute.Width.Fill(length.portion)
+        is Length.Content ->
+            Attribute.Width.Content
+        is Length.Min ->
+            TODO()
+        is Length.Max ->
+            TODO()
+    }
 
+fun height(length: Length): Attribute.Height =
+    when(length) {
+        is Length.Px ->
+            Attribute.Height.Px(length.px)
+        is Length.Fill ->
+            Attribute.Height.Fill(length.portion)
+        is Length.Content ->
+            Attribute.Height.Content
+        is Length.Min ->
+            TODO()
+        is Length.Max ->
+            TODO()
+    }
 
+val fill = Length.Fill(1)
+val shrink = Length.Content
+fun min(length: Length) = Length.Min(length)
+fun max(length: Length) = Length.Max(length)
 
-object Flag {
+val widthFill = Attribute.Width.Fill(1)
+val widthShrink = Attribute.Width.Content
+val heightFill = Attribute.Height.Fill(1)
+val heightShrink = Attribute.Height.Content
+
+// note that the internal flag is 0 so it can be easily overwritten by element()
+fun style(prop: String, value: String) = Attribute.StyleClass(0, AStyle(prop, arrayOf(prop to value)))
+
+private fun renderWidth(w: Attribute.Width): SizingRender =
+    when (w) {
+        is Width.Px ->
+            SizingRender(Flag.width, Classes.widthExact + " width-px-${w.px}",
+                arrayOf(Single("width-px-${w.px}", "width", "${w.px}px")))
+
+        is Width.Content ->
+            SizingRender(Flag.width or Flag.widthContent, Classes.widthContent)
+
+        is Width.Fill ->
+            if (w.portion == 1) {
+                SizingRender(Flag.width or Flag.widthFill, Classes.widthFill)
+            }
+            else {
+                SizingRender(Flag.width or Flag.widthFill, "${Classes.widthFillPortion} width-fill-${w.portion}",
+                    arrayOf(Single("${Classes.any}.${Classes.row} > .width-fill-${w.portion}", "flex-grow", (w.portion * 100_000).toString())))
+            }
+
+        is Width.Min -> TODO()
+        is Width.Max -> TODO()
+    }
+
+private fun renderHeight(h: Height): SizingRender =
+    when (h) {
+        is Height.Px -> {
+            val name = "height-px-${h.px}"
+            SizingRender(Flag.height, name, arrayOf(Single(name, "height", "${h.px}px")))
+        }
+
+        is Height.Content ->
+            SizingRender(Flag.height or Flag.heightContent, Classes.heightContent)
+
+        is Height.Fill ->
+            if (h.portion == 1) {
+                SizingRender(Flag.height or Flag.heightFill, Classes.heightFill)
+            }
+            else {
+                SizingRender(Flag.height or Flag.heightFill, "${Classes.heightFillPortion} height-fill-${h.portion}",
+                    arrayOf(Single("${Classes.any}.${Classes.row} > .height-fill-${h.portion}", "flex-grow", (h.portion * 100_000).toString())))
+            }
+
+        is Height.Min -> TODO()
+        is Height.Max -> TODO()
+    }
+
+private fun getStyleName(style: Style): String =
+    when(style) {
+        is AStyle -> style.prop
+        is Single -> style.klass
+        is SpacingStyle -> style.cls
+        is PaddingStyle -> style.cls
+    }
+
+private object Flag {
     const val heightFill = 1 shl 0
     const val heightBetween = 1 shl 1
     const val centerY = 1 shl 2
@@ -68,73 +238,103 @@ object Flag {
     const val widthBetween = 1 shl 7
     const val alignRight = 1 shl 8
     const val alignLeft = 1 shl 9
+    const val width = 1 shl 10
+    const val height = 1 shl 11
+    const val widthContent = 1 shl 12
+    const val heightContent = 1 shl 13
+    const val contentLeft = 1 shl 14
+    const val contentTop = 1 shl 14
 }
 
+enum class LayoutContext {
+    AsRow,
+    AsColumn,
+    AsEl,
+    //    AsGrid,
+    AsParagraph,
+//    AsTextColumn //page
+}
 
-val alignContainerRight = "acr"
-val alignContainerBottom = "acb"
-val alignContainerCenterX = "accx"
-val alignContainerCenterY = "accy"
-val alignCenterX = "acx"
-val alignCenterY = "acy"
-val alignTop = "atop"
-val alignBottom = "abottom"
-val alignRight = "ar"
-val alignLeft = "al"
-val contentCenterX = "ccx"
-val contentCenterY = "ccy"
-val contentTop = "ct"
-val contentBottom = "cb"
-val contentRight = "cr"
-val contentLeft = "cl"
-val container = "c"
-val single = "s"
-val any = "a"
-val wrapped = "w"
-val row = "row"
-val column = "col"
-val paragraph = "par"
-val widthExact = "we"
-val heightContent = "hc"
-val heightFill = "hf"
-val heightFillPortion = "hfp"
-val widthFill = "wf"
-val widthFillPortion = "wfp"
-val widthContent = "wc"
-val spaceEvenly = "se"
-val imageContainer = "ic"
-val root = "root"
-val borderNone = "bn"
-val textJustify = "tj"
-val textJustifyAll = "tja"
-val textCenter = "tc"
-val textRight = "tr"
-val textLeft = "tl"
-val hidden = "hidden"
-val text = "txt"
+private sealed class NodeName(val nodeName: String)
+private class ANodeName(nodeName: String) : NodeName(nodeName)
+private object Generic : NodeName("div")
+//private class Embedded(nodeName: String, val internal: String) : NodeName(nodeName)
 
-enum class Alignment {
-    Top, Bottom, Right, Left, CenterX, CenterY
+private fun contextClasses(context: LayoutContext): String =
+    when (context) {
+        AsRow -> "${Classes.any} ${Classes.row}"
+        AsColumn -> "${Classes.any} ${Classes.column}"
+        AsEl -> "${Classes.any} ${Classes.single}"
+//        AsGrid -> "${Classes.any} $grid"
+        AsParagraph -> "${Classes.any} ${Classes.paragraph}"
+//        AsTextColumn -> "${Classes.any} $page"
+    }
+
+object Classes {
+    const val alignContainerRight = "acr"
+    const val alignContainerBottom = "acb"
+    const val alignContainerCenterX = "accx"
+    const val alignContainerCenterY = "accy"
+    const val alignCenterX = "acx"
+    const val alignCenterY = "acy"
+    const val alignTop = "atop"
+    const val alignBottom = "abottom"
+    const val alignRight = "ar"
+    const val alignLeft = "al"
+    const val contentCenterX = "ccx"
+    const val contentCenterY = "ccy"
+    const val contentTop = "ct"
+    const val contentBottom = "cb"
+    const val contentRight = "cr"
+    const val contentLeft = "cl"
+    const val container = "c"
+    const val single = "s"
+    const val any = "any"
+    const val wrapped = "w"
+    const val row = "row"
+    const val column = "col"
+    const val paragraph = "par"
+    const val widthExact = "we"
+    const val heightContent = "hc"
+    const val heightFill = "hf"
+    const val heightFillPortion = "hfp"
+    const val widthFill = "wf"
+    const val widthFillPortion = "wfp"
+    const val widthContent = "wc"
+    const val spaceEvenly = "se"
+    const val imageContainer = "ic"
+    const val root = "root"
+    const val borderNone = "bn"
+    const val textJustify = "tj"
+    const val textJustifyAll = "tja"
+    const val textCenter = "tc"
+    const val textRight = "tr"
+    const val textLeft = "tl"
+    const val hidden = "hidden"
+    const val text = "txt"
+    const val noTextSelection = "nts"
+    const val cursorPointer = "cptr"
+    const val cursorText = "ctxt"
 }
 
 fun selfName(alignment: Alignment): String =
     when (alignment) {
-        Alignment.Top -> alignTop
-        Alignment.Bottom -> alignBottom
-        Alignment.Right -> alignRight
-        Alignment.Left -> alignLeft
-        Alignment.CenterX -> alignCenterX
-        Alignment.CenterY -> alignCenterY
+        Alignment.Top -> Classes.alignTop
+        Alignment.Bottom -> Classes.alignBottom
+        Alignment.Right -> Classes.alignRight
+        Alignment.Left -> Classes.alignLeft
+        Alignment.CenterX -> Classes.alignCenterX
+        Alignment.CenterY -> Classes.alignCenterY
     }
 
 fun contentName(alignment: Alignment): String =
     when (alignment) {
-        Alignment.Top -> contentTop
-        Alignment.Bottom -> contentBottom
-        Alignment.Right -> contentRight
-        Alignment.Left -> contentLeft
-        Alignment.CenterX -> contentCenterX
-        Alignment.CenterY -> contentCenterY
+        Alignment.Top -> Classes.contentTop
+        Alignment.Bottom -> Classes.contentBottom
+        Alignment.Right -> Classes.contentRight
+        Alignment.Left -> Classes.contentLeft
+        Alignment.CenterX -> Classes.contentCenterX
+        Alignment.CenterY -> Classes.contentCenterY
     }
 
 fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<String, String>)): String {
@@ -146,7 +346,7 @@ fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<St
             $parentDescriptor .${contentName(alignment)}
                 $content
 
-            $parentDescriptor > .$any .${selfName(alignment)}
+            $parentDescriptor > .${Classes.any} .${selfName(alignment)}
                 $indiv
         """.trimIndent())
     }
@@ -242,7 +442,7 @@ fun describeAlignments_el(parentDescriptor: String): String =
                 "align-self: center;"
             )
             Alignment.CenterY -> Pair(
-                "> .$any { margin-top: auto; margin-bottom: auto; }",
+                "> .${Classes.any} { margin-top: auto; margin-bottom: auto; }",
                 "{ margin-top: auto !important; margin-bottom: auto !important; }"
             )
         }
@@ -266,48 +466,64 @@ fun elDescription(d: String) = """
         flex-direction: column;
         white-space: pre;
     }
-    $d > .$heightContent {
+    $d > .${Classes.heightContent} {
         height: auto;
     }
-    $d > .$heightFill {
+    $d > .${Classes.heightFill} {
         flex-grow: 100000;
     }
-    $d > .$widthFill {
+    $d > .${Classes.widthFill} {
         width: 100%;
     }
-    $d > .$widthContent {
+    $d > .${Classes.widthContent} {
         align-self: flex-start;
     }
 
     ${describeAlignments_el(d)}
 """.trimIndent()
 
-val globalStylesheet = """
+val globalStylesheet =
+    // note: those below are NOT copied from elm-ui!
+
+    // Table exists as a grid in elm-ui so we need to patch it
+    // with those simple rules so we can use them without grids:
+    """
+    .${Classes.any} > table {
+        display: table !important;
+    }
+    .${Classes.any} > table th,
+    .${Classes.any} > table td  {
+        text-align: left;
+    }
+""".trimIndent() +
+
+    // note: those below ARE copied from elm-ui!
+"""
     html,body {
         height: 100%;
         padding: 0;
         margin: 0;
     }
-    .$any.$single.$imageContainer {
+    .${Classes.any}.${Classes.single}.${Classes.imageContainer} {
         display: block;
     }
-    .$any:focus {
+    .${Classes.any}:focus {
         outline: none;
     }
-    .$root {
+    .${Classes.root} {
         width: 100%;
         height: auto;
         min-height: 100%;
         z-index: 0;
     }
-    .$root .$any.$heightFill {
+    .${Classes.root}.${Classes.any}.${Classes.heightFill} {
         height: 100%;
     }
-    .$root .$any.$heightFill > .$heightFill {
+    .${Classes.root}.${Classes.any}.${Classes.heightFill} > .${Classes.heightFill} {
         height: 100%
     }
 
-    .$any {
+    .${Classes.any} {
         position: relative;
         border: none;
         flex-shrink: 0;
@@ -316,7 +532,7 @@ val globalStylesheet = """
         flex-basis: auto;
         resize: none;
         font-feature-settings: inherit;
-        flex-basis: 0%;
+
         box-sizing: border-box;
         margin: 0;
         padding: 0;
@@ -328,179 +544,192 @@ val globalStylesheet = """
         font-family: inherit;
         line-height: 1;
         font-weight: inherit;
+
         text-decoration: none;
         font-style: inherit;
     }
 
-    .$any .$wrapped {
+    .${Classes.any}.${Classes.wrapped} {
         flex-wrap: wrap;
     }
 
-    .$any .$widthContent {
+    .${Classes.any}.${Classes.noTextSelection} {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .${Classes.any}.${Classes.cursorPointer} {
+        cursor: pointer;
+    }
+
+    .${Classes.any}.${Classes.cursorText} {
+        cursor: text;
+    }
+
+    .${Classes.any}.${Classes.widthContent} {
         width: auto;
     }
 
-    .$any .$borderNone {
+    .${Classes.any}.${Classes.borderNone} {
         border-width: 0;
     }
 
-    ${elDescription(".$any .$single")}
+    ${elDescription(".${Classes.any}.${Classes.single}")}
 
-    .$any .$row {
+    .${Classes.any}.${Classes.row} {
         display: flex;
         flex-direction: row;
     }
-    .$any .$row > .$any {
+    .${Classes.any}.${Classes.row} > .${Classes.any} {
         flex-basis: 0%;
     }
-    .$any .$row > .$any $widthExact {
+    .${Classes.any}.${Classes.row} > .${Classes.any}.${Classes.widthExact} {
         flex-basis: auto;
     }
-    .$any .$row > .$heightFill {
+    .${Classes.any}.${Classes.row} > .${Classes.heightFill} {
         align-self: stretch !important;
     }
-    .$any .$row > .$heightFillPortion {
+    .${Classes.any}.${Classes.row} > .${Classes.heightFillPortion} {
         align-self: stretch !important;
     }
-    .$any .$row > .$widthFill {
+    .${Classes.any}.${Classes.row} > .${Classes.widthFill} {
         flex-grow: 100000;
     }
-    .$any .$row > .$container {
+    .${Classes.any}.${Classes.row} > .${Classes.container} {
         flex-grow: 0;
         flex-basis: auto;
         align-self: stretch;
     }
-    .$any .$row > u:first-of-type.$alignContainerRight {
+    .${Classes.any}.${Classes.row} > u:first-of-type.${Classes.alignContainerRight} {
         flex-grow: 1;
     }
-    .$any .$row > s:first-of-type.$alignContainerCenterX {
+    .${Classes.any}.${Classes.row} > s:first-of-type.${Classes.alignContainerCenterX} {
         flex-grow: 1;
     }
-    .$any .$row > s:first-of-type.$alignContainerCenterX > .$alignCenterX {
+    .${Classes.any}.${Classes.row} > s:first-of-type.${Classes.alignContainerCenterX} > .${Classes.alignCenterX} {
         margin-left: auto !important;
     }
-    .$any .$row > s:last-of-type.$alignContainerCenterX {
+    .${Classes.any}.${Classes.row} > s:last-of-type.${Classes.alignContainerCenterX} {
         flex-grow: 1;
     }
-    .$any .$row > s:last-of-type.$alignContainerCenterX > $alignCenterX {
+    .${Classes.any}.${Classes.row} > s:last-of-type.${Classes.alignContainerCenterX} > .${Classes.alignCenterX} {
         margin-right: auto !important;
     }
-    .$any .$row > s:only-of-type.$alignContainerCenterX {
+    .${Classes.any}.${Classes.row} > s:only-of-type.${Classes.alignContainerCenterX} {
         flex-grow: 1;
     }
-    .$any .$row > s:only-of-type.$alignContainerCenterX > .$alignCenterY {
+    .${Classes.any}.${Classes.row} > s:only-of-type.${Classes.alignContainerCenterX} > .${Classes.alignCenterY} {
         margin-top: auto !important;
         margin-bottom: auto !important;
     }
-    .$any .$row > s:last-of-type.$alignContainerCenterX ~ u {
+    .${Classes.any}.${Classes.row} > s:last-of-type.${Classes.alignContainerCenterX} ~ u {
         flex-grow: 0;
     }
-    .$any .$row > u:first-of-type.$alignContainerRight ~ s.$alignContainerCenterX {
+    .${Classes.any}.${Classes.row} > u:first-of-type.${Classes.alignContainerRight} ~ s.${Classes.alignContainerCenterX} {
         flex-grow: 0;
     }
-    ${describeAlignments_row(".$any .$row")}
-    .$any .$row .$spaceEvenly {
+    ${describeAlignments_row(".${Classes.any}.${Classes.row}")}
+    .${Classes.any}.${Classes.row}.${Classes.spaceEvenly} {
         justify-content: space-between;
     }
 
-    .$any .$column {
+    .${Classes.any}.${Classes.column} {
         display: flex;
         flex-direction: column;
     }
-    .$any .$column > .$heightFill {
+    .${Classes.any}.${Classes.column} > .${Classes.heightFill} {
         flex-grow: 100000;
     }
-    .$any .$column > .$widthFill {
+    .${Classes.any}.${Classes.column} > .${Classes.widthFill} {
         width: 100%;
     }
-    .$any .$column > .$widthFillPortion {
+    .${Classes.any}.${Classes.column} > .${Classes.widthFillPortion} {
         width: 100%;
     }
-    .$any .$column > .$widthContent {
+    .${Classes.any}.${Classes.column} > .${Classes.widthContent} {
         align-self: flex-start;
     }
-    .$any .$column > u:first-of-type.$alignContainerBottom {
+    .${Classes.any}.${Classes.column} > u:first-of-type.${Classes.alignContainerBottom} {
         flex-grow: 1;
     }
-    .$any .$column > u:first-of-type.$alignContainerCenterY {
+    .${Classes.any}.${Classes.column} > u:first-of-type.${Classes.alignContainerCenterY} {
         flex-grow: 1
     }
-    .$any .$column > u:first-of-type.$alignContainerCenterY > .$alignCenterY {
+    .${Classes.any}.${Classes.column} > u:first-of-type.${Classes.alignContainerCenterY} > .${Classes.alignCenterY} {
         margin-top: auto !important;
         margin-bottom: 0 !important;
     }
-    .$any .$column > u:last-of-type.$alignContainerCenterY {
+    .${Classes.any}.${Classes.column} > u:last-of-type.${Classes.alignContainerCenterY} {
         flex-grow: 1;
     }
-    .$any .$column > u:last-of-type.$alignContainerCenterY > .$alignCenterY {
+    .${Classes.any}.${Classes.column} > u:last-of-type.${Classes.alignContainerCenterY} > .${Classes.alignCenterY} {
         margin-bottom: auto !important;
         margin-top: 0 !important;
     }
-    .$any .$column > s:only-of-type.$alignContainerCenterY {
+    .${Classes.any}.${Classes.column} > s:only-of-type.${Classes.alignContainerCenterY} {
         flex-grow: 1;
     }
-    .$any .$column > s:only-of-type.$alignContainerCenterY > .$alignCenterY {
+    .${Classes.any}.${Classes.column} > s:only-of-type.${Classes.alignContainerCenterY} > .${Classes.alignCenterY} {
         margin-top: auto !important;
         margin-bottom: auto !important;
     }
-    .$any .$column > s:last-of-type.$alignContainerCenterY ~ u {
+    .${Classes.any}.${Classes.column} > s:last-of-type.${Classes.alignContainerCenterY} ~ u {
         flex-grow: 0;
     }
-    .$any .$column > u:first-of-type.$alignContainerBottom ~ s.$alignContainerCenterY {
+    .${Classes.any}.${Classes.column} > u:first-of-type.${Classes.alignContainerBottom} ~ s.${Classes.alignContainerCenterY} {
         flex-grow: 0;
     }
 
-    ${describeAlignments_column(".$any .$column")}
+    ${describeAlignments_column(".${Classes.any}.${Classes.column}")}
 
-    .$any .$column > .$container {
+    .${Classes.any}.${Classes.column} > .${Classes.container} {
         flex-grow: 0;
         flex-basis: auto;
         width: 100%;
         align-self: stretch !important;
     }
 
-    .$any .$column .$spaceEvenly {
+    .${Classes.any}.${Classes.column}.${Classes.spaceEvenly} {
         justify-content: space-between;
     }
 
-    .$any .$paragraph {
+    .${Classes.any}.${Classes.paragraph} {
         display: block;
         white-space: normal;
     }
-    .$any .$paragraph > .$text {
+    .${Classes.any}.${Classes.paragraph} > .${Classes.text} {
         display: inline;
         white-space: normal;
     }
-    .$any .$paragraph > .$single {
+    .${Classes.any}.${Classes.paragraph} > .${Classes.single} {
         display: inline;
         white-space: normal;
     }
-    .$any .$paragraph > .$row {
+    .${Classes.any}.${Classes.paragraph} > .${Classes.row} {
         display: inline-flex;
     }
-    .$any .$paragraph > .$column {
+    .${Classes.any}.${Classes.paragraph} > .${Classes.column} {
         display: inline-flex;
     }
-    ${describeAlignments_paragraph(".$any .$paragraph")}
-    .$any .$hidden {
+    ${describeAlignments_paragraph(".${Classes.any}.${Classes.paragraph}")}
+    .${Classes.any}.${Classes.hidden} {
         display: none;
     }
-    .$any .$textJustify {
+    .${Classes.any}.${Classes.textJustify} {
         text-align: justify;
     }
-    .$any .$textJustifyAll {
+    .${Classes.any}.${Classes.textJustifyAll} {
         text-align: justify-all;
     }
-    .$any .$textCenter {
+    .${Classes.any}.${Classes.textCenter} {
         text-align: center;
     }
-    .$any .$textRight {
+    .${Classes.any}.${Classes.textRight} {
         text-align: right;
     }
-    .$any .$textLeft {
+    .${Classes.any}.${Classes.textLeft} {
         text-align: left;
     }
-
-     // lines 1659-1670
-
-""".trimIndent()
+""".trimIndent() /* lines 1659-1670*/
