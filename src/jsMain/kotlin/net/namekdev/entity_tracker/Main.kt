@@ -5,12 +5,15 @@ import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_ADDED
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_DELETED
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
+import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.model.SystemInfo_Common
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
 import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.CommonBitVector
+import net.namekdev.entity_tracker.utils.mapToArray
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
 import snabbdom.modules.*
@@ -38,10 +41,14 @@ fun main(args: Array<String>) {
     }
 }
 
-class EntityTableModel {
-    val entityComponents = mutableMapOf<Int, CommonBitVector>() // HashMap<Int, CommonBitVector>()
-    val componentTypes = mutableListOf<ComponentTypeInfo>()
 
+typealias SystemInfo = SystemInfo_Common<CommonBitVector>
+typealias AspectInfo = AspectInfo_Common<CommonBitVector>
+
+class ECSModel {
+    val entityComponents = mutableMapOf<Int, CommonBitVector>()
+    val componentTypes = mutableListOf<ComponentTypeInfo>()
+    val allSystems = mutableListOf<SystemInfo>()
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
         componentTypes.add(index, info)
@@ -65,8 +72,6 @@ class EntityTableModel {
     fun clear() {
         componentTypes.clear()
         entityComponents.clear()
-
-//        fireTableStructureChanged()
     }
 }
 
@@ -84,7 +89,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     var lastVnode: VNode
 
     var demoStep = 0
-    val entities = EntityTableModel()
+    val entities = ECSModel()
 
     var worldController: WorldController? = null
     var client: WebSocketClient? = null
@@ -129,48 +134,47 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         oneTypes: CommonBitVector?,
         notTypes: CommonBitVector?
     ) {
-        val hasAspect = allTypes != null || oneTypes != null || notTypes != null
+        val aspectInfo = AspectInfo(allTypes, oneTypes, notTypes)
+        val actives = if (aspectInfo.isEmpty) null else CommonBitVector()
+        val systemInfo = SystemInfo(index, name, aspectInfo, actives)
 
-//        baseSystemsTableModel!!.setSystem(index, name)
-
-        if (hasAspect) {
-//            entitySystemsTableModel!!.setSystem(index, name)
-        }
-        update()
+        entities.allSystems.add(index, systemInfo)
+        notifyUpdate()
     }
 
     override fun addedManager(name: String) {
         //  managersTableModel!!.addManager(name)
-        update()
+        notifyUpdate()
     }
 
     override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
         entities.setComponentType(index, info)
-        update()
+        notifyUpdate()
     }
 
     override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-//        entitySystemsTableModel!!.updateSystem(systemIndex, entitiesCount, maxEntitiesCount)
-        update()
+//        entitySystemsTableModel!!.updateSystem(index, entitiesCount, maxEntitiesCount)
+        notifyUpdate()
     }
 
     override fun addedEntity(entityId: Int, components: CommonBitVector) {
         entities.addEntity(entityId, components)
-        update()
+        notifyUpdate()
     }
 
     override fun deletedEntity(entityId: Int) {
         entities.removeEntity(entityId)
-        update()
+        notifyUpdate()
     }
 
 
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
         //         context.eventBus.updatedComponentState(entityId, componentIndex, valueTree)
-        update()
+        notifyUpdate()
     }
 
-    fun update() {
+    fun notifyUpdate() {
+        // TODO start a very short timer that will wait for more updates
         lastVnode = patch(lastVnode, view())
         console.log("update")
     }
@@ -186,28 +190,43 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
 
     fun viewEntitiesTable(): VNode {
-        val idCol = h("th", "entity id")
-        val componentCols = entities.componentTypes.map { h("th", it.name) }.toTypedArray()
-        val entitiesDataRows: Array<VNode> = entities.entityComponents.map { (entityId, components) ->
-            val entityComponents = entities.componentTypes.indices.map { cmpIndex ->
-                h("td", if (components[cmpIndex]) "x" else "")
-            }.toTypedArray()
+        val idCol = thCell("entity id")
+        val componentCols = entities.componentTypes.mapToArray { thCell(it.name) }
+        val entitiesDataRows = entities.entityComponents.mapToArray { (entityId, components) ->
+            val entityComponents = entities.componentTypes.indices.mapToArray { cmpIndex ->
+                tCell(if (components[cmpIndex]) "x" else "")
+            }
 
-            h("tr", arrayOf(h("td", entityId.toString()), *entityComponents))
-        }.toTypedArray()
+            tRow(tCell(entityId.toString()), *entityComponents)
+        }
 
-        val headerAndRows = arrayOf(h("tr", arrayOf(idCol, *componentCols)), *entitiesDataRows)
-        return el("table", attrs = arrayOf(width(fill)), nodes = headerAndRows)
+        val header = tRow(idCol, *componentCols)
+
+        return table(arrayOf(width(fill)), header, *entitiesDataRows)
     }
 
     fun viewEntitiesFilters() =
-        row(arrayOf(h("span", "TODO filters here?")))
+        row(arrayOf(span("TODO filters here?")))
 
-    fun viewSystems(): VNode =
-        text("systems")
+    fun viewSystems(): VNode {
+        // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
+
+        val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
+        val rows = entities.allSystems
+//            .filter { it.hasAspect }
+            .mapToArray {
+                tRow(
+                    tCell(""),
+                    tCell(it.name),
+                    tCell(it.entitiesCount.toString()),
+                    tCell(it.maxEntitiesCount.toString())
+                )
+            }
+        return table(arrayOf(width(fill)), header, *rows)
+    }
 
     fun viewCurrentEntity(): VNode =
-        h("div", "current entity")
+        span("current entity")
 
 
     fun demoClicked(){
@@ -239,4 +258,3 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         }
 
 }
-

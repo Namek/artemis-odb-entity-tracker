@@ -48,9 +48,6 @@ fun el(tag: String, attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
 fun el(tag: String, vararg nodes: VNode): VNode =
     element(AsEl, ANodeName(tag), null, *nodes)
 
-fun text(txt: String): VNode =
-    h("span", txt)
-
 private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Attribute>? = null, vararg nodes: VNode): VNode {
     var classes = '.' + contextClasses(context).split(' ').joinToString(".")
     var uiFlags = 0
@@ -160,19 +157,6 @@ fun height(length: Length): Attribute.Height =
         is Length.Max ->
             TODO()
     }
-
-val fill = Length.Fill(1)
-val shrink = Length.Content
-fun min(length: Length) = Length.Min(length)
-fun max(length: Length) = Length.Max(length)
-
-val widthFill = Attribute.Width.Fill(1)
-val widthShrink = Attribute.Width.Content
-val heightFill = Attribute.Height.Fill(1)
-val heightShrink = Attribute.Height.Content
-
-// note that the internal flag is 0 so it can be easily overwritten by element()
-fun style(prop: String, value: String) = Attribute.StyleClass(0, AStyle(prop, arrayOf(prop to value)))
 
 private fun renderWidth(w: Attribute.Width): SizingRender =
     when (w) {

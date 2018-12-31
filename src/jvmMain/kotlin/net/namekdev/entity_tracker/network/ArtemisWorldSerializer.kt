@@ -7,7 +7,7 @@ import com.artemis.utils.Bag
 import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
-import net.namekdev.entity_tracker.model.AspectInfo
+import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.tuple.Tuple3
 
@@ -23,7 +23,7 @@ class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener<BitVector> {
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
     private val _managers = Bag<String>()
-    private val _systems = Bag<Tuple3<Int, String, AspectInfo>>()
+    private val _systems = Bag<Tuple3<Int, String, AspectInfo_Common<BitVector>>>()
     private val _componentTypes = Bag<ComponentTypeInfo>()
     private val _entities = HashMap<Int, BitVector>()
     private val _entitySystemsEntitiesCount = Bag<Int>()
@@ -46,7 +46,7 @@ class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener<BitVector> {
             communicator.addedSystem(index, name, allTypes, oneTypes, notTypes)
             ++i
         }
-        _systems.add(Tuple3.create(index, name, AspectInfo(allTypes, oneTypes, notTypes)))
+        _systems.add(Tuple3.create(index, name, AspectInfo_Common(allTypes, oneTypes, notTypes)))
     }
 
     override fun addedManager(name: String) {

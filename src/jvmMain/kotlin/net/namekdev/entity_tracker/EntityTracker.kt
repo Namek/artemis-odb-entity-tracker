@@ -1,15 +1,11 @@
 package net.namekdev.entity_tracker
 
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
-
 import java.util.HashMap
 
 import net.namekdev.entity_tracker.connectors.WorldController
 import net.namekdev.entity_tracker.connectors.WorldUpdateListener
 import net.namekdev.entity_tracker.utils.ArrayPool
 import net.namekdev.entity_tracker.utils.ReflectionUtils
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
-import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 import net.namekdev.entity_tracker.model.*
 import net.namekdev.entity_tracker.utils.serialization.setValue
@@ -17,7 +13,6 @@ import net.namekdev.entity_tracker.utils.serialization.setValue
 import com.artemis.Aspect
 import com.artemis.BaseComponentMapper
 import com.artemis.BaseEntitySystem
-import com.artemis.BaseSystem
 import com.artemis.Component
 import com.artemis.ComponentManager
 import com.artemis.ComponentMapper
@@ -29,10 +24,7 @@ import com.artemis.EntitySubscription.SubscriptionListener
 import com.artemis.Manager
 import com.artemis.utils.Bag
 import com.artemis.utils.BitVector
-import com.artemis.utils.ImmutableBag
 import com.artemis.utils.IntBag
-import com.artemis.utils.reflect.ClassReflection
-import com.artemis.utils.reflect.Field
 import com.artemis.utils.reflect.Method
 import com.artemis.utils.reflect.ReflectionException
 
@@ -109,13 +101,7 @@ class EntityTracker @JvmOverloads constructor(
                     actives = subscription.activeEntityIds
                 }
 
-                val aspectInfo = AspectInfo()
-                if (aspect != null) {
-                    aspectInfo.allTypes = aspect.allSet
-                    aspectInfo.oneTypes = aspect.oneSet
-                    aspectInfo.exclusionTypes = aspect.exclusionSet
-                }
-
+                val aspectInfo = AspectInfo(aspect?.allSet, aspect?.oneSet, aspect?.exclusionSet)
                 val info = SystemInfo(index, systemName, system, aspect, aspectInfo, actives, subscription)
                 systemsInfo.add(info)
                 systemsInfoByName.put(systemName, info)
@@ -157,7 +143,7 @@ class EntityTracker @JvmOverloads constructor(
                 info.entitiesCount -= entities.size()
 
                 if (updateListener != null && updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
-                    updateListener!!.updatedEntitySystem(info.systemIndex, info.entitiesCount, info.maxEntitiesCount)
+                    updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
                 }
             }
 
@@ -169,7 +155,7 @@ class EntityTracker @JvmOverloads constructor(
                 }
 
                 if (updateListener != null && updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
-                    updateListener!!.updatedEntitySystem(info.systemIndex, info.entitiesCount, info.maxEntitiesCount)
+                    updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
                 }
             }
         })
