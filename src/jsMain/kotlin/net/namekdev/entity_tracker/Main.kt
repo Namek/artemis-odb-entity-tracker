@@ -12,8 +12,7 @@ import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
 import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
-import net.namekdev.entity_tracker.utils.CommonBitVector
-import net.namekdev.entity_tracker.utils.mapToArray
+import net.namekdev.entity_tracker.utils.*
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
 import snabbdom.modules.*
@@ -46,32 +45,33 @@ typealias SystemInfo = SystemInfo_Common<CommonBitVector>
 typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 
 class ECSModel {
-    val entityComponents = mutableMapOf<Int, CommonBitVector>()
-    val componentTypes = mutableListOf<ComponentTypeInfo>()
+    val entityComponents = MemoContainer(mutableMapOf<Int, CommonBitVector>())
+    val componentTypes = MemoContainer(mutableListOf<ComponentTypeInfo>())
     val allSystems = mutableListOf<SystemInfo>()
 
+
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
-        componentTypes.add(index, info)
+        componentTypes().add(index, info)
     }
 
     fun addEntity(entityId: Int, components: CommonBitVector) {
-        entityComponents.put(entityId, components)
+        entityComponents()[entityId] = components
     }
 
     fun removeEntity(entityId: Int) {
-        entityComponents.remove(entityId)
+        entityComponents().remove(entityId)
     }
 
     fun getEntityComponents(entityId: Int): CommonBitVector =
-        entityComponents[entityId]!!
+        entityComponents()[entityId]!!
 
 
     fun getComponentTypeInfo(index: Int): ComponentTypeInfo =
-        componentTypes.get(index)
+        componentTypes().get(index)
 
     fun clear() {
-        componentTypes.clear()
-        entityComponents.clear()
+        componentTypes().clear()
+        entityComponents().clear()
     }
 }
 
@@ -86,7 +86,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             DatasetModule()
         )
     )
-    var lastVnode: VNode
+    lateinit var lastVnode: VNode
 
     var demoStep = 0
     val entities = ECSModel()
@@ -102,7 +102,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 //        for (i in 1..10)
 //            entities.addEntity(i, CommonBitVector(longArrayOf(7)))
 
-        lastVnode = patch(container, view())
+        // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
+        window.setTimeout({
+            lastVnode = patch(container, view())
+        }, 0)
 
         fun update() {
             lastVnode = patch(lastVnode, view())
@@ -175,8 +178,12 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
     fun notifyUpdate() {
         // TODO start a very short timer that will wait for more updates
-        lastVnode = patch(lastVnode, view())
-        console.log("update")
+
+        // timeout is because of JS compilation - we have lateinit vars!
+        window.setTimeout({
+            lastVnode = patch(lastVnode, view())
+            console.log("update")
+        }, 0)
     }
 
     fun view() =
@@ -188,12 +195,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                 viewCurrentEntity())
         )
 
-
-    fun viewEntitiesTable(): VNode {
+    val viewEntitiesTable = transformMultiple(entities.entityComponents, entities.componentTypes) { entityComponents, componentTypes ->
         val idCol = thCell("entity id")
-        val componentCols = entities.componentTypes.mapToArray { thCell(it.name) }
-        val entitiesDataRows = entities.entityComponents.mapToArray { (entityId, components) ->
-            val entityComponents = entities.componentTypes.indices.mapToArray { cmpIndex ->
+        val componentCols = componentTypes.mapToArray { thCell(it.name) }
+        val entitiesDataRows = entityComponents.mapToArray { (entityId, components) ->
+            val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
                 tCell(if (components[cmpIndex]) "x" else "")
             }
 
@@ -202,7 +208,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
         val header = tRow(idCol, *componentCols)
 
-        return table(arrayOf(width(fill)), header, *entitiesDataRows)
+        table(arrayOf(width(fill)), header, *entitiesDataRows)
     }
 
     fun viewEntitiesFilters() =
@@ -226,7 +232,9 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun viewCurrentEntity(): VNode =
-        span("current entity")
+        row(arrayOf(width(fill)) as Array<Attribute>,
+            span("current entity")
+        )
 
 
     fun demoClicked(){
