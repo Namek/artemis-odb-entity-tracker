@@ -53,7 +53,7 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
     var uiFlags = 0
 
     if (attrs != null) {
-        for (i in attrs.size-1 .. 0) {
+        for (i in attrs.size-1 downTo 0) {
             val attr = attrs[i]
             val r: SizingRender? = when(attr) {
                 is Width ->
@@ -94,7 +94,7 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
         Generic -> "div"
         else -> nodeName.nodeName
     }
-    var html = h("$tag.$classes", *nodes)
+    var html = h("$tag$classes", *nodes)
 
     when(context) {
         AsColumn -> {

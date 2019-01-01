@@ -59,9 +59,9 @@ fun _init(modules: Array<Module>, domApi: DOMAPI?): Patch {
     )
 
     fun emptyNodeAt(elm: Element): VNode {
-        val id = if (elm.id !== undefined) '#' + elm.id else ""
+        val id = if (elm.id != null && elm.id != "") '#' + elm.id else ""
         val c =
-            if (elm.className !== undefined)
+            if (elm.className != null && elm.className != "")
                 '.' + elm.className.split(' ').joinToString(".")
             else ""
 
@@ -112,14 +112,14 @@ fun _init(modules: Array<Module>, domApi: DOMAPI?): Patch {
             val dot = if (dotIdx > 0) dotIdx else sel.length
             val tag = if (hashIdx != -1 || dotIdx != -1) sel.substring(0, minOf(hash, dot)) else sel
             val elm =
-                    {
-                        if (data != null) {
-                            i = (data.unsafeCast<VNodeData>()).ns
-                            if (i != null)
-                                api.createElementNS(i, tag)
-                        }
-                        api.createElement(tag)
-                    }()
+                {
+                    if (data != null) {
+                        i = (data.unsafeCast<VNodeData>()).ns
+                        if (i != null)
+                            api.createElementNS(i, tag)
+                    }
+                    api.createElement(tag)
+                }()
             vnode.elm = elm
             if (hash < dot) elm.setAttribute("id", sel.substring((hash + 1), dot))
             if (dotIdx > 0) elm.setAttribute("class", sel.substring(dot + 1).replace('.', ' '))
