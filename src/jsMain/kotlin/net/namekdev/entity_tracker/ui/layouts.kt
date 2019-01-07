@@ -10,13 +10,22 @@ import net.namekdev.entity_tracker.ui.Attribute.*
 import net.namekdev.entity_tracker.ui.LayoutContext.*
 import snabbdom.VNodeData
 
-fun row(nodes: Array<VNode>): VNode =
+/**
+ * Render Context for snabbdom's VNode
+ */
+data class RNode(
+    val vnode: VNode,
+    val stylesheet: Stylesheet? = null
+)
+
+
+fun row(nodes: Array<RNode>): RNode =
     row(arrayOf(), *nodes)
 
-fun row(attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+fun row(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
     row(attrs, *nodes)
 
-fun row(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
+fun row(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     element(LayoutContext.AsRow, Generic,
         arrayOf(
             Attribute.Class(0, "${Classes.contentLeft} ${Classes.contentCenterY}"),
@@ -27,13 +36,13 @@ fun row(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
 
 // TODO fun wrappedRow
 
-fun column(nodes: Array<VNode>): VNode =
+fun column(nodes: Array<RNode>): RNode =
     column(arrayOf(), *nodes)
 
-fun column(attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+fun column(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
     column(attrs, *nodes)
 
-fun column(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
+fun column(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     element(LayoutContext.AsColumn, Generic,
         arrayOf(
             Attribute.Class(0, "${Classes.contentTop} ${Classes.contentLeft}"),
@@ -43,16 +52,31 @@ fun column(attrs: Array<Attribute>, vararg nodes: VNode): VNode =
     )
 
 
-fun el(tag: String, attrs: Array<Attribute>, nodes: Array<VNode>): VNode =
+fun el(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
     element(AsEl, ANodeName(tag), attrs, *nodes)
 
-fun el(tag: String, vararg nodes: VNode): VNode =
+fun el(tag: String, vararg nodes: RNode): RNode =
     element(AsEl, ANodeName(tag), null, *nodes)
 
-private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Attribute>? = null, vararg nodes: VNode): VNode {
+private fun element(
+    context: LayoutContext,
+    nodeName: NodeName,
+    attrs: Array<Attribute>? = null,
+    vararg nodes: RNode
+): RNode {
     var classes = '.' + contextClasses(context).split(' ').joinToString(".")
     var uiFlags = 0
     val vnodeData = VNodeData()
+
+    // we won't create a new stylesheet object until we don't have to.
+    // There's supposed to be a one global stylesheet passed through whole node tree!
+    val stylesheet = nodes.firstOrNull()?.stylesheet ?: mutableMapOf()
+
+    for (node in nodes) {
+        node.stylesheet?.let {
+            mergeStylesheet(stylesheet, it)
+        }
+    }
 
     if (attrs != null) {
         for (i in attrs.size-1 downTo 0) {
@@ -114,33 +138,23 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
                         vnodeData.style = j()
 
                     for (s in styles) {
-                        when(s) {
-                            is AStyle -> {
+                        val styleName = getStyleName(s)
 
-                            }
-                            is Single -> {
-                                // TODO not sure, render it to global styles?
-                            }
-                            is SpacingStyle -> {
+                        if (stylesheet.containsKey(styleName))
+                            continue
 
-                            }
-                            is PaddingStyle -> {
-                                classes += ".${s.cls}"
-                                vnodeData.style!!["padding"] = "${s.top}px ${s.right}px ${s.bottom}px ${s.left}px"
-                            }
-                        }
+                        stylesheet.put(styleName, s)
                     }
                 }
             }
         }
     }
 
-    // TODO put styles into VNodeData
     val tag = when(nodeName) {
         Generic -> "div"
         else -> nodeName.nodeName
     }
-    var html = h("$tag$classes", vnodeData, *nodes)
+    var html = h("$tag$classes", vnodeData, nodes.map { it.vnode }.toTypedArray())
 
     when(context) {
         AsColumn -> {
@@ -173,7 +187,7 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
         }
     }
 
-    return html
+    return RNode(html, stylesheet)
 }
 
 fun width(length: Length): Attribute.Width =
@@ -281,13 +295,13 @@ private fun alignYName(y: VAlign): String = when(y) {
 
 private fun getStyleName(style: Style): String =
     when(style) {
-        is AStyle -> style.prop
+        is AStyle -> style.selector
         is Single -> style.klass
         is SpacingStyle -> style.cls
         is PaddingStyle -> style.cls
     }
 
-private object Flag {
+internal object Flag {
     const val heightFill = 1 shl 0
     const val heightBetween = 1 shl 1
     const val centerY = 1 shl 2
@@ -306,6 +320,7 @@ private object Flag {
     const val contentTop = 1 shl 14
     const val xAlign = 1 shl 15
     const val yAlign = 1 shl 16
+    const val padding = 1 shl 17
 }
 
 enum class LayoutContext {
@@ -555,8 +570,12 @@ val globalStylesheet =
     .${Classes.any} > table {
         display: table !important;
     }
+    .${Classes.any} > table tr {
+        display: table-row !important;
+    }
     .${Classes.any} > table th,
-    .${Classes.any} > table td  {
+    .${Classes.any} > table td {
+        display: table-cell !important;
         text-align: left;
     }
 """.trimIndent() +

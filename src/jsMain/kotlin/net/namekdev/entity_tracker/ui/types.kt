@@ -4,7 +4,7 @@ import snabbdom.modules.On
 
 
 sealed class Style
-class AStyle(val prop: String, val props: Array<Pair<String, String>>) : Style()
+class AStyle(val selector: String, val props: Array<Pair<String, String>>) : Style()
 class Single(val klass: String, val prop: String, val value: String) : Style()
 class SpacingStyle(val cls: String, val x: Int, val y: Int) : Style()
 class PaddingStyle(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
@@ -40,8 +40,8 @@ sealed class Attribute {
         data class Max(val size: Int, val height: Height) : Height()
     }
 
-    sealed class AlignX(val hAlign: HAlign) : Attribute()
-    sealed class AlignY(val vAlign: VAlign) : Attribute()
+    class AlignX(val hAlign: HAlign) : Attribute()
+    class AlignY(val vAlign: VAlign) : Attribute()
 }
 
 class SizingRender(

@@ -15,6 +15,7 @@ import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.*
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
+import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
 import snabbdom.modules.*
@@ -93,6 +94,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         )
     )
     lateinit var lastVnode: VNode
+    var dynamicStyles: Element
 
     var demoStep = 0
     val entities = ECSModel()
@@ -101,20 +103,18 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     var client: WebSocketClient? = null
 
     init {
-//        var i = 0
-//        for (col in arrayOf("Position", "Velocity", "Orientation"))
-//            entities.setComponentType(i++, ComponentTypeInfo(col))
-//
-//        for (i in 1..10)
-//            entities.addEntity(i, CommonBitVector(longArrayOf(7)))
+        dynamicStyles = document.createElement("style")
+        dynamicStyles.asDynamic().type = "text/css"
+        dynamicStyles.innerHTML = ""
+        document.getElementsByTagName("head")[0]!!.appendChild(dynamicStyles)
 
         // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
         window.setTimeout({
-            lastVnode = patch(container, view())
+            lastVnode = patch(container, h("div"))
         }, 0)
 
         fun update() {
-            lastVnode = patch(lastVnode, view())
+//            lastVnode = patch(lastVnode, view())
 //            window.setTimeout({
 //                update()
 //            }, 50)
@@ -123,6 +123,18 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
         client = WebSocketClient(ExternalInterfaceCommunicator(this))
         client!!.connect("ws://localhost:8025/actions")
+    }
+
+    val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
+
+    fun renderView() {
+        val ctx = view()
+        ctx.stylesheet?.let {
+            dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
+        }
+        lastVnode = patch(lastVnode, ctx.vnode)
+
+        console.log("update")
     }
 
     override fun disconnected() {
@@ -192,13 +204,12 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
         // timeout is because of JS compilation - we have lateinit vars!
         window.setTimeout({
-            lastVnode = patch(lastVnode, view())
-            console.log("update")
+            renderView()
         }, 0)
     }
 
     fun view() =
-        column(arrayOf(width(fill)),
+        column(attrs(width(fill), height(fill), paddingXY(10, 10)),
             viewEntitiesTable(),
             viewEntitiesFilters(),
             row(arrayOf(width(fill)),
@@ -239,7 +250,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     fun viewEntitiesFilters() =
         row(arrayOf(span("TODO filters here?")))
 
-    fun viewSystems(): VNode {
+    fun viewSystems(): RNode {
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
 
         val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
@@ -256,7 +267,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         return table(arrayOf(width(fill)), header, *rows)
     }
 
-    fun viewCurrentEntity(): VNode =
+    fun viewCurrentEntity(): RNode =
         row(arrayOf(width(fill), height(fill)) as Array<Attribute>,
             arrayOf(
                 // TODO fixme: height fill does not work! "contentTop" given by column() may be ignored?
@@ -277,14 +288,14 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             if (componentTypes == null)
                 column(arrayOf(span("error: component types for entity #$entityId were not found")))
             else {
-                val componentNames = mutableListOf<VNode>()
+                val componentNames = mutableListOf<RNode>()
                 var i: Int = componentTypes.nextSetBit(0)
                 while (i >= 0) {
                     val cmpType = entities.componentTypes.value[i]
                     val isSelected = cmpType.index == currentComponent?.componentIndex
 
                     componentNames.add(
-                        row(attrs(attrWhen(isSelected, backgroundColor("blue"))), span(cmpType.name))
+                        row(attrs(/*attrWhen(isSelected, backgroundColor("blue"))*/), span(cmpType.name))
                     )
 
                     i = componentTypes.nextSetBit(i+1)
@@ -307,7 +318,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         }
     }
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?): VNode {
+    fun viewValueTree(model: ObjectModelNode, value: Any?): RNode {
         return if (model.isArray) {
             // TODO value is ValueTree
 
