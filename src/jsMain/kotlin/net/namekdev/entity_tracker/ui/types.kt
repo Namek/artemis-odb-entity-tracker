@@ -1,12 +1,14 @@
 package net.namekdev.entity_tracker.ui
 
+import snabbdom.modules.On
+
 
 sealed class Style
 class AStyle(val prop: String, val props: Array<Pair<String, String>>) : Style()
 class Single(val klass: String, val prop: String, val value: String) : Style()
 class SpacingStyle(val cls: String, val x: Int, val y: Int) : Style()
 class PaddingStyle(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
-// TODO borderwidth, fontsize, fontfaimly, colored
+// TODO borderwidth, fontsize, fontfaimly, colored, PseudoSelector, Transparency, Shadows
 
 
 // Width -> Px px, Content, Fill portion, Min size (Width), Max size (Width)
@@ -16,6 +18,9 @@ class PaddingStyle(val cls: String, val top: Int, val right: Int, val bottom: In
 
 
 sealed class Attribute {
+    object NoAttribute : Attribute()
+    class Events(val on: On) : Attribute()
+
     class Class(val flag: Int, val exactClassName: String) : Attribute()
     class StyleClass(val flag: Int, val style: Style) : Attribute()
 
@@ -35,7 +40,8 @@ sealed class Attribute {
         data class Max(val size: Int, val height: Height) : Height()
     }
 
-    // TODO AlignX, AlignY
+    sealed class AlignX(val hAlign: HAlign) : Attribute()
+    sealed class AlignY(val vAlign: VAlign) : Attribute()
 }
 
 class SizingRender(
@@ -46,6 +52,14 @@ class SizingRender(
 
 enum class Alignment {
     Top, Bottom, Right, Left, CenterX, CenterY
+}
+
+enum class HAlign {
+    Left, CenterX, Right
+}
+
+enum class VAlign {
+    Top, CenterY, Bottom
 }
 
 sealed class Length {

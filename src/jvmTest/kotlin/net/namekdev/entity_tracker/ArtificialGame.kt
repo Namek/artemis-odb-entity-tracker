@@ -17,28 +17,43 @@ fun main(args: Array<String>) {
         ArtemisWorldSerializer(WebSocketServer().start())
     )
 
-    val world = World(WorldConfiguration()
-        .setSystem(PositionSystem())
-        .setSystem(RenderSystem())
-        .setSystem(WeirdSystem())
-        .setSystem(entityTracker)
+    val world = World(
+        WorldConfiguration()
+            .setSystem(PositionSystem())
+            .setSystem(RenderSystem())
+            .setSystem(MotionBlurSystem())
+            .setSystem(CollisionSystem())
+            .setSystem(entityTracker)
     )
 
     for (i in 0..10) {
         val e = world.createEntity().edit()
-        e.add(Pos(i * 6f, i * 2f))
-        e.add(Renderable())
 
-        if (i == 0) {
-            e.add(Weird())
+        val pos = Pos(i * 6f, i * 2f)
+        e.add(pos)
+
+        val layer = if (i <= 5) RenderLayer.Back else RenderLayer.Front
+        e.add(Renderable(layer))
+
+        if (i == 0 || i == 5 || i == 6) {
+            e.add(MotionBlur())
         }
-        else if (i % 3 == 0) {
+        if (i % 3 == 0) {
             e.add(Speed(i * 10f))
         }
+
+        e.add(Collider(Rect(pos.x, pos.y, 10f, 10f)))
     }
 
     world.process()
+
+    world.getEntity(3).deleteFromWorld()
+    world.process()
 }
+
+//
+// Components
+//
 
 class Pos(
     var x: Float = 0f,
@@ -47,25 +62,54 @@ class Pos(
 
 class Speed(var speed: Float = 1f) : Component()
 
-class Renderable(var flags: Long = Long.MAX_VALUE) : Component()
+class Renderable(
+    var layer: RenderLayer = RenderLayer.Front,
+    var color: Long = Long.MAX_VALUE
+) : Component()
 
-class Weird(var weirdness: Double = Double.MAX_VALUE) : Component()
+class MotionBlur(var power: Double = 0.0) : Component()
 
+class Collider(
+    val rect: Rect = Rect(0f,0f,0f,0f)
+) : Component()
+
+
+//
+// Systems
+//
 
 class PositionSystem : EntityProcessingSystem(
     Aspect.all(Pos::class.java, Speed::class.java)
 ) {
-    override fun process(e: Entity) { }
+    override fun process(e: Entity) {}
 }
 
 class RenderSystem : EntityProcessingSystem(
     Aspect.all(Pos::class.java, Renderable::class.java)
 ) {
-    override fun process(e: Entity) { }
+    override fun process(e: Entity) {}
 }
 
-class WeirdSystem : EntityProcessingSystem(
-    Aspect.all(Pos::class.java, Speed::class.java, Weird::class.java)
+class MotionBlurSystem : EntityProcessingSystem(
+    Aspect.all(Pos::class.java, Speed::class.java, MotionBlur::class.java)
 ) {
-    override fun process(e: Entity) { }
+    override fun process(e: Entity) {}
 }
+
+class CollisionSystem : EntityProcessingSystem(
+    Aspect.all(Collider::class.java, Pos::class.java)
+) {
+    override fun process(e: Entity) {}
+}
+
+//
+// Utils, helpers, etc.
+//
+
+
+enum class RenderLayer {
+    Front,
+    Back
+}
+
+data class Rect(var x: Float, var y: Float, var width: Float, var height: Float)

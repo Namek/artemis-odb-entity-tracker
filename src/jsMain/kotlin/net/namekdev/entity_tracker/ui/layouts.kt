@@ -5,9 +5,10 @@ package net.namekdev.entity_tracker.ui
 
 import snabbdom.VNode
 import snabbdom.h
+import snabbdom.j
 import net.namekdev.entity_tracker.ui.Attribute.*
 import net.namekdev.entity_tracker.ui.LayoutContext.*
-import org.w3c.dom.Attr
+import snabbdom.VNodeData
 
 fun row(nodes: Array<VNode>): VNode =
     row(arrayOf(), *nodes)
@@ -51,11 +52,20 @@ fun el(tag: String, vararg nodes: VNode): VNode =
 private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Attribute>? = null, vararg nodes: VNode): VNode {
     var classes = '.' + contextClasses(context).split(' ').joinToString(".")
     var uiFlags = 0
+    val vnodeData = VNodeData()
 
     if (attrs != null) {
         for (i in attrs.size-1 downTo 0) {
             val attr = attrs[i]
             val r: SizingRender? = when(attr) {
+                is NoAttribute ->
+                    null
+
+                is Events -> {
+                    vnodeData.on = attr.on
+                    null
+                }
+
                 is Width ->
                     if (uiFlags and Flag.width == 0)
                         renderWidth(attr)
@@ -77,6 +87,18 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
                         SizingRender(attr.flag, getStyleName(attr.style), arrayOf(attr.style))
                     else null
                 }
+
+                is AlignX -> {
+                    if (uiFlags and Flag.xAlign == 0)
+                        renderAlignX(attr)
+                    else null
+                }
+
+                is AlignY -> {
+                    if (uiFlags and Flag.yAlign == 0)
+                        renderAlignY(attr)
+                    else null
+                }
             }
 
             if (r != null) {
@@ -84,7 +106,31 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
                 uiFlags = uiFlags or r.flags
 
                 // TODO do something with styles
-                //r.styles
+
+                // elm-ui does not put styles properties into elements, instead it generates <style> element containing everything
+
+                r.styles?.let { styles ->
+                    if (vnodeData.style == null)
+                        vnodeData.style = j()
+
+                    for (s in styles) {
+                        when(s) {
+                            is AStyle -> {
+
+                            }
+                            is Single -> {
+                                // TODO not sure, render it to global styles?
+                            }
+                            is SpacingStyle -> {
+
+                            }
+                            is PaddingStyle -> {
+                                classes += ".${s.cls}"
+                                vnodeData.style!!["padding"] = "${s.top}px ${s.right}px ${s.bottom}px ${s.left}px"
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -94,7 +140,7 @@ private fun element(context: LayoutContext, nodeName: NodeName, attrs: Array<Att
         Generic -> "div"
         else -> nodeName.nodeName
     }
-    var html = h("$tag$classes", *nodes)
+    var html = h("$tag$classes", vnodeData, *nodes)
 
     when(context) {
         AsColumn -> {
@@ -203,6 +249,36 @@ private fun renderHeight(h: Height): SizingRender =
         is Height.Max -> TODO()
     }
 
+private fun renderAlignX(ax: AlignX): SizingRender {
+    val flag = when(ax.hAlign) {
+        HAlign.CenterX -> Flag.centerX
+        HAlign.Right -> Flag.alignRight
+        else -> 0
+    }
+    return SizingRender(Flag.xAlign or flag, alignXName(ax.hAlign))
+}
+
+private fun renderAlignY(ay: AlignY): SizingRender {
+    val flag = when(ay.vAlign) {
+        VAlign.CenterY -> Flag.centerY
+        VAlign.Bottom -> Flag.alignBottom
+        else -> 0
+    }
+    return SizingRender(Flag.xAlign or flag, alignYName(ay.vAlign))
+}
+
+private fun alignXName(x: HAlign): String = when(x) {
+    HAlign.Left -> "${Classes.alignedHorizontally} ${Classes.alignLeft}"
+    HAlign.Right -> "${Classes.alignedHorizontally} ${Classes.alignRight}"
+    HAlign.CenterX -> "${Classes.alignedHorizontally} ${Classes.alignCenterX}"
+}
+
+private fun alignYName(y: VAlign): String = when(y) {
+    VAlign.Top -> "${Classes.alignedVertically} ${Classes.alignTop}"
+    VAlign.Bottom -> "${Classes.alignedVertically} ${Classes.alignBottom}"
+    VAlign.CenterY -> "${Classes.alignedVertically} ${Classes.alignCenterY}"
+}
+
 private fun getStyleName(style: Style): String =
     when(style) {
         is AStyle -> style.prop
@@ -228,6 +304,8 @@ private object Flag {
     const val heightContent = 1 shl 13
     const val contentLeft = 1 shl 14
     const val contentTop = 1 shl 14
+    const val xAlign = 1 shl 15
+    const val yAlign = 1 shl 16
 }
 
 enum class LayoutContext {
@@ -265,6 +343,8 @@ object Classes {
     const val alignBottom = "abottom"
     const val alignRight = "ar"
     const val alignLeft = "al"
+    const val alignedHorizontally = "ahorz"
+    const val alignedVertically = "avert"
     const val contentCenterX = "ccx"
     const val contentCenterY = "ccy"
     const val contentTop = "ct"

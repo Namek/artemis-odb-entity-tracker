@@ -13,6 +13,8 @@ import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.*
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
+import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
 import snabbdom.modules.*
@@ -43,11 +45,15 @@ fun main(args: Array<String>) {
 
 typealias SystemInfo = SystemInfo_Common<CommonBitVector>
 typealias AspectInfo = AspectInfo_Common<CommonBitVector>
+data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
 class ECSModel {
     val entityComponents = MemoContainer(mutableMapOf<Int, CommonBitVector>())
     val componentTypes = MemoContainer(mutableListOf<ComponentTypeInfo>())
     val allSystems = mutableListOf<SystemInfo>()
+    val allManagersNames = mutableListOf<String>()
+    val observedEntity = MemoContainer<Int?>(null)
+    val currentComponent = MemoContainer<CurrentComponent?>(null)
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
@@ -146,7 +152,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     override fun addedManager(name: String) {
-        //  managersTableModel!!.addManager(name)
+        entities.allManagersNames.add(name)
         notifyUpdate()
     }
 
@@ -156,7 +162,9 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-//        entitySystemsTableModel!!.updateSystem(index, entitiesCount, maxEntitiesCount)
+        val system = entities.allSystems[systemIndex]
+        system.entitiesCount = entitiesCount
+        system.maxEntitiesCount = maxEntitiesCount
         notifyUpdate()
     }
 
@@ -171,8 +179,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
 
+    /**
+     * Received after component value request was sent.
+     */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        //         context.eventBus.updatedComponentState(entityId, componentIndex, valueTree)
+        entities.currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
         notifyUpdate()
     }
 
@@ -200,7 +211,13 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         val componentCols = componentTypes.mapToArray { thCell(it.name) }
         val entitiesDataRows = entityComponents.mapToArray { (entityId, components) ->
             val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
-                tCell(if (components[cmpIndex]) "x" else "")
+                if (components[cmpIndex])
+                    tCell(
+                        row(attrs(Attribute.Events(j("click" to {onCmpClicked(entityId, cmpIndex)}))),
+                            span("x")
+                        )
+                    )
+                else tCell("")
             }
 
             tRow(tCell(entityId.toString()), *entityComponents)
@@ -209,6 +226,14 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         val header = tRow(idCol, *componentCols)
 
         table(arrayOf(width(fill)), header, *entitiesDataRows)
+    }
+
+    fun onCmpClicked(entityId: Int, componentIndex: Int) {
+        entities.observedEntity.value = entityId
+        notifyUpdate()
+        worldController?.let {
+            it.requestComponentState(entityId, componentIndex)
+        }
     }
 
     fun viewEntitiesFilters() =
@@ -232,10 +257,84 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun viewCurrentEntity(): VNode =
-        row(arrayOf(width(fill)) as Array<Attribute>,
-            span("current entity")
+        row(arrayOf(width(fill), height(fill)) as Array<Attribute>,
+            arrayOf(
+                // TODO fixme: height fill does not work! "contentTop" given by column() may be ignored?
+                column(arrayOf(width(fill), height(fill)) as Array<Attribute>,
+                    arrayOf(viewObservedEntity())
+                ),
+                column(arrayOf(width(fill)) as Array<Attribute>,
+                    arrayOf(viewSelectedComponent())
+                )
+            )
         )
 
+    val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
+        if (entityId == null)
+            column(arrayOf(span("select entity")))
+        else {
+            val componentTypes = entities.entityComponents.value[entityId]
+            if (componentTypes == null)
+                column(arrayOf(span("error: component types for entity #$entityId were not found")))
+            else {
+                val componentNames = mutableListOf<VNode>()
+                var i: Int = componentTypes.nextSetBit(0)
+                while (i >= 0) {
+                    val cmpType = entities.componentTypes.value[i]
+                    val isSelected = cmpType.index == currentComponent?.componentIndex
+
+                    componentNames.add(
+                        row(attrs(attrWhen(isSelected, backgroundColor("blue"))), span(cmpType.name))
+                    )
+
+                    i = componentTypes.nextSetBit(i+1)
+                }
+
+                column(arrayOf(),
+                    span("Entity #$entityId"),
+                    span("Components:"),
+                    *componentNames.toTypedArray()
+                )
+            }
+        }
+    }
+
+    val viewSelectedComponent = entities.currentComponent.transform { cmp ->
+        if (cmp == null)
+            column(arrayOf(span("")))
+        else {
+           viewValueTree(cmp.valueTree.model!!, cmp.valueTree)
+        }
+    }
+
+    fun viewValueTree(model: ObjectModelNode, value: Any?): VNode {
+        return if (model.isArray) {
+            // TODO value is ValueTree
+
+            if (model.isEnumArray) {
+                span("enum array!")
+            }
+            else span("some array!")
+        }
+        else if (model.isLeaf) {
+            if (model.isEnum)
+                span("leaf: enum value " + model.dataType.name)
+            else
+                // TODO value is some primitive
+                span("leaf: " + model.dataType.name)
+        }
+        else {
+            val vt = value as ValueTree
+            val fields = model.children!!
+                .mapIndexed { i, fieldModel ->
+                    val fieldValue = vt.values[i]
+                    viewValueTree(fieldModel, fieldValue)
+                }
+
+            // TODO padding left
+            column(fields.toTypedArray())
+        }
+    }
 
     fun demoClicked(){
         demoStep += 1

@@ -24,8 +24,13 @@ inline fun thCell(text: String) =
 inline fun span(txt: String): VNode =
     h("span", txt)
 
+inline fun attrs(vararg attrs: Attribute): Array<Attribute> =
+    arrayOf(*attrs)
 
-
+inline fun attrWhen(predicate: Boolean, attr: Attribute): Attribute =
+    if (predicate)
+        attr
+    else Attribute.NoAttribute
 
 
 val fill = Length.Fill(1)
@@ -40,3 +45,9 @@ val heightShrink = Attribute.Height.Content
 
 // note that the internal flag is 0 so it can be easily overwritten by element()
 fun style(prop: String, value: String) = Attribute.StyleClass(0, AStyle(prop, arrayOf(prop to value)))
+
+//fun backgroundColor(color: String) =
+
+
+fun padding(t: Int, r: Int, b: Int, l: Int) =
+        PaddingStyle()

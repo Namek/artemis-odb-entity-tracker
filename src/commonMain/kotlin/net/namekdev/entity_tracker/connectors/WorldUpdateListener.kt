@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.connectors
 
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 /**
  *
