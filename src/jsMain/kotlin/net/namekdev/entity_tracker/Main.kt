@@ -224,7 +224,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
                 if (components[cmpIndex])
                     tCell(
-                        row(attrs(Attribute.Events(j("click" to {onCmpClicked(entityId, cmpIndex)}))),
+                        row(attrs(Attribute.Events(j("click" to {showComponent(entityId, cmpIndex)}))),
                             span("x")
                         )
                     )
@@ -239,7 +239,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         table(arrayOf(width(fill)), header, *entitiesDataRows)
     }
 
-    fun onCmpClicked(entityId: Int, componentIndex: Int) {
+    fun showComponent(entityId: Int, componentIndex: Int) {
         entities.observedEntity.value = entityId
         notifyUpdate()
         worldController?.let {
@@ -295,7 +295,12 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                     val isSelected = cmpType.index == currentComponent?.componentIndex
 
                     componentNames.add(
-                        row(attrs(/*attrWhen(isSelected, backgroundColor("blue"))*/), span(cmpType.name))
+                        row(
+                            attrs(
+                                attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
+                                Attribute.Events(j("click" to {showComponent(entityId, cmpType.index)}))
+                            ),
+                            span(cmpType.name))
                     )
 
                     i = componentTypes.nextSetBit(i+1)
@@ -319,7 +324,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun viewValueTree(model: ObjectModelNode, value: Any?, level: Int = 0): RNode {
-        console.log(model, value)
+//        console.log(model, value)
         return if (model.isArray) {
             // TODO value is ValueTree
 

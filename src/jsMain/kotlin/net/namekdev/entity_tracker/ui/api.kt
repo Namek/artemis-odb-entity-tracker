@@ -67,4 +67,8 @@ inline fun paddingLeft(left: Int) = padding(0, 0, 0, left)
 val centerX = Attribute.AlignX(HAlign.CenterX)
 val centerY = Attribute.AlignY(VAlign.CenterY)
 
-//fun backgroundColor(color: String) =
+fun backgroundColor(color: Color) =
+    Attribute.StyleClass(Flag.bgColor, Colored("bg-color-${color.formatWithDashes()}", "background-color", color))
+
+fun fontColor(color: Color) =
+    Attribute.StyleClass(Flag.fontColor, Colored("font-color-${color.formatWithDashes()}", "color", color))

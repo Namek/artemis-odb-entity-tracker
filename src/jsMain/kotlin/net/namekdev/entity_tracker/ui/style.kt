@@ -4,7 +4,14 @@ package net.namekdev.entity_tracker.ui
 typealias Stylesheet = MutableMap<String, Style>
 typealias Color = Rgba
 
-data class Rgba(val r: Float, val g: Float, val b: Float, val a: Float)
+data class Rgba(val r: Short, val g: Short, val b: Short, val a: Short) {
+    fun formatWithDashes(): String = "$r-$g-$b-$a"
+    fun format(): String = "rgba($r,$g,$b,${a / 255f})"
+}
+fun hexToColor(rgb: Int, alpha: Short = 255.toShort()): Rgba =
+    Rgba(((rgb shr 16) and 0xFF).toShort(), ((rgb shr 8) and 0xFF).toShort(), (rgb and 0xFF).toShort(), alpha)
+
+
 data class OptionRecord(val hover: HoverSetting, val focus: FocusStyle)
 
 enum class HoverSetting { NoHover, AllowHover, ForceHover }
@@ -46,7 +53,9 @@ internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Sty
     is Single -> {
         renderStyle(sb, maybePseudo, options, ".${rule.klass}", arrayOf(Pair(rule.prop, rule.value)))
     }
-    // TODO Colored
+    is Colored -> {
+        renderStyle(sb, maybePseudo, options, ".${rule.cls}", arrayOf(Pair(rule.prop, rule.color.format())))
+    }
     is SpacingStyle -> TODO()
     is PaddingStyle -> {
         val padding = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"

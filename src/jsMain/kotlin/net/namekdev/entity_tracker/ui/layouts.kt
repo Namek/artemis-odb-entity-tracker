@@ -297,6 +297,7 @@ private fun getStyleName(style: Style): String =
     when(style) {
         is AStyle -> style.selector
         is Single -> style.klass
+        is Colored -> style.cls
         is SpacingStyle -> style.cls
         is PaddingStyle -> style.cls
     }
@@ -321,6 +322,8 @@ internal object Flag {
     const val xAlign = 1 shl 15
     const val yAlign = 1 shl 16
     const val padding = 1 shl 17
+    const val bgColor = 1 shl 18
+    const val fontColor = 1 shl 19
 }
 
 enum class LayoutContext {

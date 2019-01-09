@@ -8,6 +8,7 @@ class AStyle(val selector: String, val props: Array<Pair<String, String>>) : Sty
 class Single(val klass: String, val prop: String, val value: String) : Style()
 class SpacingStyle(val cls: String, val x: Int, val y: Int) : Style()
 class PaddingStyle(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
+class Colored(val cls: String, val prop: String, val color: Color) : Style()
 // TODO borderwidth, fontsize, fontfaimly, colored, PseudoSelector, Transparency, Shadows
 
 
