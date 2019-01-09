@@ -20,7 +20,7 @@ abstract class NetworkSerialization {
         Boolean, //takes 1 byte
         Float,
         Double,
-        BitVector, //takes minimum 4 bytes, CommonBitVector is a type from artemis-odb
+        BitVector, //takes minimum 4 bytes, BitVector is a type from artemis-odb
 
         // more complicated data types
         Unknown,

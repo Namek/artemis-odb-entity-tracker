@@ -59,6 +59,11 @@ fun padding(t: Int, r: Int, b: Int, l: Int): Attribute.StyleClass =
 fun paddingXY(x: Int, y: Int) =
     Attribute.StyleClass(Flag.padding, PaddingStyle("p-$x-$y", y, x, y, x))
 
+inline fun paddingTop(top: Int) = padding(top, 0, 0, 0)
+inline fun paddingBottom(bottom: Int) = padding(0, 0, bottom, 0)
+inline fun paddingRight(right: Int) = padding(0, right, 0, 0)
+inline fun paddingLeft(left: Int) = padding(0, 0, 0, left)
+
 val centerX = Attribute.AlignX(HAlign.CenterX)
 val centerY = Attribute.AlignY(VAlign.CenterY)
 

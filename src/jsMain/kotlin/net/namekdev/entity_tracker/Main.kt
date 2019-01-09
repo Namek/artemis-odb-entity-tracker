@@ -314,36 +314,48 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         if (cmp == null)
             column(arrayOf(span("")))
         else {
-           viewValueTree(cmp.valueTree.model!!, cmp.valueTree)
+            viewValueTree(cmp.valueTree.model!!, cmp.valueTree)
         }
     }
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?): RNode {
+    fun viewValueTree(model: ObjectModelNode, value: Any?, level: Int = 0): RNode {
+        console.log(model, value)
         return if (model.isArray) {
             // TODO value is ValueTree
 
             if (model.isEnumArray) {
                 span("enum array!")
             }
-            else span("some array!")
+            else {
+//                if (model.isSubTypePrimitive)
+                span("some array!")
+            }
         }
         else if (model.isLeaf) {
-            if (model.isEnum)
-                span("leaf: enum value " + model.dataType.name)
+            if (model.isEnum) {
+                val enumDescription = model.children!![0]
+                val enumTypeName = enumDescription.name
+                val enumValueName = enumDescription.children!![model.enumValue].name
+                span("${model.name ?: ""}<$enumTypeName> = " + enumValueName)
+            }
             else
-                // TODO value is some primitive
-                span("leaf: " + model.dataType.name)
+                span("${model.name ?: ""}<${model.dataType.name}> = " + value)
         }
         else {
             val vt = value as ValueTree
             val fields = model.children!!
                 .mapIndexed { i, fieldModel ->
                     val fieldValue = vt.values[i]
-                    viewValueTree(fieldModel, fieldValue)
+                    viewValueTree(fieldModel, fieldValue, level + 1)
                 }
 
-            // TODO padding left
-            column(fields.toTypedArray())
+            if (level > 0)
+                column(attrs(),
+                    span("${model.name ?: ""}<${model.dataType.name}>:"),
+                    column(attrs(paddingLeft(12)), fields.toTypedArray())
+                )
+            else
+                column(fields.toTypedArray())
         }
     }
 
