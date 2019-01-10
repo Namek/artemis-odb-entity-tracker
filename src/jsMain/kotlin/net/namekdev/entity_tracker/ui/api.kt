@@ -1,28 +1,5 @@
 package net.namekdev.entity_tracker.ui
 
-import snabbdom.h
-
-
-inline fun table(attrs: Array<Attribute>, header: RNode, vararg rows: RNode) =
-    el("table", attrs = attrs, nodes = arrayOf(header, *rows))
-
-inline fun tRow(vararg columns: RNode) =
-    el("tr", nodes = *columns)
-
-inline fun tCell(vararg cellContents: RNode) =
-    el("td", nodes = *cellContents)
-
-inline fun tCell(text: String) =
-    RNode(h("td", text))
-
-inline fun thCell(vararg cellContents: RNode) =
-    el("td", nodes = *cellContents)
-
-inline fun thCell(text: String) =
-    RNode(h("td", text))
-
-inline fun span(txt: String): RNode =
-    RNode(h("span", txt))
 
 inline fun attrs(vararg attrs: Attribute): Array<Attribute> =
     arrayOf(*attrs)

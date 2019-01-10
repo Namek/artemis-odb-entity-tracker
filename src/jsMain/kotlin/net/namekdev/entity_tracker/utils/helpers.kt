@@ -1,5 +1,9 @@
 package net.namekdev.entity_tracker.utils
 
+import org.w3c.dom.Element
+import org.w3c.dom.get
+import kotlin.browser.document
+
 
 inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
     return map(transform).toTypedArray()
@@ -93,4 +97,12 @@ class TransformMemoizer<T, R>(
 
         return cachedResult
     }
+}
+
+fun createStyleElement(content: String): Element {
+    val styleEl = document.createElement("style")
+    styleEl.asDynamic().type = "text/css"
+    styleEl.innerHTML = content
+    document.getElementsByTagName("head")[0]!!.appendChild(styleEl)
+    return styleEl
 }

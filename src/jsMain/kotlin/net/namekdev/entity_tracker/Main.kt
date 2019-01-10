@@ -209,10 +209,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun view() =
-        column(attrs(width(fill), height(fill), paddingXY(10, 10)),
+        column(attrs(widthFill, heightFill, paddingXY(10, 10)),
             viewEntitiesTable(),
             viewEntitiesFilters(),
-            row(arrayOf(width(fill)),
+            row(arrayOf(widthFill),
                 viewSystems(),
                 viewCurrentEntity())
         )
@@ -225,7 +225,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                 if (components[cmpIndex])
                     tCell(
                         row(attrs(Attribute.Events(j("click" to {showComponent(entityId, cmpIndex)}))),
-                            span("x")
+                            text("x")
                         )
                     )
                 else tCell("")
@@ -248,7 +248,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun viewEntitiesFilters() =
-        row(arrayOf(span("TODO filters here?")))
+        row(arrayOf(text("TODO filters here?")))
 
     fun viewSystems(): RNode {
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
@@ -268,13 +268,13 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun viewCurrentEntity(): RNode =
-        row(arrayOf(width(fill), height(fill)) as Array<Attribute>,
+        row(attrs(width(fill), height(fill)),
             arrayOf(
                 // TODO fixme: height fill does not work! "contentTop" given by column() may be ignored?
-                column(arrayOf(width(fill), height(fill)) as Array<Attribute>,
+                column(attrs(width(fill), height(fill)),
                     arrayOf(viewObservedEntity())
                 ),
-                column(arrayOf(width(fill)) as Array<Attribute>,
+                column(attrs(width(fill)),
                     arrayOf(viewSelectedComponent())
                 )
             )
@@ -282,11 +282,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
     val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
         if (entityId == null)
-            column(arrayOf(span("select entity")))
+            column(arrayOf(text("select entity")))
         else {
             val componentTypes = entities.entityComponents.value[entityId]
             if (componentTypes == null)
-                column(arrayOf(span("error: component types for entity #$entityId were not found")))
+                column(arrayOf(text("error: component types for entity #$entityId were not found")))
             else {
                 val componentNames = mutableListOf<RNode>()
                 var i: Int = componentTypes.nextSetBit(0)
@@ -300,15 +300,15 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                                 attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
                                 Attribute.Events(j("click" to {showComponent(entityId, cmpType.index)}))
                             ),
-                            span(cmpType.name))
+                            text(cmpType.name))
                     )
 
                     i = componentTypes.nextSetBit(i+1)
                 }
 
                 column(arrayOf(),
-                    span("Entity #$entityId"),
-                    span("Components:"),
+                    text("Entity #$entityId"),
+                    text("Components:"),
                     *componentNames.toTypedArray()
                 )
             }
@@ -317,7 +317,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
     val viewSelectedComponent = entities.currentComponent.transform { cmp ->
         if (cmp == null)
-            column(arrayOf(span("")))
+            column(arrayOf(text("")))
         else {
             viewValueTree(cmp.valueTree.model!!, cmp.valueTree)
         }
@@ -329,11 +329,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             // TODO value is ValueTree
 
             if (model.isEnumArray) {
-                span("enum array!")
+                text("enum array!")
             }
             else {
 //                if (model.isSubTypePrimitive)
-                span("some array!")
+                text("some array!")
             }
         }
         else if (model.isLeaf) {
@@ -341,10 +341,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                 val enumDescription = model.children!![0]
                 val enumTypeName = enumDescription.name
                 val enumValueName = enumDescription.children!![model.enumValue].name
-                span("${model.name ?: ""}<$enumTypeName> = " + enumValueName)
+                text("${model.name ?: ""}<$enumTypeName> = " + enumValueName)
             }
             else
-                span("${model.name ?: ""}<${model.dataType.name}> = " + value)
+                text("${model.name ?: ""}<${model.dataType.name}> = " + value)
         }
         else {
             val vt = value as ValueTree
@@ -356,7 +356,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
             if (level > 0)
                 column(attrs(),
-                    span("${model.name ?: ""}<${model.dataType.name}>:"),
+                    text("${model.name ?: ""}<${model.dataType.name}>:"),
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
                 )
             else
