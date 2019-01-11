@@ -205,7 +205,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         column(attrs(widthFill, heightFill, paddingXY(10, 10)),
             viewEntitiesTable(),
             viewEntitiesFilters(),
-            row(arrayOf(widthFill),
+            row(attrs(widthFill),
                 viewSystems(),
                 viewCurrentEntity())
         )
@@ -233,7 +233,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
         val header = tRow(idCol, *componentCols)
 
-        table(arrayOf(width(fill)), header, *entitiesDataRows)
+        table(attrs(width(fill)), header, *entitiesDataRows)
     }
 
     fun showComponent(entityId: Int, componentIndex: Int) {
@@ -261,17 +261,17 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                     tCell(it.maxEntitiesCount.toString())
                 )
             }
-        return table(arrayOf(width(fill)), header, *rows)
+        return table(attrs(width(fill)), header, *rows)
     }
 
     fun viewCurrentEntity(): RNode =
-        row(attrs(width(fill), height(fill)),
+        row(attrs(widthFill, heightFill, alignTop),
             arrayOf(
                 // TODO fixme: height fill does not work! "contentTop" given by column() may be ignored?
-                column(attrs(width(fill), height(fill)),
+                column(attrs(widthFill, alignTop),
                     arrayOf(viewObservedEntity())
                 ),
-                column(attrs(width(fill)),
+                column(attrs(widthFill, alignTop),
                     arrayOf(viewSelectedComponent())
                 )
             )
