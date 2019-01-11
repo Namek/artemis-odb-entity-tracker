@@ -10,7 +10,9 @@ class SpacingStyle(val cls: String, val x: Int, val y: Int) : Style()
 class PaddingStyle(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
 class Colored(val cls: String, val prop: String, val color: Color) : Style()
 class Transparency(val name: String, val alpha: Float) : Style()
-// TODO borderwidth, fontsize, fontfaimly, colored, PseudoSelector, Shadows
+class BorderWidth(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
+class PseudoSelector(val cls: PseudoClass, val styles: Array<Style>) : Style()
+// TODO fontsize, fontfaimly, colored, PseudoSelector, Shadows
 
 
 // Width -> Px px, Content, Fill portion, Min size (Width), Max size (Width)

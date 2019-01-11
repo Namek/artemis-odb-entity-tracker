@@ -48,33 +48,80 @@ internal fun toStyleSheetString(options: OptionRecord, stylesheet: Collection<St
     return sb.toString()
 }
 
-internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Style, maybePseudo: PseudoClass?) = when(rule) {
-    is AStyle -> {
-        renderStyle(sb, maybePseudo, options, rule.selector, rule.props)
+internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Style, maybePseudo: PseudoClass?) {
+    val renderStyle = {selector: String, props: Array<Pair<String, String>> ->
+        renderStyle(sb, maybePseudo, options, selector, props)
     }
-    is Transparency -> {
-        val opacity = max(0f, min(1f, 1f - rule.alpha))
-        renderStyle(sb, maybePseudo, options, ".${rule.name}", arrayOf(Pair("opacity", opacity.toString())))
-    }
-    // TODO Shadows, FontSize, FontFamily
-    is Single -> {
-        renderStyle(sb, maybePseudo, options, ".${rule.klass}", arrayOf(Pair(rule.prop, rule.value)))
-    }
-    is Colored -> {
-        renderStyle(sb, maybePseudo, options, ".${rule.cls}", arrayOf(Pair(rule.prop, rule.color.format())))
-    }
-    is SpacingStyle -> {
-        val cls = ".${rule.cls}"
+    when (rule) {
+        is AStyle -> {
+            renderStyle(rule.selector, rule.props)
+        }
+        is Transparency -> {
+            val opacity = max(0f, min(1f, 1f - rule.alpha))
+            renderStyle(".${rule.name}", arrayOf(Pair("opacity", opacity.toString())))
+        }
+        // TODO Shadows, FontSize, FontFamily
+        is Single -> {
+            renderStyle(".${rule.klass}", arrayOf(Pair(rule.prop, rule.value)))
+        }
+        is Colored -> {
+            renderStyle(".${rule.cls}", arrayOf(Pair(rule.prop, rule.color.format())))
+        }
+        is SpacingStyle -> {
+            val cls = ".${rule.cls}"
+            val halfX = "${rule.x.toFloat() / 2}px"
+            val halfY = "${rule.y.toFloat() / 2}px"
+            val xPx = "${rule.x}px"
+            val yPx = "${rule.y}px"
+            val row = ".${Classes.row}"
+            val wrappedRow = ".${Classes.wrapped}$row"
+            val column = ".${Classes.column}"
+            val paragraph = ".${Classes.paragraph}"
+            val left = ".${Classes.alignLeft}"
+            val right = ".${Classes.alignRight}"
+            val any = ".${Classes.any}"
+            val single = ".${Classes.single}"
 
-        TODO()
+            renderStyle("$cls$row > $any + $any", arrayOf(Pair("margin-left", xPx)))
+            renderStyle("$cls$wrappedRow > $any", arrayOf(Pair("margin", "$halfY $halfX")))
+            renderStyle("$cls$column > $any + $any", arrayOf(Pair("margin-top", yPx)))
+            // note: omitted `.cls.page` here
+            renderStyle("$cls$paragraph", arrayOf(Pair("line-height", "calc(1em + ${rule.y}px)")))
+            renderStyle("textarea$cls", arrayOf(Pair("line-height", "calc(1em + ${rule.y}px)")))
+            renderStyle("$cls$paragraph > $left", arrayOf(Pair("margin-right", xPx)))
+            renderStyle("$cls$paragraph > $right", arrayOf(Pair("margin-left", xPx)))
+            renderStyle("$cls$paragraph::after", arrayOf(
+                Pair("content", "''"),
+                Pair("display", "block"),
+                Pair("height", "0"),
+                Pair("width", "0"),
+                Pair("margin-top", "${-1 * rule.y/2}px")
+            ))
+            renderStyle("$cls$paragraph::before", arrayOf(
+                Pair("content", "''"),
+                Pair("display", "block"),
+                Pair("height", "0"),
+                Pair("width", "0"),
+                Pair("margin-bottom", "${-1 * rule.y/2}px")
+            ))
+        }
+        is PaddingStyle -> {
+            val padding = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"
+            renderStyle(".${rule.cls}", arrayOf(Pair("padding", padding)))
+        }
+        is BorderWidth -> {
+            val borderWidth = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"
+            renderStyle(".${rule.cls}", arrayOf(Pair("border-width", borderWidth)))
+        }
+        is PseudoSelector -> {
+            val ps = rule.cls
+            for (style in rule.styles) {
+                renderStyleRule(sb, options, style, ps)
+            }
+        }
+        // TODO Transform(?)
     }
-    is PaddingStyle -> {
-        val padding = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"
-        renderStyle(sb, maybePseudo, options, ".${rule.cls}", arrayOf(Pair("padding", padding)))
-    }
-    // TODO BorderWidth, PseudoSelector, Transform(?)
 }
-
 internal fun renderStyle(sb: StringBuilder, maybePseudo: PseudoClass?, options: OptionRecord, selector: String, props: Array<Pair<String, String>>) {
     if (maybePseudo == null) {
         sb.append(selector, "{")
@@ -154,8 +201,8 @@ val globalStylesheet =
     }
 """.trimIndent() +
 
-            // note: those below ARE copied from elm-ui!
-            """
+// note: those below ARE copied from elm-ui!
+    """
     html,body {
         height: 100%;
         padding: 0;
@@ -392,7 +439,7 @@ val globalStylesheet =
 """.trimIndent() /* lines 1659-1670*/
 
 
-fun elDescription(d: String) = """
+    fun elDescription(d: String) = """
     $d {
         display: flex;
         flex-direction: column;
@@ -527,12 +574,12 @@ fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<St
         val (content, indiv) = values(alignment)
 
         sb.append("""
-            $parentDescriptor.${contentName(alignment)}
-                $content
+        $parentDescriptor.${contentName(alignment)}
+            $content
 
-            $parentDescriptor > .${Classes.any}.${selfName(alignment)}
-                $indiv
-        """.trimIndent())
+        $parentDescriptor > .${Classes.any}.${selfName(alignment)}
+            $indiv
+    """.trimIndent())
     }
 
     return sb.toString()

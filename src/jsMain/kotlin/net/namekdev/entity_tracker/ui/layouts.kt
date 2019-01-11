@@ -83,10 +83,10 @@ fun thCell(vararg cellContents: RNode): RNode =
     ))
 
 fun tCell(text: String) =
-    RNode(h("td", textElement(text)))
+    tCell(RNode(textElement(text)))
 
 fun thCell(text: String) =
-    RNode(h("th", textElement(text)))
+    thCell(RNode(textElement(text)))
 
 
 private fun element(
@@ -330,6 +330,21 @@ private fun getStyleName(style: Style): String =
         is Colored -> style.cls
         is SpacingStyle -> style.cls
         is PaddingStyle -> style.cls
+        is BorderWidth -> style.cls
+        is PseudoSelector -> {
+            val name = when (style.cls) {
+                PseudoClass.Focus -> "fs"
+                PseudoClass.Hover -> "hv"
+                PseudoClass.Active -> "act"
+            }
+            style.styles.joinToString(" ") {
+                val styleName = getStyleName(it)
+                when (styleName) {
+                    "" -> ""
+                    else -> "$styleName-$name"
+                }
+            }
+        }
     }
 
 internal object Flag {

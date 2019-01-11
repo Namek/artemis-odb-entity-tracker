@@ -202,7 +202,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun view() =
-        column(attrs(widthFill, heightFill, paddingXY(10, 10)),
+        column(attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
             viewEntitiesTable(),
             viewEntitiesFilters(),
             row(attrs(widthFill),
@@ -211,8 +211,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         )
 
     val viewEntitiesTable = transformMultiple(entities.entityComponents, entities.componentTypes) { entityComponents, componentTypes ->
-        val idCol = thCell("entity id")
-        val componentCols = componentTypes.mapToArray { thCell(it.name) }
+        val idCol = thCell(row(attrs(paddingRight(15)), text("entity id")))
+        val componentCols = componentTypes.mapToArray {
+            thCell(row(attrs(paddingRight(15)), text(it.name)))
+        }
         val entitiesDataRows = entityComponents.mapToArray { (entityId, components) ->
             val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
                 if (components[cmpIndex])
@@ -233,7 +235,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
 
         val header = tRow(idCol, *componentCols)
 
-        table(attrs(width(fill)), header, *entitiesDataRows)
+        table(attrs(), header, *entitiesDataRows)
     }
 
     fun showComponent(entityId: Int, componentIndex: Int) {
@@ -267,8 +269,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     fun viewCurrentEntity(): RNode =
         row(attrs(widthFill, heightFill, alignTop),
             arrayOf(
-                // TODO fixme: height fill does not work! "contentTop" given by column() may be ignored?
-                column(attrs(widthFill, alignTop),
+                column(attrs(alignTop, heightFill, padding(0, 20, 0, 0)),
                     arrayOf(viewObservedEntity())
                 ),
                 column(attrs(widthFill, alignTop),
@@ -278,8 +279,12 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         )
 
     val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
-        if (entityId == null)
-            column(arrayOf(text("select entity")))
+        if (entityId == null) {
+            row(
+                attrs(widthShrink, centerX, padding(30), heightFill),
+                text("select entity")
+            )
+        }
         else {
             val componentTypes = entities.entityComponents.value[entityId]
             if (componentTypes == null)
@@ -303,7 +308,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                     i = componentTypes.nextSetBit(i+1)
                 }
 
-                column(arrayOf(),
+                column(attrs(),
                     text("Entity #$entityId"),
                     text("Components:"),
                     *componentNames.toTypedArray()
