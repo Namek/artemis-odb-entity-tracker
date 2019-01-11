@@ -1,5 +1,8 @@
 package net.namekdev.entity_tracker.ui
 
+import kotlin.math.max
+import kotlin.math.min
+
 
 inline fun attrs(vararg attrs: Attribute): Array<Attribute> =
     arrayOf(*attrs)
@@ -8,6 +11,12 @@ inline fun attrWhen(predicate: Boolean, attr: Attribute): Attribute =
     if (predicate)
         attr
     else Attribute.NoAttribute
+
+/**
+ * note that when the internal flag is 0 so it can be easily overwritten by element()
+ */
+fun style(prop: String, value: String, customFlag: Int = 0) =
+    Attribute.StyleClass(customFlag, AStyle(prop, arrayOf(prop to value)))
 
 fun px(size: Int) = Length.Px(size)
 val fill = Length.Fill(1)
@@ -21,11 +30,31 @@ val widthShrink = Attribute.Width.Content
 val heightFill = Attribute.Height.Fill(1)
 val heightShrink = Attribute.Height.Content
 
+val alignTop = Attribute.AlignY(VAlign.Top)
+val alignBottom = Attribute.AlignY(VAlign.Bottom)
+val alignLeft = Attribute.AlignX(HAlign.Left)
+val alignRight = Attribute.AlignX(HAlign.Left)
+val centerX = Attribute.AlignX(HAlign.CenterX)
+val centerY = Attribute.AlignY(VAlign.CenterY)
+
+val spaceEvenly = Attribute.Class(Flag.spacing, Classes.spaceEvenly)
+fun spacing(x: Int) = Attribute.StyleClass(Flag.spacing, SpacingStyle(spacingName(x, x), x, x))
+fun spacingXY(x: Int, y: Int) = Attribute.StyleClass(Flag.spacing, SpacingStyle(spacingName(x, y), x, y))
+
 /**
- * note that when the internal flag is 0 so it can be easily overwritten by element()
+ * Make an element transparent and have it ignore any mouse or touch events, though it will stil take up space.
  */
-fun style(prop: String, value: String, customFlag: Int = 0) =
-    Attribute.StyleClass(customFlag, AStyle(prop, arrayOf(prop to value)))
+fun transparent(on: Boolean) =
+    if (on)
+        Attribute.StyleClass(Flag.transparency, Transparency("transparent", 1f))
+    else
+        Attribute.StyleClass(Flag.transparency, Transparency("visible", 0f))
+
+fun opacity(o: Float): Attribute.StyleClass {
+    val transparency = 1f - min(1f, max(o, 0f))
+    val byteVal = min(255, (transparency * 255f).toInt())
+    return Attribute.StyleClass(Flag.transparency, Transparency("transparency-$byteVal", transparency))
+}
 
 fun padding(around: Int): Attribute.StyleClass =
     Attribute.StyleClass(Flag.padding, PaddingStyle("p-$around", around, around, around, around))
@@ -41,8 +70,7 @@ inline fun paddingBottom(bottom: Int) = padding(0, 0, bottom, 0)
 inline fun paddingRight(right: Int) = padding(0, right, 0, 0)
 inline fun paddingLeft(left: Int) = padding(0, 0, 0, left)
 
-val centerX = Attribute.AlignX(HAlign.CenterX)
-val centerY = Attribute.AlignY(VAlign.CenterY)
+val pointer = Attribute.Class(Flag.cursor, Classes.cursorPointer)
 
 fun backgroundColor(color: Color) =
     Attribute.StyleClass(Flag.bgColor, Colored("bg-color-${color.formatWithDashes()}", "background-color", color))

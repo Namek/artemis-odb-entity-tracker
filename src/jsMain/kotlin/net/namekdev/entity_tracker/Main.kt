@@ -17,7 +17,6 @@ import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
-import org.w3c.dom.get
 import snabbdom.modules.*
 import snabbdom.*
 import kotlin.browser.document
@@ -26,16 +25,12 @@ import kotlin.browser.window
 
 fun main(args: Array<String>) {
     window.onload = {
-        val style = document.createElement("style")
-        style.asDynamic().type = "text/css"
-        style.innerHTML = globalStylesheet
-        document.getElementsByTagName("head")[0]!!.appendChild(style)
+        createStyleElement(globalStylesheet)
 
         val rootEl = document.createElement("div") as HTMLElement
-        rootEl.classList.add(Classes.root)
-        rootEl.classList.add(Classes.any)
-        rootEl.classList.add(Classes.single)
+        arrayOf(Classes.root, Classes.any, Classes.single).forEach { rootEl.classList.add(it) }
         document.body!!.appendChild(rootEl)
+
         val container = document.createElement("div") as HTMLElement
         rootEl.appendChild(container)
 
@@ -102,11 +97,9 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     var worldController: WorldController? = null
     var client: WebSocketClient? = null
 
+
     init {
-        dynamicStyles = document.createElement("style")
-        dynamicStyles.asDynamic().type = "text/css"
-        dynamicStyles.innerHTML = ""
-        document.getElementsByTagName("head")[0]!!.appendChild(dynamicStyles)
+        dynamicStyles = createStyleElement("")
 
         // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
         window.setTimeout({
@@ -224,7 +217,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
                 if (components[cmpIndex])
                     tCell(
-                        row(attrs(Attribute.Events(j("click" to {showComponent(entityId, cmpIndex)}))),
+                        row(
+                            attrs(
+                                widthFill,
+                                Attribute.Events(j("click" to {showComponent(entityId, cmpIndex)}))
+                            ),
                             text("x")
                         )
                     )

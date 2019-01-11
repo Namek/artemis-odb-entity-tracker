@@ -73,7 +73,7 @@ inline fun tRow(vararg columns: RNode) =
     el("tr", nodes = *columns)
 
 fun tCell(vararg cellContents: RNode): RNode =
-    el("td", attrs(widthShrink), arrayOf(
+    el("td", attrs(), arrayOf(
         element(LayoutContext.AsRow, Generic, null, *cellContents)
     ))
 
@@ -324,6 +324,7 @@ private fun alignYName(y: VAlign): String = when(y) {
 
 private fun getStyleName(style: Style): String =
     when(style) {
+        is Transparency -> style.name
         is AStyle -> style.selector
         is Single -> style.klass
         is Colored -> style.cls
@@ -353,6 +354,9 @@ internal object Flag {
     const val padding = 1 shl 17
     const val bgColor = 1 shl 18
     const val fontColor = 1 shl 19
+    const val spacing = 1 shl 20
+    const val cursor = 1 shl 21
+    const val transparency = 1 shl 22
 }
 
 enum class LayoutContext {

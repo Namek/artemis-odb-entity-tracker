@@ -1,5 +1,8 @@
 package net.namekdev.entity_tracker.ui
 
+import kotlin.math.max
+import kotlin.math.min
+
 
 typealias Stylesheet = MutableMap<String, Style>
 typealias Color = Rgba
@@ -49,14 +52,22 @@ internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Sty
     is AStyle -> {
         renderStyle(sb, maybePseudo, options, rule.selector, rule.props)
     }
-    // TODO Shadows, Transparency, FontSize, FontFamily
+    is Transparency -> {
+        val opacity = max(0f, min(1f, 1f - rule.alpha))
+        renderStyle(sb, maybePseudo, options, ".${rule.name}", arrayOf(Pair("opacity", opacity.toString())))
+    }
+    // TODO Shadows, FontSize, FontFamily
     is Single -> {
         renderStyle(sb, maybePseudo, options, ".${rule.klass}", arrayOf(Pair(rule.prop, rule.value)))
     }
     is Colored -> {
         renderStyle(sb, maybePseudo, options, ".${rule.cls}", arrayOf(Pair(rule.prop, rule.color.format())))
     }
-    is SpacingStyle -> TODO()
+    is SpacingStyle -> {
+        val cls = ".${rule.cls}"
+
+        TODO()
+    }
     is PaddingStyle -> {
         val padding = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"
         renderStyle(sb, maybePseudo, options, ".${rule.cls}", arrayOf(Pair("padding", padding)))
@@ -423,8 +434,8 @@ fun describeAlignments_column(parentDescriptor: String): String =
                 "align-self: flex-end;"
             )
             Alignment.Left -> rule(
-                "justify-content: flex-start;",
-                ""
+                "align-items: flex-start;",
+                "align-self: flex-start;"
             )
             Alignment.CenterX -> rule(
                 "align-items: center;",
@@ -516,10 +527,10 @@ fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<St
         val (content, indiv) = values(alignment)
 
         sb.append("""
-            $parentDescriptor .${contentName(alignment)}
+            $parentDescriptor.${contentName(alignment)}
                 $content
 
-            $parentDescriptor > .${Classes.any} .${selfName(alignment)}
+            $parentDescriptor > .${Classes.any}.${selfName(alignment)}
                 $indiv
         """.trimIndent())
     }
@@ -546,3 +557,5 @@ fun contentName(alignment: Alignment): String =
         Alignment.CenterX -> Classes.contentCenterX
         Alignment.CenterY -> Classes.contentCenterY
     }
+
+fun spacingName(x: Int, y: Int) = "spacing-$x-$y"
