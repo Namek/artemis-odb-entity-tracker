@@ -372,6 +372,7 @@ internal object Flag {
     const val spacing = 1 shl 20
     const val cursor = 1 shl 21
     const val transparency = 1 shl 22
+    const val borderWidth = 1 shl 23
 }
 
 enum class LayoutContext {

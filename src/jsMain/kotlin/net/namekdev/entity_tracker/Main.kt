@@ -263,57 +263,65 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                     tCell(it.maxEntitiesCount.toString())
                 )
             }
-        return table(attrs(width(fill)), header, *rows)
+        return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    fun viewCurrentEntity(): RNode =
-        row(attrs(widthFill, heightFill, alignTop),
-            arrayOf(
-                column(attrs(alignTop, heightFill, padding(0, 20, 0, 0)),
-                    arrayOf(viewObservedEntity())
-                ),
-                column(attrs(widthFill, alignTop),
-                    arrayOf(viewSelectedComponent())
-                )
-            )
-        )
-
-    val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
         if (entityId == null) {
             row(
-                attrs(widthShrink, centerX, padding(30), heightFill),
-                text("select entity")
+                attrs(widthFill, heightFill),
+                row(attrs(widthShrink, centerX), text("Please select any entity..."))
             )
         }
         else {
-            val componentTypes = entities.entityComponents.value[entityId]
-            if (componentTypes == null)
-                column(arrayOf(text("error: component types for entity #$entityId were not found")))
-            else {
-                val componentNames = mutableListOf<RNode>()
-                var i: Int = componentTypes.nextSetBit(0)
-                while (i >= 0) {
-                    val cmpType = entities.componentTypes.value[i]
-                    val isSelected = cmpType.index == currentComponent?.componentIndex
-
-                    componentNames.add(
-                        row(
-                            attrs(
-                                attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
-                                Attribute.Events(j("click" to {showComponent(entityId, cmpType.index)}))
-                            ),
-                            text(cmpType.name))
-                    )
-
-                    i = componentTypes.nextSetBit(i+1)
-                }
-
-                column(attrs(),
-                    text("Entity #$entityId"),
-                    text("Components:"),
-                    *componentNames.toTypedArray()
-                )
+            val componentName = currentComponent?.componentIndex?.let {
+                entities.componentTypes.value[it].name
             }
+            row(
+                attrs(widthFill, heightFill, spacing(25)),
+
+                column(attrs(alignTop, heightFill, spacing(15)),
+                    row(attrs(borderBottom(1)),
+                        elems(text("Entity #$entityId"))),
+                    viewObservedEntity()),
+                column(attrs(widthFill, alignTop, spacing(6)),
+                    row(attrs(borderBottom(0)),
+                        elems(text(componentName?.let {"<$it>:"} ?: "" ))),
+                    column(attrs(paddingLeft(12)), viewSelectedComponent()))
+            )
+        }
+    }
+
+    val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
+        val componentTypes = entities.entityComponents.value[entityId!!]
+        if (componentTypes == null)
+            column(elems(
+                text("error: component types for entity #$entityId were not found")
+            ))
+        else {
+            val componentNames = mutableListOf<RNode>()
+            var i: Int = componentTypes.nextSetBit(0)
+            while (i >= 0) {
+                val cmpType = entities.componentTypes.value[i]
+                val isSelected = cmpType.index == currentComponent?.componentIndex
+
+                componentNames.add(
+                    row(
+                        attrs(
+                            attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
+                            Attribute.Events(j("click" to {showComponent(entityId, cmpType.index)}))
+                        ),
+                        text(cmpType.name)
+                    )
+                )
+
+                i = componentTypes.nextSetBit(i+1)
+            }
+
+            column(
+                attrs(spacing(5)),
+                componentNames.toTypedArray()
+            )
         }
     }
 
@@ -357,12 +365,12 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
                 }
 
             if (level > 0)
-                column(attrs(),
+                column(attrs(spacing(2)),
                     text("${model.name ?: ""}<${model.dataType.name}>:"),
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
                 )
             else
-                column(fields.toTypedArray())
+                column(attrs(spacing(6)), fields.toTypedArray())
         }
     }
 

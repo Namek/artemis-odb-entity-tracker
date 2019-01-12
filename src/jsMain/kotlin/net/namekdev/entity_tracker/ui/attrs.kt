@@ -7,6 +7,9 @@ import kotlin.math.min
 inline fun attrs(vararg attrs: Attribute): Array<Attribute> =
     arrayOf(*attrs)
 
+inline fun elems(vararg elements: RNode): Array<RNode> =
+    arrayOf(*elements)
+
 inline fun attrWhen(predicate: Boolean, attr: Attribute): Attribute =
     if (predicate)
         attr
@@ -69,6 +72,20 @@ inline fun paddingTop(top: Int) = padding(top, 0, 0, 0)
 inline fun paddingBottom(bottom: Int) = padding(0, 0, bottom, 0)
 inline fun paddingRight(right: Int) = padding(0, right, 0, 0)
 inline fun paddingLeft(left: Int) = padding(0, 0, 0, left)
+
+fun border(around: Int): Attribute.StyleClass =
+    Attribute.StyleClass(Flag.borderWidth, BorderWidth("b-$around", around, around, around, around))
+
+fun border(t: Int, r: Int, b: Int, l: Int): Attribute.StyleClass =
+    Attribute.StyleClass(Flag.borderWidth, BorderWidth("b-$t-$r-$b-$l", t, r, b, l))
+
+fun borderXY(x: Int, y: Int) =
+    Attribute.StyleClass(Flag.borderWidth, BorderWidth("b-$x-$y", y, x, y, x))
+
+inline fun borderTop(top: Int) = border(top, 0, 0, 0)
+inline fun borderBottom(bottom: Int) = border(0, 0, bottom, 0)
+inline fun borderRight(right: Int) = border(0, right, 0, 0)
+inline fun borderLeft(left: Int) = border(0, 0, 0, left)
 
 val pointer = Attribute.Class(Flag.cursor, Classes.cursorPointer)
 

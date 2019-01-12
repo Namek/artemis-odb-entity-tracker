@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
             e.add(Speed(i * 10f))
         }
 
-        e.add(Collider(Rect(pos.x, pos.y, 10f, 10f)))
+        e.add(Collider(ColliderType.AABB, Rect(pos.x, pos.y, 10f, 10f)))
     }
 
     world.process()
@@ -70,7 +70,9 @@ class Renderable(
 class MotionBlur(var power: Double = 0.0) : Component()
 
 class Collider(
-    val rect: Rect = Rect(0f,0f,0f,0f)
+    val type: ColliderType = ColliderType.AABB,
+    val rect1: Rect = Rect(0f,0f,0f,0f),
+    val rect2: Rect = Rect(0f,0f,0f,0f)
 ) : Component()
 
 
@@ -110,6 +112,10 @@ class CollisionSystem : EntityProcessingSystem(
 enum class RenderLayer {
     Front,
     Back
+}
+
+enum class ColliderType {
+    AABB, Circle
 }
 
 data class Rect(var x: Float, var y: Float, var width: Float, var height: Float)

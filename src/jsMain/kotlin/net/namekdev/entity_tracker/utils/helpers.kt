@@ -78,24 +78,30 @@ class MemoContainer<T>(private var _value: T) : MemoizerBase<T>() {
 /**
  * Maps given object to another value.
  * Transform result is cached and invalidated when object's hash code changes.
- * To achieve this object use {@see MemoizerBase.transform()}.
+ * To obtain this object use {@see MemoizerBase.transform()}.
  */
 class TransformMemoizer<T, R>(
     val valueHolder: MemoizerBase<T>,
     val transformer: (T) -> R
 ) {
-    private var cachedResult: R = transformer(valueHolder.value)
+    private var cachedResult: R? = null
 
     operator fun invoke(): R {
         val value = valueHolder.value
         val hashCode = value.hashCode()
 
+        // lazy call
+        val previousResult = cachedResult ?: transformer(value)
+
         if (hashCode != valueHolder.lastHashCode) {
             valueHolder.lastHashCode = hashCode
             cachedResult = transformer(value)
         }
+        else if (cachedResult == null) {
+            cachedResult = previousResult
+        }
 
-        return cachedResult
+        return cachedResult!!
     }
 }
 
