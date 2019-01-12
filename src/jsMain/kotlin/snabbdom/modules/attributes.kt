@@ -26,7 +26,7 @@ private fun updateAttrs(oldVnode: VNode, vnode: VNode): Unit {
     attrs = attrs ?: newObj().unsafeCast<Attrs>()
 
     // update modified attributes, add new attributes
-    for (key in attrs.asDynamic()) {
+    for (key: dynamic in jsObjKeys(attrs)) {
         val cur = attrs[key]!!
         val old = oldAttrs[key]
         if (old !== cur) {

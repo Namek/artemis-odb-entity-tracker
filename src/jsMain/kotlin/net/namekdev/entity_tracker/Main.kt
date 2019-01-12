@@ -211,7 +211,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         )
 
     val viewEntitiesTable = transformMultiple(entities.entityComponents, entities.componentTypes) { entityComponents, componentTypes ->
-        val idCol = thCell(row(attrs(paddingRight(15)), text("entity id")))
+        val idCol = thCell(row(attrs(paddingRight(15)), text("id")))
         val componentCols = componentTypes.mapToArray {
             thCell(row(attrs(paddingRight(15)), text(it.name)))
         }
@@ -329,11 +329,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         if (cmp == null)
             column(arrayOf(text("")))
         else {
-            viewValueTree(cmp.valueTree.model!!, cmp.valueTree)
+            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree)
         }
     }
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?, level: Int = 0): RNode {
+    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, path: List<Int> = listOf()): RNode {
 //        console.log(model, value)
         return if (model.isArray) {
             // TODO value is ValueTree
@@ -348,10 +348,21 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         }
         else if (model.isLeaf) {
             if (model.isEnum) {
+                val enumValueIndex = model.enumValue.let {
+                    if (it < 0)
+                        null
+                    else it
+                }
                 val enumDescription = model.children!![0]
-                val enumTypeName = enumDescription.name
-                val enumValueName = enumDescription.children!![model.enumValue].name
-                text("${model.name ?: ""}<$enumTypeName> = " + enumValueName)
+                val enumTypeName = enumDescription.name!!
+                val enumValuesNames = enumDescription.children!!.map { it.name!! }
+
+                row(attrs(),
+                    text("${model.name ?: ""}<$enumTypeName> = "),
+                    dropdown(enumValueIndex, enumValuesNames, true) {
+                        onValueChanged(rootValue, path, it)
+                    }
+                )
             }
             else
                 text("${model.name ?: ""}<${model.dataType.name}> = " + value)
@@ -361,10 +372,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             val fields = model.children!!
                 .mapIndexed { i, fieldModel ->
                     val fieldValue = vt.values[i]
-                    viewValueTree(fieldModel, fieldValue, level + 1)
+                    viewValueTree(fieldModel, fieldValue, rootValue, path + i)
                 }
 
-            if (level > 0)
+            if (path.isNotEmpty())
                 column(attrs(spacing(2)),
                     text("${model.name ?: ""}<${model.dataType.name}>:"),
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
@@ -372,6 +383,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             else
                 column(attrs(spacing(6)), fields.toTypedArray())
         }
+    }
+
+    fun onValueChanged(rootValue: ValueTree, path: List<Int>, newValue: Any?) {
+        console.log(rootValue, path, newValue)
     }
 
     fun demoClicked(){
