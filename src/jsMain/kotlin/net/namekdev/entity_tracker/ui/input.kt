@@ -4,6 +4,7 @@ import org.w3c.dom.HTMLSelectElement
 import snabbdom.*
 import snabbdom.modules.Attrs
 import snabbdom.modules.On
+import snabbdom.modules.Props
 import kotlin.js.Json
 
 fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, onChange: (Int?) -> Unit): RNode {
@@ -33,11 +34,19 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
     })
     val selectedIdx = (valueIndex ?: -1) + modifier
 
-    val hook: CreateHook = { ev, v ->
+    val hooks: Hooks = j()
+    hooks.create = { ev, v ->
         val el = (v.elm!! as HTMLSelectElement)
         el.selectedIndex = selectedIdx
         null
     }
+    hooks.update = { ev, v ->
+        val el = (v.elm!! as HTMLSelectElement)
+        el.selectedIndex = el.asDynamic().selectedIndex__
+        null
+    }
 
-    return RNode(h("select", VNodeData(on = on, hook = j("create" to hook)), options))
+    val props: Props = j("selectedIndex__" to selectedIdx)
+
+    return RNode(h("select", VNodeData(on = on, hook = hooks, props = props), options))
 }

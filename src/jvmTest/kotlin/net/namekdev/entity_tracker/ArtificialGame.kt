@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
         ArtemisWorldSerializer(WebSocketServer().start()),
         worldControlListener = object : IWorldControlListener {
             override fun onComponentFieldValueChanged(entityId: Int, componentIndex: Int, treePath: IntArray, newValue: Any?) {
-                print("E$entityId C$componentIndex [${treePath.joinToString(", ")}] = $newValue")
+                println("E$entityId C$componentIndex [${treePath.joinToString(", ")}] = $newValue")
             }
         }
     )

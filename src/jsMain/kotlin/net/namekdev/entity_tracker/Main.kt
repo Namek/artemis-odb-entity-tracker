@@ -347,18 +347,13 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
         else if (model.isLeaf) {
             if (model.isEnum) {
-                val enumValueIndex = model.enumValue.let {
-                    if (it < 0)
-                        null
-                    else it
-                }
                 val enumDescription = model.children!![0]
                 val enumTypeName = enumDescription.name!!
                 val enumValuesNames = enumDescription.children!!.map { it.name!! }
 
                 row(attrs(),
                     text("${model.name ?: ""}<$enumTypeName> = "),
-                    dropdown(enumValueIndex, enumValuesNames, true) {
+                    dropdown(value as Int?, enumValuesNames, true) {
                         onValueChanged(rootValue, path, it)
                     }
                 )
@@ -388,6 +383,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         val entityId: Int = path[0]
         val componentIndex: Int = path[1]
         worldController!!.setComponentFieldValue(entityId, componentIndex, path.subList(2, path.size).toIntArray(), newValue)
+
+        // TODO this is just a workaround, we should modify the value in our model instead of refreshing state of whole component. (?)
+        worldController!!.requestComponentState(entityId, componentIndex)
         console.log(rootValue, path, newValue)
     }
 
