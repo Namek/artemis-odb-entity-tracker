@@ -2,8 +2,8 @@ package net.namekdev.entity_tracker.network
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 
-import net.namekdev.entity_tracker.connectors.WorldController
-import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
+import net.namekdev.entity_tracker.connectors.IWorldController
+import net.namekdev.entity_tracker.connectors.IWorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.CommonBitVector
@@ -16,8 +16,8 @@ import net.namekdev.entity_tracker.utils.serialization.ClientNetworkSerializer
  * @author Namek
  */
 class ExternalInterfaceCommunicator(
-    private val _listener: WorldUpdateInterfaceListener<CommonBitVector>
-) : Communicator(), WorldController {
+    private val _listener: IWorldUpdateInterfaceListener<CommonBitVector>
+) : Communicator(), IWorldController {
     //	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
@@ -124,7 +124,7 @@ class ExternalInterfaceCommunicator(
         )
     }
 
-    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, value: Any) {
+    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, value: Any?) {
         val p = beginPacket(Communicator.TYPE_SET_COMPONENT_FIELD_VALUE)
             .addInt(entityId)
             .addInt(componentIndex)

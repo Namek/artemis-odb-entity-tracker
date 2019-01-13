@@ -3,8 +3,11 @@ package net.namekdev.entity_tracker.utils.serialization
 import net.namekdev.entity_tracker.model.determineType
 import net.namekdev.entity_tracker.utils.ReflectionUtils
 
+class ObjectModelNode_Server(internal val _models: ObjectModelsCollection_Typed, id: Int, parent: ObjectModelNode?) :
+    ObjectModelNode(id, parent)
 
-actual fun ObjectModelNode.setValue(targetObj: Any, treePath: IntArray?, value: Any?) {
+
+fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: Any?) {
     var traverseObj: Any? = targetObj
     net.namekdev.entity_tracker.utils.assert(treePath != null && treePath.size >= 1)
 
@@ -16,7 +19,7 @@ actual fun ObjectModelNode.setValue(targetObj: Any, treePath: IntArray?, value: 
     )
 
     var pathIndex = 0
-    var node = this
+    var node: ObjectModelNode = this
 
     while (pathIndex < treePath!!.size) {
         val index = treePath[pathIndex]
@@ -26,6 +29,19 @@ actual fun ObjectModelNode.setValue(targetObj: Any, treePath: IntArray?, value: 
             val fieldName = node.name
 
             if (node.isLeaf) {
+                val value =
+                    if (node.isEnum && value != null) {
+                        val cls = value.javaClass
+                        if (cls.isEnum)
+                            value
+                        else {
+                            val enumType = _models.getTypeByModelId(node.id)!!
+                            val ordinal = java.lang.Number::class.java.cast(value).intValue()
+                            enumType.enumConstants[ordinal]
+                        }
+                    }
+                    else value
+
                 ReflectionUtils.setHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj, value)
             }
             else {

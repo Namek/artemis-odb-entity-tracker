@@ -22,10 +22,6 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             return models[index]
         }
 
-        override fun get(type: KClass<*>): ObjectModelNode {
-            throw RuntimeException("deserializer doesn't provide inspection")
-        }
-
         override fun getById(id: Int): ObjectModelNode? {
             for (node in models) {
                 if (node.id == id)
@@ -239,7 +235,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
 
     private fun readRawDataDescription(): ObjectModelNode {
         val modelId = readRawInt()
-        val node = ObjectModelNode(null, modelId, null)
+        val node = ObjectModelNode(modelId, null)
         this._models.add(node)
         node.name = readString()
         node.isTypePrimitive = readBoolean()
@@ -275,7 +271,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
                 var curNode = node
                 for (i in 1..depth) {
                     val id = readRawInt()
-                    val subnode = ObjectModelNode(null, id, curNode)
+                    val subnode = ObjectModelNode(id, curNode)
                     subnode.dataType = DataType.Array
                     subnode.dataSubType = DataType.Array
                     curNode.children = arrayOf(subnode)
@@ -301,14 +297,14 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
 
             var enumModel: ObjectModelNode? = _models.getById(id)
             if (enumModel == null) {
-                enumModel = ObjectModelNode(null, id, node)
+                enumModel = ObjectModelNode(id, node)
                 this._models.add(enumModel)
             }
 
             val n = readRawInt()
             enumModel.children = Array<ObjectModelNode>(n) { i ->
                 val valueId = readRawInt()
-                val enumValueModel = ObjectModelNode(null, valueId, null/*TODO here's null! should be?*/)
+                val enumValueModel = ObjectModelNode(valueId, null/*TODO here's null! should be?*/)
                 enumValueModel.dataType = DataType.EnumValue
                 enumValueModel.enumValue = readRawInt()
                 enumValueModel.name = readString()

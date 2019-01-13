@@ -2,8 +2,8 @@ package net.namekdev.entity_tracker
 
 import java.util.HashMap
 
-import net.namekdev.entity_tracker.connectors.WorldController
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener
+import net.namekdev.entity_tracker.connectors.IWorldController
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.utils.ArrayPool
 import net.namekdev.entity_tracker.utils.ReflectionUtils
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
@@ -27,23 +27,27 @@ import com.artemis.utils.BitVector
 import com.artemis.utils.IntBag
 import com.artemis.utils.reflect.Method
 import com.artemis.utils.reflect.ReflectionException
+import net.namekdev.entity_tracker.connectors.IWorldControlListener
+import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode_Server
 
 /**
  * @author Namek
  */
 class EntityTracker @JvmOverloads constructor(
     private val componentInspector: ObjectTypeInspector = ObjectTypeInspector(),
-    listener: WorldUpdateListener<BitVector>? = null
-) : Manager(), WorldController {
-    private var updateListener: WorldUpdateListener<BitVector>? = null
+    worldUpdateListener: IWorldUpdateListener<BitVector>? = null,
+    var worldControlListener: IWorldControlListener? = null
+
+) : Manager(), IWorldController {
+    private var updateListener: IWorldUpdateListener<BitVector>? = null
 
     val systemsInfo = Bag<SystemInfo>()
     val systemsInfoByName: MutableMap<String, SystemInfo> = HashMap()
 
     val managersInfo = Bag<ManagerInfo>()
     val managersInfoByName: MutableMap<String, ManagerInfo> = HashMap()
-    val allComponentTypesInfoByClass: MutableMap<Class<Component>, ComponentTypeInfo> = HashMap()
-    val allComponentTypesInfo = Bag<ComponentTypeInfo>()
+    val allComponentTypesInfoByClass: MutableMap<Class<Component>, ComponentTypeInfo_Server> = HashMap()
+    val allComponentTypesInfo = Bag<ComponentTypeInfo_Server>()
     val allComponentMappers = Bag<BaseComponentMapper<Component>>()
 
 
@@ -55,13 +59,14 @@ class EntityTracker @JvmOverloads constructor(
     private var _notifiedComponentTypesCount = 0
     private val _objectArrPool = ArrayPool(Any::class.java)
 
-    constructor(listener: WorldUpdateListener<BitVector>) : this(ObjectTypeInspector(), listener) {}
+    constructor(worldUpdateListener: IWorldUpdateListener<BitVector>, worldControlListener: IWorldControlListener? = null)
+        : this(ObjectTypeInspector(), worldUpdateListener, worldControlListener)
 
     init {
-        setUpdateListener(listener)
+        setUpdateListener(worldUpdateListener)
     }
 
-    fun setUpdateListener(listener: WorldUpdateListener<BitVector>?) {
+    fun setUpdateListener(listener: IWorldUpdateListener<BitVector>?) {
         this.updateListener = listener
         listener?.injectWorldController(this)
     }
@@ -142,7 +147,7 @@ class EntityTracker @JvmOverloads constructor(
             override fun removed(entities: IntBag) {
                 info.entitiesCount -= entities.size()
 
-                if (updateListener != null && updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
+                if (updateListener != null && updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
                     updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
                 }
             }
@@ -154,7 +159,7 @@ class EntityTracker @JvmOverloads constructor(
                     info.maxEntitiesCount = info.entitiesCount
                 }
 
-                if (updateListener != null && updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
+                if (updateListener != null && updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
                     updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
                 }
             }
@@ -166,7 +171,7 @@ class EntityTracker @JvmOverloads constructor(
             return
         }
 
-        if (updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_ADDED == 0) {
+        if (updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_ADDED == 0) {
             return
         }
 
@@ -186,7 +191,7 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun deleted(e: Entity?) {
-        if (updateListener == null || updateListener!!.listeningBitset and WorldUpdateListener.ENTITY_DELETED == 0) {
+        if (updateListener == null || updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_DELETED == 0) {
             return
         }
 
@@ -197,7 +202,7 @@ class EntityTracker @JvmOverloads constructor(
         val index = _notifiedComponentTypesCount
         val n = allComponentTypes.size()
 
-        for (i in index..n - 1) {
+        for (i in index until n) {
             val type = ReflectionUtils.getHiddenFieldValue(ComponentType::class.java, "type", allComponentTypes.get(i)) as Class<Component>
 
             val info = inspectComponentType(type)
@@ -212,7 +217,7 @@ class EntityTracker @JvmOverloads constructor(
         }
     }
 
-    private fun inspectComponentType(type: Class<Component>): ComponentTypeInfo {
+    private fun inspectComponentType(type: Class<Component>): ComponentTypeInfo_Server {
         val info = ComponentTypeInfo_Server(type)
         info.model = componentInspector.inspect(type)
 
@@ -234,18 +239,22 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun requestComponentState(entityId: Int, componentIndex: Int) {
-        val info = allComponentTypesInfo.get(componentIndex)
+        //val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
 
         val component = mapper.get(entityId)
         updateListener!!.updatedComponentState(entityId, componentIndex, component)
     }
 
-    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, value: Any) {
+    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValue: Any?) {
         val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
 
         val component = mapper.get(entityId)
-        info.model.setValue(component, treePath, value)
+        (info.model as ObjectModelNode_Server).setValue(component, treePath, newValue)
+
+        worldControlListener?.let {
+            it.onComponentFieldValueChanged(entityId, componentIndex, treePath, newValue)
+        }
     }
 }

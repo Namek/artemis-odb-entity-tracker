@@ -1,10 +1,10 @@
 package net.namekdev.entity_tracker
 
-import net.namekdev.entity_tracker.connectors.WorldController
-import net.namekdev.entity_tracker.connectors.WorldUpdateInterfaceListener
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_ADDED
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_DELETED
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
+import net.namekdev.entity_tracker.connectors.IWorldController
+import net.namekdev.entity_tracker.connectors.IWorldUpdateInterfaceListener
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_ADDED
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_DELETED
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.model.SystemInfo_Common
@@ -77,7 +77,7 @@ class ECSModel {
     }
 }
 
-class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVector> {
+class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVector> {
     val patch = Snabbdom.init(
         arrayOf(
             ClassModule(),
@@ -94,7 +94,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     var demoStep = 0
     val entities = ECSModel()
 
-    var worldController: WorldController? = null
+    var worldController: IWorldController? = null
     var client: WebSocketClient? = null
 
 
@@ -134,7 +134,7 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         entities.clear()
     }
 
-    override fun injectWorldController(controller: WorldController) {
+    override fun injectWorldController(controller: IWorldController) {
         worldController = controller
     }
 
@@ -329,12 +329,11 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
         if (cmp == null)
             column(arrayOf(text("")))
         else {
-            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree)
+            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree, listOf(cmp.entityId, cmp.componentIndex))
         }
     }
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, path: List<Int> = listOf()): RNode {
-//        console.log(model, value)
+    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, path: List<Int> = listOf(), level: Int = 0): RNode {
         return if (model.isArray) {
             // TODO value is ValueTree
 
@@ -372,10 +371,10 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
             val fields = model.children!!
                 .mapIndexed { i, fieldModel ->
                     val fieldValue = vt.values[i]
-                    viewValueTree(fieldModel, fieldValue, rootValue, path + i)
+                    viewValueTree(fieldModel, fieldValue, rootValue, path + i, level + 1)
                 }
 
-            if (path.isNotEmpty())
+            if (level > 0)
                 column(attrs(spacing(2)),
                     text("${model.name ?: ""}<${model.dataType.name}>:"),
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
@@ -386,6 +385,9 @@ class Main(container: HTMLElement) : WorldUpdateInterfaceListener<CommonBitVecto
     }
 
     fun onValueChanged(rootValue: ValueTree, path: List<Int>, newValue: Any?) {
+        val entityId: Int = path[0]
+        val componentIndex: Int = path[1]
+        worldController!!.setComponentFieldValue(entityId, componentIndex, path.subList(2, path.size).toIntArray(), newValue)
         console.log(rootValue, path, newValue)
     }
 

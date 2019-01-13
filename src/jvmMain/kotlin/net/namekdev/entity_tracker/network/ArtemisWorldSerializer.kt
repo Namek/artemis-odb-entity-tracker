@@ -5,8 +5,8 @@ import java.util.HashMap
 import com.artemis.Component
 import com.artemis.utils.Bag
 import com.artemis.utils.BitVector
-import net.namekdev.entity_tracker.connectors.WorldController
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener
+import net.namekdev.entity_tracker.connectors.IWorldController
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.tuple.Tuple3
@@ -18,8 +18,8 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
  *
  * @author Namek
  */
-class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener<BitVector> {
-    private lateinit var _worldController: WorldController
+class ArtemisWorldSerializer(server: IServer) : IWorldUpdateListener<BitVector> {
+    private lateinit var _worldController: IWorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
     private val _managers = Bag<String>()
@@ -30,13 +30,13 @@ class ArtemisWorldSerializer(server: IServer) : WorldUpdateListener<BitVector> {
     private val _entitySystemsMaxEntitiesCount = Bag<Int>()
 
 
-    override fun injectWorldController(controller: WorldController) {
+    override fun injectWorldController(controller: IWorldController) {
         _worldController = controller
     }
 
     override // TODO
     val listeningBitset: Int
-        get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
+        get() = IWorldUpdateListener.ENTITY_ADDED or IWorldUpdateListener.ENTITY_DELETED or IWorldUpdateListener.ENTITY_SYSTEM_STATS
 
     override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         var i = 0

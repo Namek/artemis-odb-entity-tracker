@@ -46,7 +46,7 @@ class SophisticatedTest {
         // now, let's modify one of them and compare again, should be different
         val enumDescrModel = model2.children!![2].children!![0].children!![0]
         val thirdEnumValue = enumDescrModel.children!![2]
-        val newThirdEnumValue = ObjectModelNode(null, 0, null).copyFrom(thirdEnumValue)
+        val newThirdEnumValue = ObjectModelNode(0, null).copyFrom(thirdEnumValue)
         newThirdEnumValue.enumValue = 999
         enumDescrModel.children!!.set(2, newThirdEnumValue)
 

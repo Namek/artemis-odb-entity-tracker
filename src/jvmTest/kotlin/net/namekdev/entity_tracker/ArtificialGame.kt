@@ -6,6 +6,7 @@ import com.artemis.Entity
 import com.artemis.World
 import com.artemis.WorldConfiguration
 import com.artemis.systems.EntityProcessingSystem
+import net.namekdev.entity_tracker.connectors.IWorldControlListener
 import net.namekdev.entity_tracker.network.ArtemisWorldSerializer
 import net.namekdev.entity_tracker.network.base.WebSocketServer
 
@@ -14,7 +15,12 @@ import net.namekdev.entity_tracker.network.base.WebSocketServer
  */
 fun main(args: Array<String>) {
     val entityTracker = EntityTracker(
-        ArtemisWorldSerializer(WebSocketServer().start())
+        ArtemisWorldSerializer(WebSocketServer().start()),
+        worldControlListener = object : IWorldControlListener {
+            override fun onComponentFieldValueChanged(entityId: Int, componentIndex: Int, treePath: IntArray, newValue: Any?) {
+                print("E$entityId C$componentIndex [${treePath.joinToString(", ")}] = $newValue")
+            }
+        }
     )
 
     val world = World(
@@ -104,10 +110,10 @@ class CollisionSystem : EntityProcessingSystem(
     override fun process(e: Entity) {}
 }
 
+
 //
 // Utils, helpers, etc.
 //
-
 
 enum class RenderLayer {
     Front,

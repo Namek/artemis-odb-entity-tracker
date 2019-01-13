@@ -1,5 +1,5 @@
 package net.namekdev.entity_tracker.connectors
 
-interface WorldUpdateInterfaceListener<BitVectorType> : WorldUpdateListener<BitVectorType> {
+interface IWorldUpdateInterfaceListener<BitVectorType> : IWorldUpdateListener<BitVectorType> {
 	fun disconnected()
 }

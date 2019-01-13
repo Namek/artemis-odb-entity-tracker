@@ -299,6 +299,64 @@ class SerializeCustomClassTest {
     }
 
     @Test
+    fun inspect_and_update_enum_fields_by_null() {
+        val obj = EnumFullTestClass()
+        val model = inspector.inspect(obj.javaClass)
+
+        model.setValue(obj, intArrayOf(0), null)
+        assertEquals(null, obj.enumUndefined)
+
+        assertEquals(TestEnum.First, obj.enumValued)
+        model.setValue(obj, intArrayOf(1), null)
+        assertEquals(null, obj.enumValued)
+    }
+
+    @Test
+    fun inspect_and_update_enum_fields_by_value_provided_as_integer()
+    {
+        val obj = EnumFullTestClass()
+        val model = inspector.inspect(obj.javaClass)
+
+        val newVal = TestEnum.Third.ordinal
+        model.setValue(obj, intArrayOf(0), newVal)
+        assertEquals(newVal, (obj.enumUndefined as TestEnum).ordinal)
+
+        assertEquals(TestEnum.First, obj.enumValued)
+        model.setValue(obj, intArrayOf(1), newVal)
+        assertEquals(newVal, (obj.enumValued as TestEnum).ordinal)
+    }
+
+    @Test
+    fun inspect_and_update_enum_fields_by_value_provided_as_short_int()
+    {
+        val obj = EnumFullTestClass()
+        val model = inspector.inspect(obj.javaClass)
+
+        val newVal = TestEnum.Third.ordinal.toShort()
+        model.setValue(obj, intArrayOf(0), newVal)
+        assertEquals(newVal, (obj.enumUndefined as TestEnum).ordinal.toShort())
+
+        assertEquals(TestEnum.First, obj.enumValued)
+        model.setValue(obj, intArrayOf(1), newVal)
+        assertEquals(newVal, (obj.enumValued as TestEnum).ordinal.toShort())
+    }
+
+    @Test
+    fun inspect_and_update_enum_fields_by_value_provided_as_byte()
+    {
+        val obj = EnumFullTestClass()
+        val model = inspector.inspect(obj.javaClass)
+
+        val newVal = TestEnum.Third.ordinal.toByte()
+        model.setValue(obj, intArrayOf(0), newVal)
+        assertEquals(newVal, (obj.enumUndefined as TestEnum).ordinal.toByte())
+
+        assertEquals(TestEnum.First, obj.enumValued)
+        model.setValue(obj, intArrayOf(1), newVal)
+        assertEquals(newVal, (obj.enumValued as TestEnum).ordinal.toByte())
+    }
+
+    @Test
     fun inspect_names_of_enum_fields() {
         val obj = EnumFullTestClass()
         val model = inspector.inspect(obj.javaClass)

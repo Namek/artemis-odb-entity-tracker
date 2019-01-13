@@ -2,7 +2,6 @@ package net.namekdev.entity_tracker.utils.serialization
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 
-expect fun ObjectModelNode.setValue(targetObj: Any, treePath: IntArray?, value: Any?)
 
 /**
  * Describes a structure of class or class field.
@@ -12,8 +11,7 @@ expect fun ObjectModelNode.setValue(targetObj: Any, treePath: IntArray?, value: 
  * AutoSizedArray fields will be just described as a definition,
  * independently of the array's content.
  */
-class ObjectModelNode(
-    internal val _models: ObjectModelsCollection?,
+open class ObjectModelNode(
     id: Int,
 
     // when it's null it defines a class, otherwise it's field

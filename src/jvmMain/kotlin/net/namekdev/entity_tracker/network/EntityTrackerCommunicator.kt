@@ -2,9 +2,10 @@ package net.namekdev.entity_tracker.network
 
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import com.artemis.utils.BitVector
-import net.namekdev.entity_tracker.connectors.WorldController
-import net.namekdev.entity_tracker.connectors.WorldUpdateListener
+import net.namekdev.entity_tracker.connectors.IWorldController
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.model.ComponentTypeInfo_Server
 import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.serialization.JvmDeserializer
 import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
@@ -17,8 +18,8 @@ import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
  *
  * @author Namek
  */
-open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVector> {
-    private lateinit var _worldController: WorldController
+open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitVector> {
+    private lateinit var _worldController: IWorldController
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
     private val _serializer = JvmSerializer()
@@ -53,14 +54,14 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVe
                     treePath[i] = _deserializer.readInt()
                 }
 
-                _worldController.setComponentFieldValue(entityId, componentIndex, treePath, value!!)
+                _worldController.setComponentFieldValue(entityId, componentIndex, treePath, value)
             }
 
             else -> throw RuntimeException("Unknown packet type: " + packetType.toInt())
         }
     }
 
-    override fun injectWorldController(controller: WorldController) {
+    override fun injectWorldController(controller: IWorldController) {
         _worldController = controller
     }
 
@@ -75,7 +76,7 @@ open class EntityTrackerCommunicator : Communicator(), WorldUpdateListener<BitVe
     }
 
     override val listeningBitset: Int
-        get() = WorldUpdateListener.ENTITY_ADDED or WorldUpdateListener.ENTITY_DELETED or WorldUpdateListener.ENTITY_SYSTEM_STATS
+        get() = IWorldUpdateListener.ENTITY_ADDED or IWorldUpdateListener.ENTITY_DELETED or IWorldUpdateListener.ENTITY_SYSTEM_STATS
 
     override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         send(
