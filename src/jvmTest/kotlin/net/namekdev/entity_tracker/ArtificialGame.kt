@@ -73,7 +73,10 @@ class Renderable(
     var color: Long = Long.MAX_VALUE
 ) : Component()
 
-class MotionBlur(var power: Double = 0.0) : Component()
+class MotionBlur(
+    var on: Boolean? = true,
+    var power: Double = 0.0
+) : Component()
 
 class Collider(
     val type: ColliderType = ColliderType.AABB,

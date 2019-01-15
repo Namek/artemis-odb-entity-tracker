@@ -3,12 +3,9 @@
 
 package net.namekdev.entity_tracker.ui
 
-import snabbdom.VNode
-import snabbdom.h
-import snabbdom.j
 import net.namekdev.entity_tracker.ui.Attribute.*
 import net.namekdev.entity_tracker.ui.LayoutContext.*
-import snabbdom.VNodeData
+import snabbdom.*
 
 /**
  * Render Context for snabbdom's VNode.
@@ -20,6 +17,7 @@ data class RNode(
     val stylesheet: Stylesheet? = null
 )
 
+val dummyEl: RNode = RNode(emptyNode)
 
 fun row(nodes: Array<RNode>): RNode =
     row(arrayOf(), *nodes)

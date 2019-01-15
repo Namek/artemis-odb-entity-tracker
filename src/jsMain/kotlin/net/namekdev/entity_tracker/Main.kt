@@ -13,6 +13,8 @@ import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.*
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
+import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.w3c.dom.Element
@@ -352,14 +354,66 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 val enumValuesNames = enumDescription.children!!.map { it.name!! }
 
                 row(attrs(),
+                    dataTypeToIcon(DataType.Enum, false),
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
                         onValueChanged(rootValue, path, it)
                     }
                 )
             }
-            else
-                text("${model.name ?: ""}<${model.dataType.name}> = " + value)
+            else if (model.dataType == DataType.Boolean) {
+                row(attrs(),
+                    dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
+                    text("${model.name ?: ""} ="),
+                    checkbox(value as Boolean?, !model.isTypePrimitive) {
+                        onValueChanged(rootValue, path, it)
+                    }
+                )
+            }
+            else {
+                val inputType = when (model.dataType) {
+                    DataType.Byte,
+                    DataType.Short,
+                    DataType.Int,
+                    DataType.Long ->
+                        InputType.Integer
+
+                    DataType.Float,
+                    DataType.Double ->
+                        InputType.FloatingPointNumber
+
+                    else -> InputType.Text
+                }
+                row(attrs(),
+                    dataTypeToIcon(model.dataType, model.isTypePrimitive),
+                    text("${model.name ?: ""} = "),
+                    input(value?.let{it.toString()} ?: "<null>", inputType, !model.isTypePrimitive) {
+                        val newValue: Any? = when (it) {
+                            null -> null
+                            is InputValueText -> it.text
+                            is InputValueFloatingPoint -> {
+                                when (model.dataType) {
+                                    DataType.Float -> it.number.toFloat()
+                                    DataType.Double -> it.number.toDouble()
+                                    else ->
+                                        throw RuntimeException("input() floating point should be only Float/Double and it is: ${model.dataType}")
+                                }
+                            }
+                            is InputValueInteger -> {
+                                when (model.dataType) {
+                                    DataType.Byte -> it.number.toByte()
+                                    DataType.Short -> it.number.toShort()
+                                    DataType.Int -> it.number.toInt()
+                                    DataType.Long -> it.number.toLong()
+                                    else ->
+                                        throw RuntimeException("integer was supposed to be Byte/Short/Int/Long and it is: ${model.dataType}")
+                                }
+                            }
+                        }
+                        onValueChanged(rootValue, path, newValue)
+                    }
+                )
+            }
         }
         else {
             val vt = value as ValueTree
@@ -371,7 +425,10 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
 
             if (level > 0)
                 column(attrs(spacing(2)),
-                    text("${model.name ?: ""}<${model.dataType.name}>:"),
+                    row(elems(
+                        dataTypeToIcon(model.dataType, false),
+                        text("${model.name ?: ""}:")
+                    )),
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
                 )
             else
@@ -417,4 +474,33 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 ))
         }
 
+}
+
+fun dataTypeToIcon(dt: DataType, isPrimitive: Boolean): RNode {
+    val text = when (dt) {
+        DataType.Boolean ->
+            if (isPrimitive) "⅟" else "፧"
+        DataType.Byte ->
+            if (isPrimitive) "b" else "B"
+        DataType.Short ->
+            if (isPrimitive) "s" else "S"
+        DataType.Int ->
+            if (isPrimitive) "i" else "I"
+        DataType.Long ->
+            if (isPrimitive) "l" else "L"
+        DataType.Float ->
+            if (isPrimitive) "f" else "F"
+        DataType.Double ->
+            if (isPrimitive) "d" else "D"
+        DataType.String ->
+            "\uD83D\uDDB9"
+        DataType.Enum ->
+            "e"
+        DataType.Object ->
+            "O"
+        else ->
+            "※"
+    }
+
+    return column(attrs(width(px(28))), text("($text) "))
 }
