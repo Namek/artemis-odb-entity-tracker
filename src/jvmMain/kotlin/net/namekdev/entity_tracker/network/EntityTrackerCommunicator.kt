@@ -45,14 +45,8 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
             Communicator.TYPE_SET_COMPONENT_FIELD_VALUE -> {
                 val entityId = _deserializer.readInt()
                 val componentIndex = _deserializer.readInt()
-                val value = _deserializer.readSomething(true)
-
-                val size = _deserializer.beginArray(DataType.Int, true)
-                val treePath = intArrayOf(size)
-
-                for (i in 0..size - 1) {
-                    treePath[i] = _deserializer.readInt()
-                }
+                val value = _deserializer.readSomething(false)
+                val treePath = _deserializer.readPrimitiveIntArray()
 
                 _worldController.setComponentFieldValue(entityId, componentIndex, treePath, value)
             }
