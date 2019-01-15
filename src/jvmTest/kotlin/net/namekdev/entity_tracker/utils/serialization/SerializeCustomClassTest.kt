@@ -1,22 +1,11 @@
 package net.namekdev.entity_tracker.utils.serialization
 
 import org.junit.Assert.*
-
 import org.junit.Before
 import org.junit.Test
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils
-import net.namekdev.entity_tracker.utils.sample.ArrayTestClass
-import net.namekdev.entity_tracker.utils.sample.CyclicClass
-import net.namekdev.entity_tracker.utils.sample.CyclicClassIndirectly
-import net.namekdev.entity_tracker.utils.sample.EnumArrayTestClass
-import net.namekdev.entity_tracker.utils.sample.EnumFullTestClass
-import net.namekdev.entity_tracker.utils.sample.EnumFieldTestClass
-import net.namekdev.entity_tracker.utils.sample.GameObject
-import net.namekdev.entity_tracker.utils.sample.GameState
-import net.namekdev.entity_tracker.utils.sample.TestEnum
-import net.namekdev.entity_tracker.utils.sample.Vector2
-import net.namekdev.entity_tracker.utils.sample.Vector3
+import net.namekdev.entity_tracker.utils.sample.*
 import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 
 class SerializeCustomClassTest {
@@ -282,6 +271,62 @@ class SerializeCustomClassTest {
         model = inspector.inspect(gs.javaClass)
         model.setValue(gs, intArrayOf(0, 2, 0, 0, 1)/*gs.objects[2].pos.y*/, y)
         assertEquals(y, gs.objects[2].pos.y, 0.000001f)
+    }
+
+    @Test
+    fun deserialize_nullable_simple_types() {
+        for (obj in arrayOf(
+            Primitives(true, 1001),
+            Primitives(false, 1001),
+            Primitives(null, null)))
+        {
+            serializer.reset()
+            serializer.addObject(obj)
+            val serialized = serializer.result
+            deserializer.setSource(serialized.buffer, 0, serialized.size)
+            val deserialized = deserializer.readObject()!!
+
+            assertEquals(obj.boolRef, deserialized.values[1])
+            assertEquals(obj.intRef, deserialized.values[3])
+        }
+    }
+
+    /**
+     * Simple types do not have to be primitive, like primitive `boolean` vs referential `Boolean`
+     */
+    @Test
+    fun inspect_and_update_nullable_simple_types() {
+        val obj = Primitives()
+        val model = inspector.inspect(obj.javaClass)
+
+        // Boolean
+        model.setValue(obj, intArrayOf(1), null)
+        assertEquals(null, obj.boolRef)
+
+        model.setValue(obj, intArrayOf(1), true)
+        assertEquals(true, obj.boolRef)
+
+        model.setValue(obj, intArrayOf(1), false)
+        assertEquals(false, obj.boolRef)
+
+        // Integer
+        model.setValue(obj, intArrayOf(3), null)
+        assertEquals(null, obj.intRef)
+
+        model.setValue(obj, intArrayOf(3), 1001)
+        assertEquals(1001, obj.intRef)
+
+        model.setValue(obj, intArrayOf(3), 800)
+        assertEquals(800, obj.intRef)
+    }
+
+    @Test(expected = Exception::class)
+    fun setting_null_to_primitive_type_throws_exception() {
+        val obj = Primitives()
+        val model = inspector.inspect(obj.javaClass)
+
+        // null -> primitive boolean field
+        model.setValue(obj, intArrayOf(0), null)
     }
 
     @Test

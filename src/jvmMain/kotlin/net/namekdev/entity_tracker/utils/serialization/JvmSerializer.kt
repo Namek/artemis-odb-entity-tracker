@@ -230,9 +230,12 @@ class JvmSerializer : NetworkSerializer<JvmSerializer, BitVector> {
         }
 
         if (isSimpleType(model.dataType)) {
-            // TODO handle non-primitive fields. This assertion may fail? or not
-            net.namekdev.entity_tracker.utils.assert(model.isTypePrimitive)
-            addRawByType(model.dataType, obj)
+            if (!model.isTypePrimitive) {
+                addSomething(obj, false)
+            }
+            else {
+                addRawByType(model.dataType, obj)
+            }
         } else if (model.isEnum) {
             addType(DataType.Enum)
 

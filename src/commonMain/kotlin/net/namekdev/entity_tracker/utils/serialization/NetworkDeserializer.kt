@@ -441,9 +441,12 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             }
         }
         else if (isSimpleType(model.dataType)) {
-            assert(model.isTypePrimitive)
-            val value = readRawByType(model.dataType)
-
+            val value =
+                if (model.isTypePrimitive)
+                    readRawByType(model.dataType)
+                else {
+                    readSomething(false)
+                }
             return value
         }
         else if (model.isEnum) {
