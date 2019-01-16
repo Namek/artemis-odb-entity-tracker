@@ -7,5 +7,5 @@ pluginManagement {
         }
     }
 }
-rootProject.name = 'artemis-odb-entity-tracker'
+rootProject.name = "artemis-odb-entity-tracker"
 

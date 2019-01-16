@@ -1,11 +1,8 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJsCompilation
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJsTargetPreset
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinOnlyTarget
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("kotlin-multiplatform") version "1.3.11"
+    id("kotlin-multiplatform") version Deps.kotlinMultiPlatformVersion
 }
 repositories {
     mavenCentral()
@@ -18,13 +15,14 @@ kotlin {
     targets.add(jvm)
     targets.add(js)
 
-    sourceSets.apply {
-        get("commonMain").apply {
+
+    sourceSets {
+        commonMain {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-stdlib-common")
             }
         }
-        get("commonTest").apply {
+        commonTest {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test-common")
                 implementation("org.jetbrains.kotlin:kotlin-test-annotations-common")
@@ -32,10 +30,10 @@ kotlin {
         }
         get("jvmMain").apply {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+                implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7")
                 implementation("org.jetbrains.kotlin:kotlin-reflect")
-                api("net.onedaybeard.artemis:artemis-odb:2.1.0")
-                api("org.webbitserver:webbit:0.4.15")
+                api("net.onedaybeard.artemis:artemis-odb:${Deps.artemisOdbVersion}")
+                api("org.webbitserver:webbit:${Deps.webbitVersion}")
             }
         }
         get("jvmTest").apply {
@@ -48,23 +46,45 @@ kotlin {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-stdlib-js")
             }
-
         }
         get("jsTest").apply {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test-js")
             }
         }
-
-
     }
 }
 
 tasks {
-    named<Kotlin2JsCompile>("compileKotlinJs") {
+    val compileKotlinJs = named<Kotlin2JsCompile>("compileKotlinJs")
+
+    val assembleWeb = task<Copy>("assembleWeb") {
+        from("src/jsMain/web/index.html")
+        into("build/classes/kotlin/js/main")
+
+        dependsOn(compileKotlinJs)
+    }
+
+    compileKotlinJs {
         kotlinOptions {
             sourceMap = true
             sourceMapEmbedSources = "always"
+        }
+
+        finalizedBy(assembleWeb)
+    }
+
+    withType<KotlinCompile>().configureEach {
+        kotlinOptions {
+            jvmTarget = "1.6"
+            noReflect = true
+            noStdlib = true
+        }
+    }
+
+    named<KotlinCompile>("compileTestKotlinJvm") {
+        kotlinOptions {
+            jvmTarget = "1.8"
         }
     }
 }
