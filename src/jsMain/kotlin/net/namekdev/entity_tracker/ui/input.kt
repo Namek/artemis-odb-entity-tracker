@@ -101,8 +101,7 @@ fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit):
 */
 internal fun nullCheckbox(value: Boolean, onChange: (Boolean) -> Unit): RNode {
     val attrs: Attrs = j("type" to "checkbox")
-    if (value)
-        attrs["checked"] = "checked"
+    val props: Props = j("checked" to value)
 
     val on: On = j()
     on["change"] = { evt: dynamic ->
@@ -112,7 +111,7 @@ internal fun nullCheckbox(value: Boolean, onChange: (Boolean) -> Unit): RNode {
 
     return row(attrs(spacing(2)),
         // TODO nullability icon
-        RNode(h("input", VNodeData(attrs = attrs, on = on)))
+        RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
     )
 }
 
