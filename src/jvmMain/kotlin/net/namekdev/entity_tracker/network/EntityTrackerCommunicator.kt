@@ -1,12 +1,11 @@
 package net.namekdev.entity_tracker.network
 
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
 import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
-import net.namekdev.entity_tracker.model.ComponentTypeInfo_Server
 import net.namekdev.entity_tracker.utils.AutoSizedArray
+import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.JvmDeserializer
 import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
 
@@ -45,10 +44,14 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
             Communicator.TYPE_SET_COMPONENT_FIELD_VALUE -> {
                 val entityId = _deserializer.readInt()
                 val componentIndex = _deserializer.readInt()
-                val value = _deserializer.readSomething(false)
                 val treePath = _deserializer.readPrimitiveIntArray()
+                val valueType = _deserializer.readType()
+                val value =
+                    if (valueType != DataType.Null)
+                        _deserializer.readRawByType(valueType)
+                    else null
 
-                _worldController.setComponentFieldValue(entityId, componentIndex, treePath, value)
+                _worldController.setComponentFieldValue(entityId, componentIndex, treePath, valueType, value)
             }
 
             else -> throw RuntimeException("Unknown packet type: " + packetType.toInt())
@@ -61,12 +64,14 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
 
 
     private fun send(serializer: JvmSerializer) {
-        val data = serializer.result
+        val data = serializer.endPacket()
         _output.send(data.buffer, 0, data.size)
     }
 
     private fun beginPacket(packetType: Byte): JvmSerializer {
-        return _serializer.reset().addRawByte(packetType)
+        return _serializer
+            .beginPacket()
+            .addRawByte(packetType)
     }
 
     override val listeningBitset: Int

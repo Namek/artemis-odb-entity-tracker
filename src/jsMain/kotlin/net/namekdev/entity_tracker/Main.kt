@@ -13,8 +13,7 @@ import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.*
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
+import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 import org.w3c.dom.Element
@@ -208,8 +207,8 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             viewEntitiesTable(),
             viewEntitiesFilters(),
             row(attrs(widthFill),
-                viewSystems(),
-                viewCurrentEntity())
+                viewCurrentEntity(),
+                viewSystems())
         )
 
     val viewEntitiesTable = transformMultiple(entities.entityComponents, entities.componentTypes) { entityComponents, componentTypes ->
@@ -243,9 +242,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     fun showComponent(entityId: Int, componentIndex: Int) {
         entities.observedEntity.value = entityId
         notifyUpdate()
-        worldController?.let {
-            it.requestComponentState(entityId, componentIndex)
-        }
+        worldController?.requestComponentState(entityId, componentIndex)
     }
 
     fun viewEntitiesFilters() =
@@ -271,7 +268,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     val viewCurrentEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
         if (entityId == null) {
             row(
-                attrs(widthFill, heightFill),
+                attrs(width(fillPortion(2)), heightFill),
                 row(attrs(widthShrink, centerX), text("Please select any entity..."))
             )
         }
@@ -280,7 +277,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 entities.componentTypes.value[it].name
             }
             row(
-                attrs(widthFill, heightFill, spacing(25)),
+                attrs(width(fillPortion(2)), heightFill, spacing(25)),
 
                 column(attrs(alignTop, heightFill, spacing(15)),
                     row(attrs(borderBottom(1)),
@@ -357,7 +354,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     dataTypeToIcon(DataType.Enum, false),
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
-                        onValueChanged(rootValue, path, it)
+                        onValueChanged(rootValue, path, model.dataType, it)
                     }
                 )
             }
@@ -366,7 +363,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
                     text("${model.name ?: ""} ="),
                     checkbox(value as Boolean?, !model.isTypePrimitive) {
-                        onValueChanged(rootValue, path, it)
+                        onValueChanged(rootValue, path, model.dataType, it)
                     }
                 )
             }
@@ -410,7 +407,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                                 }
                             }
                         }
-                        onValueChanged(rootValue, path, newValue)
+                        onValueChanged(rootValue, path, model.dataType, newValue)
                     }
                 )
             }
@@ -436,10 +433,10 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
     }
 
-    fun onValueChanged(rootValue: ValueTree, path: List<Int>, newValue: Any?) {
+    fun onValueChanged(rootValue: ValueTree, path: List<Int>, newValueType: DataType, newValue: Any?) {
         val entityId: Int = path[0]
         val componentIndex: Int = path[1]
-        worldController!!.setComponentFieldValue(entityId, componentIndex, path.subList(2, path.size).toIntArray(), newValue)
+        worldController!!.setComponentFieldValue(entityId, componentIndex, path.subList(2, path.size).toIntArray(), newValueType, newValue)
 
         // TODO this is just a workaround, we should modify the value in our model instead of refreshing state of whole component. (?)
         worldController!!.requestComponentState(entityId, componentIndex)

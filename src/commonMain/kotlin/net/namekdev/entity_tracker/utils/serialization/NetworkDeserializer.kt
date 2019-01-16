@@ -1,9 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization
 
-import net.namekdev.entity_tracker.utils.assert
 import net.namekdev.entity_tracker.utils.intBitsToFloat
 import net.namekdev.entity_tracker.utils.longBitsToDouble
-import kotlin.reflect.KClass
 
 
 abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
@@ -165,7 +163,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
         return value
     }
 
-    fun readSomething(allowUnknown: Boolean = false): Any? {
+    fun readSimpleTypeValue(allowUnknown: Boolean = false): Any? {
         val type = DataType.values()[_source!![_sourcePos].toInt()]
 
         if (type == DataType.Null) {
@@ -253,7 +251,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             node.dataSubType = readType()
             dbgType(node.dataSubType)
 
-            if (isSimpleType(node.dataSubType)) {
+            if (node.dataSubType.isSimpleType) {
                 // do nothing
             }
             else if (node.dataSubType == DataType.Object) {
@@ -293,26 +291,17 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             node.name = readString()
         }
         else if (nodeType == DataType.EnumDescription) {
-            val id = readRawInt()
-
-            var enumModel: ObjectModelNode? = _models.getById(id)
-            if (enumModel == null) {
-                enumModel = ObjectModelNode(id, node)
-                this._models.add(enumModel)
-            }
-
             val n = readRawInt()
-            enumModel.children = Array<ObjectModelNode>(n) { i ->
+            node.children = Array<ObjectModelNode>(n) { i ->
                 val valueId = readRawInt()
                 val enumValueModel = ObjectModelNode(valueId, null/*TODO here's null! should be?*/)
                 enumValueModel.dataType = DataType.EnumValue
                 enumValueModel.enumValue = readRawInt()
                 enumValueModel.name = readString()
                 enumValueModel
-                //				this._models.add(enumValueModel);
             }
         }
-        else if (!NetworkSerialization.isSimpleType(nodeType)) {
+        else if (!nodeType.isSimpleType) {
             throw RuntimeException("unsupported type: " + nodeType)
         }
 
@@ -440,12 +429,12 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
                 throw RuntimeException("Types are divergent, expected: ${DataType.Object} or ${DataType.ObjectRef}, got: $dataType")
             }
         }
-        else if (isSimpleType(model.dataType)) {
+        else if (model.dataType.isSimpleType) {
             val value =
                 if (model.isTypePrimitive)
                     readRawByType(model.dataType)
                 else {
-                    readSomething(false)
+                    readSimpleTypeValue(false)
                 }
             return value
         }
@@ -755,7 +744,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
                     node.values[i] = value
                 }
             }
-            else if (NetworkSerialization.isSimpleType(arrayType)) {
+            else if (arrayType.isSimpleType) {
                 for (i in 0..n - 1) {
                     node.values[i] = readRawByType(arrayType)
                 }

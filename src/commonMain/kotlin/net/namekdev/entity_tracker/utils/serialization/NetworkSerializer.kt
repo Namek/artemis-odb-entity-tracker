@@ -5,6 +5,11 @@ import net.namekdev.entity_tracker.utils.assert
 import net.namekdev.entity_tracker.utils.doubleToLongBits
 import net.namekdev.entity_tracker.utils.floatToIntBits
 
+class NetworkSerializerClientState {
+    internal val modelsMarkedAsSent = mutableSetOf<Int>()
+    internal var packetBeingConstructed: Boolean = false
+}
+
 /**
  * This network serializer may seem indeterminant, however it is not the case.
  * When given object is being serialized through `addObject()` call or any
@@ -12,32 +17,41 @@ import net.namekdev.entity_tracker.utils.floatToIntBits
  * added to serialization buffer.
  */
 abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, BitVectorType : Any> : NetworkSerialization() {
-    private val _ourBuffer: ByteArray
-    private var _buffer: ByteArray
+    private var _buffer: ByteArray = ByteArray(102400)
     private var _pos: Int = 0
-
+    private var _clientState: NetworkSerializerClientState? = null
+    private var _defaultClientState = NetworkSerializerClientState()
     private val _serializeResult = SerializationResult()
-    private val _modelsMarkedAsSent = mutableSetOf<Int>()
-
-    init {
-        _buffer = ByteArray(102400)
-        _ourBuffer = _buffer
-    }
 
 
     abstract fun isBitVector(obj: Any): Boolean
     abstract fun addBitVector(bitVector: BitVectorType): Self
 
-    fun reset(): Self {
-        return reset(_ourBuffer)
+
+    fun beginPacket(clientState: NetworkSerializerClientState? = null): Self {
+        assert(_clientState == null)
+        assert(!(clientState?.packetBeingConstructed ?: false))
+
+        _clientState = clientState ?: _defaultClientState
+        _clientState?.let {
+            it.packetBeingConstructed = true
+        }
+
+        return this as Self
     }
 
-    fun reset(buffer: ByteArray): Self {
+    fun endPacket(): SerializationResult {
+        assert(_clientState?.packetBeingConstructed ?: (_pos > 0))
+
+        _serializeResult.setup(_buffer, _pos)
+
+        _clientState?.let {
+            it.packetBeingConstructed = false
+        }
+        _clientState = null
         _pos = 0
-        _buffer = buffer
-        //		_buffer[_pos++] = PACKET_BEGIN;
-        _modelsMarkedAsSent.clear()
-        return this as Self
+
+        return _serializeResult
     }
 
     fun beginArray(elementType: DataType, length: Int, isPrimitive: Boolean): Self {
@@ -173,46 +187,22 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
         return false
     }
 
-    inline fun addSomething(obj: Any?): Self {
-        return addSomething(obj, false)
-    }
+    fun addSimpleTypeValue(valueType: DataType, value: Any?/*, allowUnknown: Boolean*/): Self {
+        assert(valueType.isSimpleType)
 
-    fun addSomething(obj: Any?, allowUnknown: Boolean): Self {
-        if (obj == null) {
-            tryAddNullable(obj)
+        if (value == null)
+            addType(DataType.Null)
+        else if (valueType.isSimpleType) {
+            addType(valueType)
+            addRawByType(valueType, value)
         }
-        else if (obj is Byte) {
-            addByte(obj.toByte())
-        }
-        else if (obj is Short) {
-            addShort(obj.toShort())
-        }
-        else if (obj is Int) {
-            addInt(obj.toInt())
-        }
-        else if (obj is Long) {
-            addLong(obj.toLong())
-        }
-        else if (obj is String) {
-            addString(obj as String)
-        }
-        else if (obj is Boolean) {
-            addBoolean(obj)
-        }
-        else if (obj is Float) {
-            addFloat(obj.toFloat())
-        }
-        else if (obj is Double) {
-            addDouble(obj.toDouble())
-        }
-        else if (isBitVector(obj)) {
-            addBitVector(obj as BitVectorType)
-        }
-        else if (allowUnknown) {
-            addType(DataType.Unknown)
-        }
+//        else if (allowUnknown) {
+//            addType(DataType.Unknown)
+//
+//            TODO("we can't add whole object from frontend - no inspection is available")
+//        }
         else {
-            throw IllegalArgumentException("Can't serialize type: " + obj::class)
+            throw IllegalArgumentException("Can't serialize type: " + value::class)
         }
 
         return this as Self
@@ -237,8 +227,8 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
     }
 
     fun addDataDescriptionOrRef(model: ObjectModelNode): Self {
-        if (!_modelsMarkedAsSent.contains(model.id)) {
-            _modelsMarkedAsSent.add(model.id)
+        if (!_clientState!!.modelsMarkedAsSent.contains(model.id)) {
+            _clientState!!.modelsMarkedAsSent.add(model.id)
 
             addType(DataType.Description)
             addRawDataDescription(model)
@@ -266,7 +256,7 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
                 addDataDescriptionOrRef(node)
             }
         }
-        else if (NetworkSerialization.isSimpleType(model.dataType)) {
+        else if (model.dataType.isSimpleType) {
             addType(model.dataType)
         }
         else if (model.isEnum) {
@@ -280,10 +270,6 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
         }
         else if (model.dataType == DataType.EnumDescription) {
             addType(DataType.EnumDescription)
-
-            val enumModelId = model.id
-            addRawInt(enumModelId)
-
             addRawInt(model.children!!.size)
 
             for (enumValueModel in model.children!!) {
@@ -297,7 +283,7 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
             addType(DataType.Array)
             addType(if (arrayType == DataType.Unknown) DataType.Object else arrayType)
 
-            if (NetworkSerialization.isSimpleType(arrayType)) {
+            if (arrayType.isSimpleType) {
                 // do nothing
             }
             else if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
@@ -410,15 +396,6 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
     private inline fun dbgType(t: DataType) {
         //println(t)
     }
-
-
-
-    //		_buffer[_pos++] = PACKET_END;
-    val result: SerializationResult
-        get() = if (_buffer === _ourBuffer)
-            _serializeResult.setup(_buffer, _pos)
-        else
-            SerializationResult(_buffer, _pos)
 
 
     class SerializationResult {

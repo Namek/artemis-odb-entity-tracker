@@ -14,7 +14,7 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
     val valueType = value?.javaClass
     net.namekdev.entity_tracker.utils.assert(
         value == null
-        || NetworkSerialization.isSimpleType(determineType(valueType!!).first)
+        || determineType(valueType!!).first.isSimpleType
         || valueType.isEnum
     )
 
@@ -24,7 +24,7 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
     while (pathIndex < treePath!!.size) {
         val index = treePath[pathIndex]
 
-        if (node.dataType == NetworkSerialization.DataType.Object || node.dataType == NetworkSerialization.DataType.Unknown /*!node.isArray() && node.children != null*/) {
+        if (node.dataType == DataType.Object || node.dataType == DataType.Unknown /*!node.isArray() && node.children != null*/) {
             node = node.children!![index]
             val fieldName = node.name
 
@@ -48,7 +48,7 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
                 traverseObj = ReflectionUtils.getHiddenFieldValue(traverseObj!!.javaClass, fieldName!!, traverseObj)
             }
         }
-        else if (NetworkSerialization.isSimpleType(node.dataType) || node.isEnum) {
+        else if (node.dataType.isSimpleType || node.isEnum) {
             node = node.children!![index]
             net.namekdev.entity_tracker.utils.assert(node.isLeaf)
 
@@ -59,19 +59,19 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
             val array = traverseObj as Array<Any?>
             val arrayType = node.arrayType()
 
-            if (arrayType == NetworkSerialization.DataType.Unknown || arrayType == NetworkSerialization.DataType.Object) {
+            if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
                 net.namekdev.entity_tracker.utils.assert(pathIndex < treePath.size - 1)
                 net.namekdev.entity_tracker.utils.assert(node.children == null)
                 ++pathIndex
 
                 // @Note: This may need some attention. `arrayEl` could be null, then model couldn't be defined.
                 val arrayEl = array[pathIndex]
-                val arrayElModel = _models!!.get(arrayEl!!::class)
+                val arrayElModel = _models.get(arrayEl!!::class)
 
                 traverseObj = arrayEl
                 node = arrayElModel
             }
-            else if (NetworkSerialization.isSimpleType(arrayType)) {
+            else if (arrayType.isSimpleType) {
                 net.namekdev.entity_tracker.utils.assert(pathIndex == treePath.size - 1)
                 ++pathIndex
 

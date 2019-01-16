@@ -1,7 +1,5 @@
 package net.namekdev.entity_tracker.network
 
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.*
-
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateInterfaceListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
@@ -9,6 +7,7 @@ import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.CommonBitVector
 import net.namekdev.entity_tracker.utils.serialization.ClientNetworkDeserializer
 import net.namekdev.entity_tracker.utils.serialization.ClientNetworkSerializer
+import net.namekdev.entity_tracker.utils.serialization.DataType
 
 /**
  * Used by UI (client).
@@ -92,12 +91,14 @@ class ExternalInterfaceCommunicator(
     }
 
     private fun send(serializer: ClientNetworkSerializer) {
-        val data = serializer.result
+        val data = serializer.endPacket()
         _output.send(data.buffer, 0, data.size)
     }
 
     private fun beginPacket(packetType: Byte): ClientNetworkSerializer {
-        return _serializer.reset().addRawByte(packetType)
+        return _serializer
+            .beginPacket()
+            .addRawByte(packetType)
     }
 
     override fun setSystemState(name: String, isOn: Boolean) {
@@ -124,12 +125,12 @@ class ExternalInterfaceCommunicator(
         )
     }
 
-    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, value: Any?) {
+    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, valueType: DataType, value: Any?) {
         val p = beginPacket(Communicator.TYPE_SET_COMPONENT_FIELD_VALUE)
             .addInt(entityId)
             .addInt(componentIndex)
-            .addSomething(value)
             .addArray(treePath)
+            .addSimpleTypeValue(valueType, value)
 
         send(p)
     }

@@ -6,7 +6,6 @@ import org.junit.Test
 
 import net.namekdev.entity_tracker.utils.ReflectionUtils
 import net.namekdev.entity_tracker.utils.sample.*
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 
 class SerializeCustomClassTest {
     lateinit var serializer: JvmSerializer
@@ -16,14 +15,14 @@ class SerializeCustomClassTest {
 
     @Before
     fun setup() {
-        serializer = JvmSerializer()
+        serializer = JvmSerializer().beginPacket()
         deserializer = JvmDeserializer()
         inspector = ObjectTypeInspector()
     }
 
     private fun serializeAndDeserialize(obj: Any): ValueTree {
         serializer.addObject(obj)
-        val res = serializer.result
+        val res = serializer.endPacket()
         deserializer.setSource(res.buffer, 0, res.size)
         val value = deserializer.readObject()
 
@@ -73,7 +72,7 @@ class SerializeCustomClassTest {
 
         serializer.addObject(gameState)
 
-        val res = serializer.result
+        val res = serializer.endPacket()
         deserializer.setSource(res.buffer, 0, res.size)
         val deserializedGameState = deserializer.readObject()!!
 
@@ -148,7 +147,7 @@ class SerializeCustomClassTest {
     }
 
     private fun testVector3(inspector: ObjectTypeInspector) {
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
 
         val vector = Vector3(4f, 5f, 6f)
         val model = inspector.inspect(vector.javaClass)
@@ -156,8 +155,8 @@ class SerializeCustomClassTest {
         serializer.addDataDescriptionOrRef(model)
         serializer.addObject(model, vector)
 
-        val buffer = serializer.result.buffer
-        deserializer.setSource(buffer, 0, serializer.result.size)
+        val result0 = serializer.endPacket()
+        deserializer.setSource(result0.buffer, 0, result0.size)
 
         val model2 = deserializer.readDataDescription()
         assertEquals(model, model2)
@@ -180,10 +179,10 @@ class SerializeCustomClassTest {
     }
 
     private fun testArray(arr: Array<Any>, inspector: ObjectTypeInspector) {
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
         val model = inspector.inspect(arr.javaClass)
         serializer.addDataDescriptionOrRef(model)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val model2 = deserializer.readDataDescription()
@@ -195,14 +194,14 @@ class SerializeCustomClassTest {
         val gameState = GameState()
         gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
-        val serializer = JvmSerializer(inspector).reset()
+        val serializer = JvmSerializer(inspector).beginPacket()
         val model = inspector.inspect(GameState::class.java)
 
 
         serializer.addDataDescriptionOrRef(model)
         serializer.addObject(model, gameState)
 
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val model2 = deserializer.readDataDescription()
@@ -275,14 +274,16 @@ class SerializeCustomClassTest {
 
     @Test
     fun deserialize_nullable_simple_types() {
+        serializer.endPacket()
+
         for (obj in arrayOf(
             Primitives(true, 1001),
             Primitives(false, 1001),
             Primitives(null, null)))
         {
-            serializer.reset()
+            serializer.beginPacket()
             serializer.addObject(obj)
-            val serialized = serializer.result
+            val serialized = serializer.endPacket()
             deserializer.setSource(serialized.buffer, 0, serialized.size)
             val deserialized = deserializer.readObject()!!
 
@@ -570,7 +571,7 @@ class SerializeCustomClassTest {
 
 
         // but now, we will serialize the array, then check for Vector2/3 models:
-        serializer = JvmSerializer(inspector).reset()
+        serializer = JvmSerializer(inspector).beginPacket()
         serializer.addArray(array)
         assertEquals(3 /*array + Vectors without fields */, inspector.registeredModelsCount.toLong())
 
@@ -588,7 +589,7 @@ class SerializeCustomClassTest {
         assertEquals("z", v3Model.children!!.elementAt(2).name)
 
         // now deserialize the array
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val arr = deserializer.readArray()!!

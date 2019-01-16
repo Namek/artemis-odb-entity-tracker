@@ -2,7 +2,7 @@ package net.namekdev.entity_tracker.model
 
 import com.artemis.utils.BitVector
 import com.artemis.utils.reflect.Field
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization
+import net.namekdev.entity_tracker.utils.serialization.DataType
 
 fun reflectField(field: Field): FieldInfo {
     val type = field.type
@@ -22,45 +22,45 @@ fun reflectField(field: Field): FieldInfo {
 /**
  * @return pair of dataType + isTypePrimitive
  */
-fun determineType(type: Class<*>): Pair<NetworkSerialization.DataType, Boolean> {
+fun determineType(type: Class<*>): Pair<DataType, Boolean> {
     return when (type) {
-        Byte::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Byte, true)
-        Byte::class.javaObjectType -> Pair(NetworkSerialization.DataType.Byte, false)
-        Short::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Short, true)
-        Short::class.javaObjectType -> Pair(NetworkSerialization.DataType.Short, false)
-        Int::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Int, true)
-        Int::class.javaObjectType -> Pair(NetworkSerialization.DataType.Int, false)
-        Long::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Long, true)
-        Long::class.javaObjectType -> Pair(NetworkSerialization.DataType.Long, false)
-        String::class.java -> Pair(NetworkSerialization.DataType.String, false)
-        Boolean::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Boolean, true)
-        Boolean::class.javaObjectType -> Pair(NetworkSerialization.DataType.Boolean, false)
-        Float::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Float, true)
-        Float::class.javaObjectType -> Pair(NetworkSerialization.DataType.Float, false)
-        Double::class.javaPrimitiveType -> Pair(NetworkSerialization.DataType.Double, true)
-        Double::class.javaObjectType -> Pair(NetworkSerialization.DataType.Double, false)
-        BitVector::class.java -> Pair(NetworkSerialization.DataType.BitVector, false)
+        Byte::class.javaPrimitiveType -> Pair(DataType.Byte, true)
+        Byte::class.javaObjectType -> Pair(DataType.Byte, false)
+        Short::class.javaPrimitiveType -> Pair(DataType.Short, true)
+        Short::class.javaObjectType -> Pair(DataType.Short, false)
+        Int::class.javaPrimitiveType -> Pair(DataType.Int, true)
+        Int::class.javaObjectType -> Pair(DataType.Int, false)
+        Long::class.javaPrimitiveType -> Pair(DataType.Long, true)
+        Long::class.javaObjectType -> Pair(DataType.Long, false)
+        String::class.java -> Pair(DataType.String, false)
+        Boolean::class.javaPrimitiveType -> Pair(DataType.Boolean, true)
+        Boolean::class.javaObjectType -> Pair(DataType.Boolean, false)
+        Float::class.javaPrimitiveType -> Pair(DataType.Float, true)
+        Float::class.javaObjectType -> Pair(DataType.Float, false)
+        Double::class.javaPrimitiveType -> Pair(DataType.Double, true)
+        Double::class.javaObjectType -> Pair(DataType.Double, false)
+        BitVector::class.java -> Pair(DataType.BitVector, false)
         else ->
             if (type.isEnum)
-                Pair(NetworkSerialization.DataType.Enum, false)
+                Pair(DataType.Enum, false)
             else
-                Pair(NetworkSerialization.DataType.Unknown, false)
+                Pair(DataType.Unknown, false)
     }
 }
 
 
-fun convertStringToTypedValue(value: String, valueType: NetworkSerialization.DataType): Any? {
+fun convertStringToTypedValue(value: String, valueType: DataType): Any? {
     when (valueType) {
-        NetworkSerialization.DataType.Byte -> return java.lang.Byte.valueOf(value)
-        NetworkSerialization.DataType.Short -> return java.lang.Short.valueOf(value)
-        NetworkSerialization.DataType.Int -> return Integer.valueOf(value)
-        NetworkSerialization.DataType.Long -> return java.lang.Long.valueOf(value)
-        NetworkSerialization.DataType.String -> return value
-        NetworkSerialization.DataType.Boolean -> return java.lang.Boolean.valueOf(value)
-        NetworkSerialization.DataType.Float -> return java.lang.Float.valueOf(value)
-        NetworkSerialization.DataType.Double -> return java.lang.Double.valueOf(value)
-        NetworkSerialization.DataType.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
-        NetworkSerialization.DataType.BitVector -> return BitVector(Integer.valueOf(value)!!)
+        DataType.Byte -> return java.lang.Byte.valueOf(value)
+        DataType.Short -> return java.lang.Short.valueOf(value)
+        DataType.Int -> return Integer.valueOf(value)
+        DataType.Long -> return java.lang.Long.valueOf(value)
+        DataType.String -> return value
+        DataType.Boolean -> return java.lang.Boolean.valueOf(value)
+        DataType.Float -> return java.lang.Float.valueOf(value)
+        DataType.Double -> return java.lang.Double.valueOf(value)
+        DataType.Enum -> throw UnsupportedOperationException("probably unsupported, not sure")
+        DataType.BitVector -> return BitVector(Integer.valueOf(value)!!)
         else -> return null
     }
 }

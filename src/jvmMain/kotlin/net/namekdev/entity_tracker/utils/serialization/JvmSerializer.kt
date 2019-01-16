@@ -2,7 +2,6 @@ package net.namekdev.entity_tracker.utils.serialization
 
 import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.utils.ReflectionUtils
-import java.util.*
 
 class JvmSerializer : NetworkSerializer<JvmSerializer, BitVector> {
     val inspector: ObjectTypeInspector
@@ -229,9 +228,9 @@ class JvmSerializer : NetworkSerializer<JvmSerializer, BitVector> {
             return
         }
 
-        if (isSimpleType(model.dataType)) {
+        if (model.dataType.isSimpleType) {
             if (!model.isTypePrimitive) {
-                addSomething(obj, false)
+                addSimpleTypeValue(model.dataType, obj/*, false*/)
             }
             else {
                 addRawByType(model.dataType, obj)
@@ -269,7 +268,7 @@ class JvmSerializer : NetworkSerializer<JvmSerializer, BitVector> {
                 for (i in 0..n - 1) {
                     addObject(array[i], session)
                 }
-            } else if (isSimpleType(arrayType)) {
+            } else if (arrayType.isSimpleType) {
                 for (el in array) {
                     if (el == null) {
                         addType(DataType.Null)

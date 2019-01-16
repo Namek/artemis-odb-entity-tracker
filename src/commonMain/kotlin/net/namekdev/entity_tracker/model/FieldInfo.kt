@@ -1,6 +1,6 @@
 package net.namekdev.entity_tracker.model
 
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
+import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 
 

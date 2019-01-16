@@ -8,12 +8,10 @@ import net.namekdev.entity_tracker.utils.sample.OuterClass
 import net.namekdev.entity_tracker.utils.sample.OuterClass2
 import net.namekdev.entity_tracker.utils.sample.RepeatingModelsTestClass
 import net.namekdev.entity_tracker.utils.serialization.*
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
+import net.namekdev.entity_tracker.utils.serialization.DataType
 import org.junit.Assert.*
-
 import org.junit.Before
 import org.junit.Test
-import java.util.*
 
 /**
  *
@@ -26,7 +24,7 @@ class SophisticatedTest {
 
     @Before
     fun setup() {
-        serializer = JvmSerializer()
+        serializer = JvmSerializer().beginPacket()
         deserializer = JvmDeserializer()
         inspector = serializer.inspector
     }
@@ -36,7 +34,7 @@ class SophisticatedTest {
         // create first model, serialize it and retrieve a potential copy of it
         val model = inspector.inspect(EnumFullTestClass::class.java)
         serializer.addDataDescriptionOrRef(model)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val model2 = deserializer.readDataDescription()
 
@@ -58,7 +56,7 @@ class SophisticatedTest {
         val gameState = GameState()
 //        gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
         val inspector = serializer.inspector
         val model = inspector.inspect(GameState::class.java)
 
@@ -66,7 +64,7 @@ class SophisticatedTest {
         serializer.addDataDescriptionOrRef(model)
         serializer.addObject(model, gameState)
 
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val model2 = deserializer.readDataDescription()
@@ -82,10 +80,10 @@ class SophisticatedTest {
         val gameState = GameState()
         gameState.objects = arrayOf(GameObject(), GameObject(), GameObject(), GameObject())
 
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
         val model = inspector.inspect(GameState::class.java)
         serializer.addObject(gameState)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
@@ -120,7 +118,7 @@ class SophisticatedTest {
 
         serializer.addObject(node)
 
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
@@ -179,7 +177,7 @@ class SophisticatedTest {
     fun deserialize_inner_class() {
         val obj = OuterClass()
         serializer.addObject(obj)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
@@ -223,7 +221,7 @@ class SophisticatedTest {
     fun deserialize_inner_class_2() {
         val obj = OuterClass2()
         serializer.addObject(obj)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
@@ -271,7 +269,7 @@ class SophisticatedTest {
         assertNull(arr4Model.children)
 
         serializer.addDataDescriptionOrRef(model)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val model2 = deserializer.readDataDescription()
         assert(model2.equals(model))
@@ -290,7 +288,7 @@ class SophisticatedTest {
         assertEquals(0, arrModel.ch().size)
 
         serializer.addDataDescriptionOrRef(model)
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val model2 = deserializer.readDataDescription()
         assert(model2.equals(model))
@@ -301,7 +299,7 @@ class SophisticatedTest {
         val obj = DeepArray()
         serializer.addObject(obj)
 
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val result = deserializer.readObject()!!
 
@@ -313,7 +311,7 @@ class SophisticatedTest {
         val obj = DeepArrayImplicit()
         serializer.addObject(obj)
 
-        val serialized = serializer.result
+        val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
         val result = deserializer.readObject()!!
 

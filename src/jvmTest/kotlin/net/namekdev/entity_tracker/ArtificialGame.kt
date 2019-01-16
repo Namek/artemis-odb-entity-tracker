@@ -49,6 +49,7 @@ fun main(args: Array<String>) {
         }
 
         e.add(Collider(ColliderType.AABB, Rect(pos.x, pos.y, 10f, 10f)))
+        e.add(AllTypes())
     }
 
     world.process()
@@ -82,6 +83,19 @@ class Collider(
     val type: ColliderType = ColliderType.AABB,
     val rect1: Rect = Rect(0f,0f,0f,0f),
     val rect2: Rect = Rect(0f,0f,0f,0f)
+) : Component()
+
+class AllTypes(
+    var bool: Boolean = false,
+    var boolRef: Boolean? = null,
+    var int: Int = 124,
+    var intRef: Int? = 124,
+    var float: Float = 21.5f,
+    var floatRef: Float? = null,
+//    var str: String = "asdsad",
+//    var strNullable: String? = null,
+    var enum1: ColliderType = ColliderType.AABB,
+    var enum2: RenderLayer = RenderLayer.Front
 ) : Component()
 
 

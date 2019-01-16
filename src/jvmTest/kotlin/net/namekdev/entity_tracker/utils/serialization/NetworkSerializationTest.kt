@@ -2,7 +2,6 @@ package net.namekdev.entity_tracker.utils.serialization
 
 import com.artemis.utils.BitVector
 import net.namekdev.entity_tracker.model.determineType
-import net.namekdev.entity_tracker.utils.serialization.NetworkSerialization.DataType
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -19,7 +18,7 @@ class NetworkSerializationTest {
 
     @Test
     fun deserialize_simple_types() {
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
 
         serializer.addInt(124)
         serializer.addShort(113.toShort())
@@ -30,7 +29,7 @@ class NetworkSerializationTest {
         serializer.addRawInt(-4)
         serializer.addRawInt(-2412424)
         serializer.addRawInt(1152)
-        val result = serializer.result
+        val result = serializer.endPacket()
 
         deserializer.setSource(result.buffer, 0, result.size)
         assertEquals(124, deserializer.readInt().toLong())
@@ -48,7 +47,7 @@ class NetworkSerializationTest {
 
     @Test
     fun testBitVector() {
-        val serializer = JvmSerializer().reset()
+        val serializer = JvmSerializer().beginPacket()
 
         val bitVector1 = BitVector()
         bitVector1.set(0)
@@ -86,7 +85,7 @@ class NetworkSerializationTest {
         serializer.addBitVector(bitVector3)
         serializer.addBitVector(bitVector4)
 
-        val result = serializer.result
+        val result = serializer.endPacket()
 
         deserializer.setSource(result.buffer, 0, result.size)
         assertEquals(bitVector1, deserializer.readBitVector())

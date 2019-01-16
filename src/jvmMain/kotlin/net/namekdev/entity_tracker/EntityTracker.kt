@@ -28,6 +28,7 @@ import com.artemis.utils.IntBag
 import com.artemis.utils.reflect.Method
 import com.artemis.utils.reflect.ReflectionException
 import net.namekdev.entity_tracker.connectors.IWorldControlListener
+import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode_Server
 
 /**
@@ -246,7 +247,7 @@ class EntityTracker @JvmOverloads constructor(
         updateListener!!.updatedComponentState(entityId, componentIndex, component)
     }
 
-    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValue: Any?) {
+    override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValueDataType: DataType, newValue: Any?) {
         val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
 
