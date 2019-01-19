@@ -42,11 +42,11 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
         el.selectedIndex = selectedIdx
         null
     }
-//    hooks.update = { ev, v ->
-//        val el = (v.elm!! as HTMLSelectElement)
-//        el.selectedIndex = el.asDynamic().selectedIndex__
-//        null
-//    }
+    hooks.update = { ev, v ->
+        val el = (v.elm!! as HTMLSelectElement)
+        el.selectedIndex = el.asDynamic().selectedIndex__
+        null
+    }
 
     val props: Props = j("selectedIndex__" to selectedIdx)
 

@@ -10,6 +10,10 @@ class JvmDeserializer : NetworkDeserializer<BitVector>() {
 
         checkType(DataType.BitVector)
 
+        return readRawBitVector()
+    }
+
+    override fun readRawBitVector(): BitVector {
         val allBitsCount = readRawShort()
         val bitVector = BitVector(allBitsCount.toInt())
 

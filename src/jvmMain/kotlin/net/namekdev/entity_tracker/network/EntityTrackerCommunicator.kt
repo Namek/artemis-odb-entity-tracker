@@ -48,7 +48,7 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
                 val valueType = _deserializer.readType()
                 val value =
                     if (valueType != DataType.Null)
-                        _deserializer.readRawByType(valueType)
+                        _deserializer.readFlatByType(valueType)
                     else null
 
                 _worldController.setComponentFieldValue(entityId, componentIndex, treePath, valueType, value)

@@ -9,7 +9,10 @@ class ClientNetworkDeserializer : NetworkDeserializer<CommonBitVector>() {
         }
 
         checkType(DataType.BitVector)
+        return readRawBitVector()
+    }
 
+    override fun readRawBitVector(): CommonBitVector {
         val allBitsCount = readRawShort()
         val bitVector = CommonBitVector(allBitsCount.toInt())
 

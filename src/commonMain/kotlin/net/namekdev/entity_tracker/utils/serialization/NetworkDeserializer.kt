@@ -35,6 +35,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
     }
 
     abstract fun readBitVector(): BitVectorType?
+    abstract fun readRawBitVector(): BitVectorType?
 
     fun setSource(bytes: ByteArray, offset: Int, length: Int) {
         _source = bytes
@@ -163,38 +164,47 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
         return value
     }
 
-    fun readSimpleTypeValue(allowUnknown: Boolean = false): Any? {
-        val type = DataType.values()[_source!![_sourcePos].toInt()]
-
+    fun readSimpleByType(type: DataType): Any? {
         if (type == DataType.Null) {
-            _sourcePos++
             return null
         }
         else if (type == DataType.Byte)
-            return readByte()
+            return readRawByte()
         else if (type == DataType.Short)
-            return readShort()
+            return readRawShort()
         else if (type == DataType.Int)
-            return readInt()
+            return readRawInt()
         else if (type == DataType.Long)
-            return readLong()
+            return readRawLong()
         else if (type == DataType.String)
             return readString()
         else if (type == DataType.Boolean)
-            return readBoolean()
+            return readRawBoolean()
         else if (type == DataType.Float)
-            return readFloat()
+            return readRawFloat()
         else if (type == DataType.Double)
-            return readDouble()
+            return readRawDouble()
         else if (type == DataType.BitVector)
-            return readBitVector()
-        else if (allowUnknown) {
-            _sourcePos++
-            return DataType.Unknown
-        }
+            return readRawBitVector()
         else
             throw IllegalArgumentException("Can't serialize type: " + type)
     }
+
+    fun readSimpleTypeValue(): Any? {
+        val type = readType()
+
+        return if (type == DataType.Null)
+            null
+        else readSimpleByType(type)
+    }
+
+    fun readFlatByType(valueType: DataType): Any? =
+        if (valueType.isSimpleType)
+            readSimpleByType(valueType)
+        else if (valueType == DataType.Enum) {
+            readRawInt()
+        }
+        else TODO()
 
     fun readRawByType(valueType: DataType): Any {
         when (valueType) {
@@ -434,7 +444,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
                 if (model.isTypePrimitive)
                     readRawByType(model.dataType)
                 else {
-                    readSimpleTypeValue(false)
+                    readSimpleTypeValue()
                 }
             return value
         }

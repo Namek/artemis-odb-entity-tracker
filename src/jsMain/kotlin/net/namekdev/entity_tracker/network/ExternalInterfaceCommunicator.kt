@@ -130,7 +130,7 @@ class ExternalInterfaceCommunicator(
             .addInt(entityId)
             .addInt(componentIndex)
             .addArray(treePath)
-            .addSimpleTypeValue(valueType, value)
+            .addFlatByType(valueType, value)
 
         send(p)
     }

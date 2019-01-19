@@ -187,7 +187,7 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
         return false
     }
 
-    fun addSimpleTypeValue(valueType: DataType, value: Any?/*, allowUnknown: Boolean*/): Self {
+    fun addSimpleTypeValue(valueType: DataType, value: Any?): Self {
         assert(valueType.isSimpleType)
 
         if (value == null)
@@ -196,14 +196,27 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
             addType(valueType)
             addRawByType(valueType, value)
         }
-//        else if (allowUnknown) {
-//            addType(DataType.Unknown)
-//
-//            TODO("we can't add whole object from frontend - no inspection is available")
-//        }
         else {
             throw IllegalArgumentException("Can't serialize type: " + value::class)
         }
+
+        return this as Self
+    }
+
+    fun addFlatByType(valueType: DataType, value: Any?): Self {
+        if (valueType.isSimpleType)
+            addSimpleTypeValue(valueType, value)
+        else if (valueType == DataType.Enum) {
+            if (value is Int) {
+                addType(DataType.Enum)
+                addRawInt(value)
+            }
+            else if (value == null) {
+                addType(DataType.Null)
+            }
+            else TODO()
+        }
+        else TODO()
 
         return this as Self
     }

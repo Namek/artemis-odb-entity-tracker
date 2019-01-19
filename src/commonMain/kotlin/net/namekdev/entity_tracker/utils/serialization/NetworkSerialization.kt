@@ -33,7 +33,9 @@ enum class DataType {
     // special values
     Null; //takes 1 byte
 
-
+    /**
+     * "Simple" type is a type which does not need a description.
+     */
     val isSimpleType: kotlin.Boolean
         get() = when (this) {
             DataType.Byte,
