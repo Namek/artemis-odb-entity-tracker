@@ -84,7 +84,7 @@ class TransformMemoizer<T, R>(
     val valueHolder: MemoizerBase<T>,
     val transformer: (T) -> R
 ) {
-    private var cachedResult: R? = null
+    var cachedResult: R? = null
 
     operator fun invoke(): R {
         val value = valueHolder.value

@@ -49,8 +49,6 @@ class ECSModel {
     val componentTypes = MemoContainer(mutableListOf<ComponentTypeInfo>())
     val allSystems = mutableListOf<SystemInfo>()
     val allManagersNames = mutableListOf<String>()
-    val observedEntity = MemoContainer<Int?>(null)
-    val currentComponent = MemoContainer<CurrentComponent?>(null)
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
@@ -97,6 +95,11 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
 
     var worldController: IWorldController? = null
     var client: WebSocketClient? = null
+
+
+    val observedEntity = MemoContainer<Int?>(null)
+    val currentComponent = MemoContainer<CurrentComponent?>(null)
+    var currentlyEditedInput: EditedInputState? = null
 
 
     init {
@@ -189,7 +192,14 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
      * Received after component value request was sent.
      */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        entities.currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
+        currentComponent?.value?.let {
+            // if current component changes, do not allow
+            // re-showing the <input> when we get to previous component (it just looks weird)
+            if (it.entityId != entityId || it.componentIndex != componentIndex)
+                currentlyEditedInput = null
+        }
+
+        currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
         notifyUpdate()
     }
 
@@ -201,6 +211,13 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             renderView()
         }, 0)
     }
+
+    fun notifyCurrentlyEditedInputChanged() {
+        viewSelectedComponent.cachedResult = null
+        viewCurrentEntity.cachedResult = null
+        notifyUpdate()
+    }
+
 
     fun view() =
         column(attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
@@ -240,7 +257,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     }
 
     fun showComponent(entityId: Int, componentIndex: Int) {
-        entities.observedEntity.value = entityId
+        observedEntity.value = entityId
         notifyUpdate()
         worldController?.requestComponentState(entityId, componentIndex)
     }
@@ -265,7 +282,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = transformMultiple(observedEntity, currentComponent) { entityId, currentComponent ->
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),
@@ -291,8 +308,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
     }
 
-    val viewObservedEntity = transformMultiple(entities.observedEntity, entities.currentComponent) { entityId, currentComponent ->
+    val viewObservedEntity = transformMultiple(observedEntity, currentComponent) { entityId, currentComponent ->
         val componentTypes = entities.entityComponents.value[entityId!!]
+
         if (componentTypes == null)
             column(elems(
                 text("error: component types for entity #$entityId were not found")
@@ -324,7 +342,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
     }
 
-    val viewSelectedComponent = entities.currentComponent.transform { cmp ->
+    val viewSelectedComponent = currentComponent.transform { cmp ->
         if (cmp == null)
             column(arrayOf(text("")))
         else {
@@ -350,7 +368,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 val enumTypeName = enumDescription.name!!
                 val enumValuesNames = enumDescription.children!!.map { it.name!! }
 
-                row(attrs(),
+                row(attrs(height(px(22))),
                     dataTypeToIcon(DataType.Enum, false),
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
@@ -359,55 +377,80 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 )
             }
             else if (model.dataType == DataType.Boolean) {
-                row(attrs(),
+                row(attrs(height(px(22))),
                     dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
-                    text("${model.name ?: ""} ="),
+                    text("${model.name ?: ""} = "),
                     checkbox(value as Boolean?, !model.isTypePrimitive) {
                         onValueChanged(rootValue, path, model.dataType, it)
                     }
                 )
             }
             else {
-                val inputType = when (model.dataType) {
-                    DataType.Byte,
-                    DataType.Short,
-                    DataType.Int,
-                    DataType.Long ->
-                        InputType.Integer
+                val inputType = convertDataTypeToInputType(model.dataType)
+                val isNullable = !model.isTypePrimitive
 
-                    DataType.Float,
-                    DataType.Double ->
-                        InputType.FloatingPointNumber
+                fun showEditor() =
+                    row(attrs(spacing(4)),
+                        text("${value?.toString() ?: "<null>"} →"),
+                        textEdit(currentlyEditedInput?.text ?: "", inputType, true,
+                            onChange = { _, str ->
+                                if (currentlyEditedInput?.path == path) {
+                                    currentlyEditedInput!!.text = str
+                                }
+                            },
+                            onEnter = {
+                                val newValue = extractInputValue(it, model.dataType)
+                                onValueChanged(rootValue, path, model.dataType, newValue)
+                            },
+                            onEscape = {
+                                currentlyEditedInput = null
+                                notifyCurrentlyEditedInputChanged()
+                            }
+                        )
+                    )
 
-                    else -> InputType.Text
-                }
-                row(attrs(),
+                fun showValueOrEditor() =
+                    if (currentlyEditedInput?.path != path) {
+                        row(
+                            attrs(Attribute.Events(j("click" to {
+                                currentlyEditedInput = EditedInputState(path, value?.toString() ?: "")
+                                notifyCurrentlyEditedInputChanged()
+                            }))),
+                            text(value?.toString() ?: "<null>")
+                        )
+                    }
+                    else showEditor()
+
+                row(attrs(height(px(22))),
                     dataTypeToIcon(model.dataType, model.isTypePrimitive),
                     text("${model.name ?: ""} = "),
-                    input(value?.let{it.toString()} ?: "<null>", inputType, !model.isTypePrimitive) {
-                        val newValue: Any? = when (it) {
-                            null -> null
-                            is InputValueText -> it.text
-                            is InputValueFloatingPoint -> {
-                                when (model.dataType) {
-                                    DataType.Float -> it.number.toFloat()
-                                    DataType.Double -> it.number.toDouble()
-                                    else ->
-                                        throw RuntimeException("input() floating point should be only Float/Double and it is: ${model.dataType}")
-                                }
+
+                    if (!isNullable) {
+                        showValueOrEditor()
+                    }
+                    else {
+                        nullCheckbox(value == null,
+                            onChange = { isNull ->
+                                currentlyEditedInput =
+                                    if (isNull) null
+                                    else EditedInputState(path, value?.toString() ?: "")
+
+                                val newValue =
+                                    if (isNull) null
+                                    else if (model.dataType == DataType.String) ""
+                                    else 0
+
+                                onValueChanged(rootValue, path, model.dataType, newValue)
+
+                                notifyCurrentlyEditedInputChanged()
+                            },
+                            view = { isNull ->
+                                if (!isNull)
+                                    showValueOrEditor()
+                                else
+                                    text("<null>")
                             }
-                            is InputValueInteger -> {
-                                when (model.dataType) {
-                                    DataType.Byte -> it.number.toByte()
-                                    DataType.Short -> it.number.toShort()
-                                    DataType.Int -> it.number.toInt()
-                                    DataType.Long -> it.number.toLong()
-                                    else ->
-                                        throw RuntimeException("integer was supposed to be Byte/Short/Int/Long and it is: ${model.dataType}")
-                                }
-                            }
-                        }
-                        onValueChanged(rootValue, path, model.dataType, newValue)
+                        )
                     }
                 )
             }
@@ -421,7 +464,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 }
 
             if (level > 0)
-                column(attrs(spacing(2)),
+                column(attrs(spacing(8)),
                     row(elems(
                         dataTypeToIcon(model.dataType, false),
                         text("${model.name ?: ""}:")
@@ -429,7 +472,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
                 )
             else
-                column(attrs(spacing(6)), fields.toTypedArray())
+                column(fields.toTypedArray())
         }
     }
 
@@ -501,3 +544,44 @@ fun dataTypeToIcon(dt: DataType, isPrimitive: Boolean): RNode {
 
     return column(attrs(width(px(28))), text("($text) "))
 }
+
+fun extractInputValue(value: InputValue?, dataType: DataType): Any? =
+    when (value) {
+        null -> null
+        is InputValueText -> value.text
+        is InputValueFloatingPoint -> {
+            when (dataType) {
+                DataType.Float -> value.number.toFloat()
+                DataType.Double -> value.number.toDouble()
+                else ->
+                    throw RuntimeException("textEdit() floating point should be only Float/Double and it is: ${dataType}")
+            }
+        }
+        is InputValueInteger -> {
+            when (dataType) {
+                DataType.Byte -> value.number.toByte()
+                DataType.Short -> value.number.toShort()
+                DataType.Int -> value.number.toInt()
+                DataType.Long -> value.number.toLong()
+                else ->
+                    throw RuntimeException("integer was supposed to be Byte/Short/Int/Long and it is: ${dataType}")
+            }
+        }
+    }
+
+fun convertDataTypeToInputType(dataType: DataType): InputType =
+    when (dataType) {
+        DataType.Byte,
+        DataType.Short,
+        DataType.Int,
+        DataType.Long ->
+            InputType.Integer
+
+        DataType.Float,
+        DataType.Double ->
+            InputType.FloatingPointNumber
+
+        else -> InputType.Text
+    }
+
+data class EditedInputState(val path: List<Int>, var text: String?)

@@ -351,7 +351,7 @@ fun _init(modules: Array<Module>, domApi: DOMAPI?): Patch {
         }
 
         for (insertedVnode in insertedVnodeQueue) {
-            (((insertedVnode.data.unsafeCast<VNodeData>()).hook as Hooks).insert as InsertHook)(insertedVnode)
+            insertedVnode.data?.hook?.insert?.invoke(insertedVnode)
         }
         for (postHook in cbs.post) postHook()
         return vnode

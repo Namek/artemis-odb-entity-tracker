@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.ui
 
+import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLSelectElement
 import snabbdom.*
 import snabbdom.modules.Attrs
@@ -41,11 +42,11 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
         el.selectedIndex = selectedIdx
         null
     }
-    hooks.update = { ev, v ->
-        val el = (v.elm!! as HTMLSelectElement)
-        el.selectedIndex = el.asDynamic().selectedIndex__
-        null
-    }
+//    hooks.update = { ev, v ->
+//        val el = (v.elm!! as HTMLSelectElement)
+//        el.selectedIndex = el.asDynamic().selectedIndex__
+//        null
+//    }
 
     val props: Props = j("selectedIndex__" to selectedIdx)
 
@@ -62,12 +63,11 @@ fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit):
 
     val nullCheckBox =
         if (allowNull)
-            row(attrs(paddingRight(3)), nullCheckbox(!isNull) {
-                if (!it)
-                    onChange(null)
-                else
-                    onChange(true)
-            })
+            row(attrs(paddingRight(3)),
+                nullCheckbox(isNull, onChange = { isNull ->
+                    onChange(if (isNull) null else true)
+                })
+            )
         else dummyEl
 
     val theValue: RNode
@@ -75,8 +75,8 @@ fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit):
     if (!isNull) {
         val on: On = j()
         on["change"] = { evt: dynamic ->
-            val newValue = !!evt.target.checked
-            onChange(newValue)
+            val isChecked = !!evt.target.checked
+            onChange(isChecked)
         }
 
         theValue = row(
@@ -96,26 +96,28 @@ fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit):
     )
 }
 
-/* TODO consider refactoring this feature to be more general than just checkboxes:
-    All it needs is to be a composing container for checkbox() or input(), it would be public then.
-*/
-internal fun nullCheckbox(value: Boolean, onChange: (Boolean) -> Unit): RNode {
+fun nullCheckbox(isNull: Boolean, onChange: (Boolean) -> Unit, view: ((Boolean) -> RNode)? = null): RNode {
     val attrs: Attrs = j("type" to "checkbox")
-    val props: Props = j("checked" to value)
+    val props: Props = j("checked" to !isNull)
 
     val on: On = j()
     on["change"] = { evt: dynamic ->
         val newValue = !!evt.target.checked
-        onChange(newValue)
+        onChange(!newValue)
     }
 
-    return row(attrs(spacing(2)),
-        // TODO nullability icon
-        RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
+    return row(attrs(spacing(3)),
+        RNode(h("input", VNodeData(attrs = attrs, props = props, on = on))),
+        view?.invoke(isNull) ?: dummyEl
     )
 }
 
-fun input(text: String, inputType: InputType, allowNull: Boolean, onChange: (InputValue?) -> Unit): RNode {
+fun textEdit(
+    text: String, inputType: InputType, autoFocus: Boolean,
+    onChange: (InputValue?, String) -> Unit,
+    onEnter: (InputValue?) -> Unit,
+    onEscape: () -> Unit) : RNode
+{
     val nativeInputType = when (inputType) {
         InputType.Text -> "text"
         else -> "number"
@@ -131,31 +133,41 @@ fun input(text: String, inputType: InputType, allowNull: Boolean, onChange: (Inp
     val on: On = j(
         "change" to { evt: dynamic ->
             val text = evt.target.value?.toString() ?: ""
-            val output = when (inputType) {
-                InputType.Text ->
-                    InputValueText(text)
-                InputType.Integer ->
-                    InputValueInteger(text.toLong())
-                InputType.FloatingPointNumber ->
-                    InputValueFloatingPoint(text.toDouble())
-            }
-            onChange(output)
+            val output = inputTypeToInputValue(inputType, text)
+            onChange(output, text)
         },
-        "blur" to {}
+        "keydown" to { evt: dynamic ->
+            if (evt.keyCode == 13 /*ENTER*/) {
+                val text = evt.target.value?.toString() ?: ""
+                val output = inputTypeToInputValue(inputType, text)
+                evt.preventDefault()
+                onEnter(output)
+            }
+            else if (evt.keyCode == 27 /*ESCAPE*/) {
+                evt.target.value = text
+                evt.preventDefault()
+                onEscape()
+            }
+        }
     )
-    // TODO handle ESCAPE to cancel edit, bring back old value to input
+
+    val hooks: Hooks = j()
+
+    if (autoFocus) {
+        hooks.insert = { v ->
+            val el = v.elm as HTMLInputElement
+            el.focus()
+
+            null
+        }
+    }
 
     // TODO use <textarea> for Text
 
-    val inputEl = RNode(h("input", VNodeData(attrs = attrs, on = on, props = props, style = style)))
+    val vnodeData = VNodeData(attrs = attrs, on = on, props = props, style = style, hook = hooks)
+    val inputEl = RNode(h("input", vnodeData))
 
-    if (allowNull) {
-        row(attrs(),
-            inputEl
-        )
-    }
-
-    return inputEl
+    return row(attrs(), inputEl)
 }
 
 sealed class InputValue(val type: InputType)
@@ -169,3 +181,13 @@ enum class InputType {
     Integer,
     FloatingPointNumber
 }
+
+private fun inputTypeToInputValue(inputType: InputType, text: String): InputValue =
+    when (inputType) {
+        InputType.Text ->
+            InputValueText(text)
+        InputType.Integer ->
+            InputValueInteger(text.toLong())
+        InputType.FloatingPointNumber ->
+            InputValueFloatingPoint(text.toDouble())
+    }
