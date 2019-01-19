@@ -77,8 +77,6 @@ tasks {
     withType<KotlinCompile>().configureEach {
         kotlinOptions {
             jvmTarget = "1.6"
-            noReflect = true
-            noStdlib = true
         }
     }
 
