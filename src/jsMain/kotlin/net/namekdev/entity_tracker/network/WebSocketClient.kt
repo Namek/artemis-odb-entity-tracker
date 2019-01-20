@@ -12,7 +12,9 @@ import org.w3c.dom.WebSocket.Companion.CLOSING
 
 class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
     private var socket: WebSocket? = null
+
     var isConnected = false
+        private set
 
     init {
 
@@ -27,27 +29,20 @@ class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
         socket!!.let {
             it.binaryType = BinaryType.ARRAYBUFFER
             it.onopen = {
+                isConnected = true
                 connectionListener.connected(url, outputListener)
             }
             it.onclose = {
+                isConnected = false
                 connectionListener.disconnected()
             }
             it.onmessage = {
                 val buf = Uint8Array(it.asDynamic().data.unsafeCast<ArrayBuffer>())
-
-                var i = 0
-//                var length = buf[i++].toInt() and 0xFF
-//                length = length shl 8
-//                length = length or (buf[i++].toInt() and 0xFF)
-//                length = length shl 8
-//                length = length or (buf[i++].toInt() and 0xFF)
-//                length = length shl 8
-//                length = length or (buf[i++].toInt() and 0xFF)
                 val length = buf.length
                 val bytes = ByteArray(length)
 
                 for (j in 0 until length)
-                    bytes[j] = buf[i++]
+                    bytes[j] = buf[j]
 
                 connectionListener.bytesReceived(bytes, 0, length)
                 undefined
@@ -56,6 +51,7 @@ class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
     }
 
     fun stop() {
+        isConnected = false
         socket?.close()
     }
 
@@ -66,12 +62,8 @@ class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
     private val outputListener = object : RawConnectionOutputListener {
         override fun send(buffer: ByteArray, offset: Int, length: Int) {
             try {
-                val buf = Uint8Array(/*4 + */length)
+                val buf = Uint8Array(length)
                 var i = 0
-//                buf[i++] = (length shr 24 and 0xFF).toByte()
-//                buf[i++] = (length shr 16 and 0xFF).toByte()
-//                buf[i++] = (length shr 8 and 0xFF).toByte()
-//                buf[i++] = (length and 0xFF).toByte()
                 for (j in offset until offset+length)
                     buf[i++] = buffer[j]
 
