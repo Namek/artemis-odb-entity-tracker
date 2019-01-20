@@ -8,9 +8,19 @@ repositories {
     mavenCentral()
 }
 
+apply {
+    plugin("kotlin-dce-js")
+}
+
+
 kotlin {
-    val jvm = presets["jvm"].createTarget("jvm")
+    val jvm = presets["jvmWithJava"].createTarget("jvm")
     val js = presets["js"].createTarget("js")
+
+    // thanks to this `gradle test` will found Java classes within this Kotlin project.
+    // We need those because the unit tests are testing Java serializer.
+    val javaConvention = jvm.project.convention.getPlugin(JavaPluginConvention::class.java)
+    javaConvention.sourceSets.getByName("test").java.srcDir("src/jvmTest/kotlin")
 
     targets.add(jvm)
     targets.add(js)
@@ -55,6 +65,7 @@ kotlin {
     }
 }
 
+
 tasks {
     val compileKotlinJs = named<Kotlin2JsCompile>("compileKotlinJs")
 
@@ -84,5 +95,12 @@ tasks {
         kotlinOptions {
             jvmTarget = "1.8"
         }
+    }
+
+    // thanks to this we don't have to delete `build/test-results` folder when running
+    // `gradle test` instead of `gradle cleanTest test` which is hard to remember.
+    val cleanTest = named("cleanTest")
+    named("test") {
+        dependsOn(cleanTest)
     }
 }
