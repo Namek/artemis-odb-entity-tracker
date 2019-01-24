@@ -17,10 +17,12 @@ kotlin {
     val jvm = presets["jvmWithJava"].createTarget("jvm")
     val js = presets["js"].createTarget("js")
 
-    // thanks to this `gradle test` will found Java classes within this Kotlin project.
-    // We need those because the unit tests are testing Java serializer.
+    // thanks to this `gradle check` will find Java classes within this Kotlin project.
+    // We need those because the unit tests are testing the serializer serializing Java objects
+    // (written in Java to be sure that Kotlin doesn't mess anything during compilation).
     val javaConvention = jvm.project.convention.getPlugin(JavaPluginConvention::class.java)
-    javaConvention.sourceSets.getByName("test").java.srcDir("src/jvmTest/kotlin")
+    javaConvention.sourceSets.getByName("test").java.srcDir("src/jvmTest/java")
+    javaConvention.sourceSets.getByName("test").java.setOutputDir(File("build/classes/kotlin/jvm/test"))
 
     targets.add(jvm)
     targets.add(js)
@@ -29,37 +31,37 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-stdlib-common")
+                implementation(kotlin("stdlib-common"))
             }
         }
         commonTest {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-common")
-                implementation("org.jetbrains.kotlin:kotlin-test-annotations-common")
+                implementation(kotlin("test-common"))
+                implementation(kotlin("test-annotations-common"))
             }
         }
-        get("jvmMain").apply {
+        val jvmMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7")
-                implementation("org.jetbrains.kotlin:kotlin-reflect")
+                implementation(kotlin("stdlib-jdk7"))
+                implementation(kotlin("reflect"))
                 api("net.onedaybeard.artemis:artemis-odb:${Deps.artemisOdbVersion}")
                 api("org.webbitserver:webbit:${Deps.webbitVersion}")
             }
         }
-        get("jvmTest").apply {
+        val jvmTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test")
-                implementation("org.jetbrains.kotlin:kotlin-test-junit")
+                implementation(kotlin("test"))
+                implementation(kotlin("test-junit"))
             }
         }
-        get("jsMain").apply {
+        val jsMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-stdlib-js")
+                implementation(kotlin("stdlib-js"))
             }
         }
-        get("jsTest").apply {
+        val jsTest by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-js")
+                implementation(kotlin("test-js"))
             }
         }
     }
@@ -98,9 +100,9 @@ tasks {
     }
 
     // thanks to this we don't have to delete `build/test-results` folder when running
-    // `gradle test` instead of `gradle cleanTest test` which is hard to remember.
+    // `gradle check` instead of `gradle cleanTest check` which is hard to remember.
     val cleanTest = named("cleanTest")
-    named("test") {
+    named("check") {
         dependsOn(cleanTest)
     }
 }
