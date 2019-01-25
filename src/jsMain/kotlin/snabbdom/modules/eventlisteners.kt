@@ -42,8 +42,8 @@ private fun handleEvent(event: Event, vnode: VNode) {
     val on = vnode.data?.on
 
     // call event handler(s) if exists
-    if (on != null && on[name] != null) {
-        invokeHandler(on[name]!!, vnode, event)
+    on?.get(name)?.let {
+        invokeHandler(it, vnode, event)
     }
 }
 

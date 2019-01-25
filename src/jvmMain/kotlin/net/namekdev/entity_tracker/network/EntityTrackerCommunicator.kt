@@ -53,6 +53,14 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
 
                 _worldController.setComponentFieldValue(entityId, componentIndex, treePath, valueType, value)
             }
+            Communicator.TYPE_SET_COMPONENT_STATE_WATCHER -> {
+                val entityId = _deserializer.readInt()
+                val componentIndex = _deserializer.readInt()
+                val enabled = _deserializer.readBoolean()
+
+                // TODO we need to pass the client's id who wants to add the watcher. Thus, IWorldController interface does not fit here.
+                _worldController.setComponentStateWatcher(entityId, componentIndex, enabled)
+            }
 
             else -> throw RuntimeException("Unknown packet type: " + packetType.toInt())
         }
@@ -65,7 +73,7 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
 
     private fun send(serializer: JvmSerializer) {
         val data = serializer.endPacket()
-        _output.send(data.buffer, 0, data.size)
+        output?.send(data.buffer, 0, data.size)
     }
 
     private fun beginPacket(packetType: Byte): JvmSerializer {

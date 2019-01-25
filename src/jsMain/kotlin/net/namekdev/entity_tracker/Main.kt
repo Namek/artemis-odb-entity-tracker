@@ -97,8 +97,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     var client: WebSocketClient? = null
 
 
-    val observedEntity = MemoContainer<Int?>(null)
+    val observedEntityId = MemoContainer<Int?>(null)
     val currentComponent = MemoContainer<CurrentComponent?>(null)
+    var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
 
@@ -192,11 +193,22 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
      * Received after component value request was sent.
      */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        currentComponent?.value?.let {
+        currentComponent.value?.let {
             // if current component changes, do not allow
             // re-showing the <input> when we get to previous component (it just looks weird)
             if (it.entityId != entityId || it.componentIndex != componentIndex)
                 currentlyEditedInput = null
+        }
+
+        currentComponent.value?.let {
+            if (it.entityId != entityId || it.componentIndex != componentIndex)
+                worldController!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
+        }
+
+        // if that's first component ever chosen then watch it automatically
+        if (currentComponent.value == null) {
+            worldController!!.setComponentStateWatcher(entityId, componentIndex, true)
+            currentComponentIsWatched = true
         }
 
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
@@ -257,7 +269,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     }
 
     fun showComponent(entityId: Int, componentIndex: Int) {
-        observedEntity.value = entityId
+        observedEntityId.value = entityId
         notifyUpdate()
         worldController?.requestComponentState(entityId, componentIndex)
     }
@@ -282,7 +294,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = transformMultiple(observedEntity, currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),
@@ -297,8 +309,24 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 attrs(width(fillPortion(2)), heightFill, spacing(25)),
 
                 column(attrs(alignTop, heightFill, spacing(15)),
+                    row(attrs(spacing(4)),
+                        if (currentComponent == null)
+                            dummyEl
+                        else {
+                            val componentIndex = currentComponent.componentIndex
+
+                            row(attrs(spacing(4)),
+                                checkbox(currentComponentIsWatched) { enabled ->
+                                    worldController!!.setComponentStateWatcher(entityId, componentIndex, enabled)
+                                    currentComponentIsWatched = enabled
+                                },
+                                text("Watch E$entityId:C$componentIndex")
+                            )
+                        }
+                    ),
                     row(attrs(borderBottom(1)),
-                        elems(text("Entity #$entityId"))),
+                        text("Entity #$entityId")
+                    ),
                     viewObservedEntity()),
                 column(attrs(widthFill, alignTop, spacing(6)),
                     row(attrs(borderBottom(0)),
@@ -308,7 +336,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
     }
 
-    val viewObservedEntity = transformMultiple(observedEntity, currentComponent) { entityId, currentComponent ->
+    val viewObservedEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
         val componentTypes = entities.entityComponents.value[entityId!!]
 
         if (componentTypes == null)
@@ -379,8 +407,8 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             else if (model.dataType == DataType.Boolean) {
                 row(attrs(height(px(22))),
                     dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
-                    text("${model.name ?: ""} = "),
-                    checkbox(value as Boolean?, !model.isTypePrimitive) {
+                    text("${model.name ?: ""} = ⅟"),
+                    nullableCheckbox(value as Boolean?, !model.isTypePrimitive) {
                         onValueChanged(rootValue, path, model.dataType, it)
                     }
                 )
@@ -464,7 +492,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 }
 
             if (level > 0)
-                column(attrs(spacing(8)),
+                column(attrs(spacing(4)),
                     row(elems(
                         dataTypeToIcon(model.dataType, false),
                         text("${model.name ?: ""}:")
@@ -472,7 +500,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     column(attrs(paddingLeft(12)), fields.toTypedArray())
                 )
             else
-                column(fields.toTypedArray())
+                column(attrs(spacing(6)), fields.toTypedArray())
         }
     }
 

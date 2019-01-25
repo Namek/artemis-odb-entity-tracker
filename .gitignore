@@ -3,3 +3,4 @@
 build/
 buildSrc/build/
 buildSrc/out/
+out/

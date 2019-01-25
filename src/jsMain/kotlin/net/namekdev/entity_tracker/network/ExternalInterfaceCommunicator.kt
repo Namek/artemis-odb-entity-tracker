@@ -92,7 +92,7 @@ class ExternalInterfaceCommunicator(
 
     private fun send(serializer: ClientNetworkSerializer) {
         val data = serializer.endPacket()
-        _output.send(data.buffer, 0, data.size)
+        output?.send(data.buffer, 0, data.size)
     }
 
     private fun beginPacket(packetType: Byte): ClientNetworkSerializer {
@@ -131,6 +131,15 @@ class ExternalInterfaceCommunicator(
             .addInt(componentIndex)
             .addArray(treePath)
             .addFlatByType(valueType, value)
+
+        send(p)
+    }
+
+    override fun setComponentStateWatcher(entityId: Int, componentIndex: Int, enabled: Boolean) {
+        val p = beginPacket(Communicator.TYPE_SET_COMPONENT_STATE_WATCHER)
+            .addInt(entityId)
+            .addInt(componentIndex)
+            .addBoolean(enabled)
 
         send(p)
     }

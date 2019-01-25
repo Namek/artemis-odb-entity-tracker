@@ -7,6 +7,7 @@ interface IWorldController {
     fun setManagerState(name: String, isOn: Boolean)
     fun requestComponentState(entityId: Int, componentIndex: Int)
     fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValueType: DataType, newValue: Any?)
+    fun setComponentStateWatcher(entityId: Int, componentIndex: Int, enabled: Boolean)
 }
 
 interface IWorldControlListener {

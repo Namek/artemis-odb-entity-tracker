@@ -1,15 +1,15 @@
 package net.namekdev.entity_tracker.network
 
 /**
- * Defines basics of network protocol for communication between EntityTracker Manager and external UI.
+ * Defines basics of network protocol for communication between EntityTracker Manager and UI.
  *
  * @author Namek
  */
 abstract class Communicator : RawConnectionCommunicator {
-    protected lateinit var _output: RawConnectionOutputListener
+    protected var output: RawConnectionOutputListener? = null
 
     override fun connected(identifier: String, output: RawConnectionOutputListener) {
-        _output = output
+        this.output = output
     }
 
     override fun disconnected() {}
@@ -31,5 +31,6 @@ abstract class Communicator : RawConnectionCommunicator {
         const val TYPE_SET_MANAGER_STATE: Byte = 94
         const val TYPE_REQUEST_COMPONENT_STATE: Byte = 103
         const val TYPE_SET_COMPONENT_FIELD_VALUE: Byte = 113
+        const val TYPE_SET_COMPONENT_STATE_WATCHER: Byte = 117
     }
 }

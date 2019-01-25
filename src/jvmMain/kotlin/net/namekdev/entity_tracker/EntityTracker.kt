@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker
 
+import com.artemis.*
+import com.artemis.Aspect.all
 import java.util.HashMap
 
 import net.namekdev.entity_tracker.connectors.IWorldController
@@ -10,18 +12,7 @@ import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 import net.namekdev.entity_tracker.model.*
 import net.namekdev.entity_tracker.utils.serialization.setValue
 
-import com.artemis.Aspect
-import com.artemis.BaseComponentMapper
-import com.artemis.BaseEntitySystem
-import com.artemis.Component
-import com.artemis.ComponentManager
-import com.artemis.ComponentMapper
-import com.artemis.ComponentType
-import com.artemis.ComponentTypeFactory
-import com.artemis.Entity
-import com.artemis.EntitySubscription
 import com.artemis.EntitySubscription.SubscriptionListener
-import com.artemis.Manager
 import com.artemis.utils.Bag
 import com.artemis.utils.BitVector
 import com.artemis.utils.IntBag
@@ -39,7 +30,7 @@ class EntityTracker @JvmOverloads constructor(
     worldUpdateListener: IWorldUpdateListener<BitVector>? = null,
     var worldControlListener: IWorldControlListener? = null
 
-) : Manager(), IWorldController {
+) : BaseSystem(), IWorldController, SubscriptionListener {
     private var updateListener: IWorldUpdateListener<BitVector>? = null
 
     val systemsInfo = Bag<SystemInfo>()
@@ -50,6 +41,9 @@ class EntityTracker @JvmOverloads constructor(
     val allComponentTypesInfoByClass: MutableMap<Class<Component>, ComponentTypeInfo_Server> = HashMap()
     val allComponentTypesInfo = Bag<ComponentTypeInfo_Server>()
     val allComponentMappers = Bag<BaseComponentMapper<Component>>()
+    val watchedComponents = mutableListOf<WatchedComponent>()
+    var prevTime = System.nanoTime()
+    val targetFps = 10
 
 
     protected lateinit var entity_getComponentBits: Method
@@ -74,6 +68,10 @@ class EntityTracker @JvmOverloads constructor(
 
 
     override fun initialize() {
+        world.aspectSubscriptionManager
+            .get(all())
+            .addSubscriptionListener(this)
+
 		entity_getComponentBits = ReflectionUtils.getHiddenMethod(Entity::class.java, "getComponentBits")
         typeFactory = ReflectionUtils.getHiddenFieldValue(ComponentManager::class.java, "typeFactory", world.componentManager) as ComponentTypeFactory
         allComponentTypes = ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory::class.java, "types", typeFactory) as Bag<ComponentType>
@@ -167,36 +165,73 @@ class EntityTracker @JvmOverloads constructor(
         })
     }
 
-    override fun added(e: Entity?) {
-        if (updateListener == null) {
-            return
-        }
+    override fun checkProcessing(): Boolean {
+        if (watchedComponents.isEmpty())
+            return false
 
-        if (updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_ADDED == 0) {
-            return
+        val minDiffToProcess = 1000000000 / targetFps
+        val curTime = System.nanoTime()
+        val diff = curTime - prevTime
+        return if (diff >= minDiffToProcess) {
+            prevTime = curTime
+            true
         }
-
-        var componentBitVector: BitVector? = null
-        try {
-            componentBitVector = entity_getComponentBits.invoke(e) as BitVector
-        }
-        catch (exc: ReflectionException) {
-            throw RuntimeException(exc)
-        }
-
-        if (componentBitVector.length() > _notifiedComponentTypesCount) {
-            inspectNewComponentTypesAndNotify()
-        }
-
-        updateListener!!.addedEntity(e!!.id, componentBitVector)
+        else false
     }
 
-    override fun deleted(e: Entity?) {
-        if (updateListener == null || updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_DELETED == 0) {
+    override fun processSystem() {
+        for (wc in watchedComponents) {
+            requestComponentState(wc.entityId, wc.componentIndex)
+        }
+    }
+
+    override fun inserted(entities: IntBag) {
+        if (updateListener?.listeningBitset ?: 0 and IWorldUpdateListener.ENTITY_ADDED == 0) {
             return
         }
 
-        updateListener!!.deletedEntity(e!!.id)
+        val ids = entities.data
+        val size = entities.size()
+        var i = 0
+        while (size > i) {
+            val entityId = ids[i]
+            val entity = world.getEntity(entityId)
+
+            var componentBitVector: BitVector? = null
+            try {
+                componentBitVector = entity_getComponentBits.invoke(entity) as BitVector
+            }
+            catch (exc: ReflectionException) {
+                throw RuntimeException(exc)
+            }
+
+            if (componentBitVector.length() > _notifiedComponentTypesCount) {
+                inspectNewComponentTypesAndNotify()
+            }
+
+            updateListener?.addedEntity(entityId, componentBitVector)
+
+            ++i
+        }
+    }
+
+    override fun removed(entities: IntBag) {
+        val ids = entities.data
+        val size = entities.size()
+        var i = 0
+        while (size > i) {
+            val entityId = ids[i]
+
+            watchedComponents.removeAll {
+                it.clientId == 0 && it.entityId == entityId
+            }
+
+            if (updateListener?.listeningBitset ?: 0 and IWorldUpdateListener.ENTITY_DELETED != 0) {
+                updateListener?.deletedEntity(entityId)
+            }
+
+            ++i
+        }
     }
 
     private fun inspectNewComponentTypesAndNotify() {
@@ -242,7 +277,6 @@ class EntityTracker @JvmOverloads constructor(
     override fun requestComponentState(entityId: Int, componentIndex: Int) {
         //val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
-
         val component = mapper.get(entityId)
         updateListener!!.updatedComponentState(entityId, componentIndex, component)
     }
@@ -258,4 +292,18 @@ class EntityTracker @JvmOverloads constructor(
             it.onComponentFieldValueChanged(entityId, componentIndex, treePath, newValue)
         }
     }
+
+    override fun setComponentStateWatcher(entityId: Int, componentIndex: Int, enabled: Boolean) {
+        val wcIndex = watchedComponents.indexOfFirst { wc ->
+            wc.clientId == 0 && wc.entityId == entityId && wc.componentIndex == componentIndex
+        }
+        if (enabled && wcIndex < 0) {
+            // what's interesting, we don't check if such entity even exists... and what if it doesn't?
+            watchedComponents.add(WatchedComponent(0, entityId, componentIndex))
+        }
+        else if (!enabled && wcIndex >= 0)
+            watchedComponents.removeAt(wcIndex)
+    }
 }
+
+data class WatchedComponent(val clientId: Int, val entityId: Int, val componentIndex: Int)

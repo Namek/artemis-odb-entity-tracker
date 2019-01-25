@@ -1,10 +1,6 @@
 package net.namekdev.entity_tracker
 
-import com.artemis.Aspect
-import com.artemis.Component
-import com.artemis.Entity
-import com.artemis.World
-import com.artemis.WorldConfiguration
+import com.artemis.*
 import com.artemis.systems.EntityProcessingSystem
 import net.namekdev.entity_tracker.connectors.IWorldControlListener
 import net.namekdev.entity_tracker.network.ArtemisWorldSerializer
@@ -25,11 +21,12 @@ fun main(args: Array<String>) {
 
     val world = World(
         WorldConfiguration()
+            .setSystem(entityTracker)
             .setSystem(PositionSystem())
             .setSystem(RenderSystem())
             .setSystem(MotionBlurSystem())
             .setSystem(CollisionSystem())
-            .setSystem(entityTracker)
+            .setSystem(ConstantlyChangingValuesSystem())
     )
 
     for (i in 0..10) {
@@ -56,6 +53,24 @@ fun main(args: Array<String>) {
 
     world.getEntity(3).deleteFromWorld()
     world.process()
+
+    var prevTime = System.nanoTime()
+    val targetFps = 30
+    val millisPerSecond = 1000f / 30
+    val minDiffToProcess = 1000000000 / targetFps
+
+    while (true) {
+        val curTime = System.nanoTime()
+        val diff = curTime - prevTime
+        if (diff >= minDiffToProcess) {
+            world.delta = diff.toFloat() / 1000000000
+            world.process()
+            prevTime = curTime
+        }
+
+        // don't hog cpu
+        Thread.sleep(1)
+    }
 }
 
 //
@@ -125,6 +140,20 @@ class CollisionSystem : EntityProcessingSystem(
     Aspect.all(Collider::class.java, Pos::class.java)
 ) {
     override fun process(e: Entity) {}
+}
+
+class ConstantlyChangingValuesSystem : EntityProcessingSystem(
+    Aspect.all(AllTypes::class.java)
+) {
+    lateinit var mPos: ComponentMapper<Pos>
+
+    override fun process(e: Entity) {
+        val pos = mPos[e]
+
+        pos.x += world.delta * 3f
+        if (pos.x > 1000f)
+            pos.x = 0f
+    }
 }
 
 

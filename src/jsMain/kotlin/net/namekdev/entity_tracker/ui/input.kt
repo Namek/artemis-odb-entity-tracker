@@ -53,7 +53,11 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
     return RNode(h("select", VNodeData(on = on, hook = hooks, props = props), options))
 }
 
-fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit): RNode {
+inline fun checkbox(value: Boolean, crossinline onChange: (Boolean) -> Unit): RNode =
+    nullableCheckbox(value!!, false) { onChange(it!!) }
+
+
+fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit): RNode {
     val isNull = allowNull && value == null
     val isChecked = value == true
 
@@ -81,7 +85,6 @@ fun checkbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit):
 
         theValue = row(
             elems(
-                text("⅟"),
                 RNode(h("input", VNodeData(attrs = attrs, on = on)))
             )
         )
