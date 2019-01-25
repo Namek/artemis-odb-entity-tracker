@@ -215,14 +215,22 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         notifyUpdate()
     }
 
-    fun notifyUpdate() {
-        // TODO start a very short timer that will wait for more updates
+    val notifyUpdate = {
+        // a very simple debouncer using the fact that JavaScript is single-threaded
+        var alreadyRequested = false
 
-        // timeout is because of JS compilation - we have lateinit vars!
-        window.setTimeout({
-            renderView()
-        }, 0)
-    }
+        {
+            if (!alreadyRequested) {
+                alreadyRequested = true
+
+                // timeout is because of JS compilation - we have lateinit vars!
+                window.setTimeout({
+                    alreadyRequested = false
+                    renderView()
+                }, 0)
+            }
+        }
+    }()
 
     fun notifyCurrentlyEditedInputChanged() {
         viewSelectedComponent.cachedResult = null
