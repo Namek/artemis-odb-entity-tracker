@@ -260,7 +260,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                         row(
                             attrs(
                                 widthFill,
-                                Attribute.Events(j("click" to {showComponent(entityId, cmpIndex)}))
+                                onClick { showComponent(entityId, cmpIndex) }
                             ),
                             text("x")
                         )
@@ -362,7 +362,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     row(
                         attrs(
                             attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
-                            Attribute.Events(j("click" to {showComponent(entityId, cmpType.index)}))
+                            onClick{ showComponent(entityId, cmpType.index) }
                         ),
                         text(cmpType.name)
                     )
@@ -447,11 +447,11 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
 
                 fun showValueOrEditor() =
                     if (currentlyEditedInput?.path != path) {
-                        row(
-                            attrs(Attribute.Events(j("click" to {
+                        row(attrs(
+                            onClick {
                                 currentlyEditedInput = EditedInputState(path, value?.toString() ?: "")
                                 notifyCurrentlyEditedInputChanged()
-                            }))),
+                            }),
                             text(value?.toString() ?: "<null>")
                         )
                     }
@@ -521,35 +521,6 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         worldController!!.requestComponentState(entityId, componentIndex)
         console.log(rootValue, path, newValue)
     }
-
-    fun demoClicked(){
-        demoStep += 1
-        val newVnode = demoRender()
-        lastVnode = patch(lastVnode, newVnode)
-    }
-
-    fun demoRender() =
-        when(demoStep) {
-            0 ->
-                h("div",
-                    VNodeData(on = j("click" to ::demoClicked)),
-                    "snabbdom-kotlin")
-
-            1 ->
-                h_("div#container.one.class", VNodeData(on = j("click" to ::demoClicked)), arrayOf(
-                    h("span", VNodeData(style = j("fontWeight" to "bold")), "This is bold"),
-                    " and this is just normal text",
-                    h("a", VNodeData(props = j("href" to "/foo")), "I\"ll take you places!")
-                ))
-
-            else ->
-                h_("div#container.two.Classes", arrayOf(
-                    h("span", VNodeData(style = j("fontWeight" to "normal")), "This is normal"),
-                    " and this is just normal text",
-                    h("a", VNodeData(props = j("href" to "/foo")), "I\"ll take you places!")
-                ))
-        }
-
 }
 
 fun dataTypeToIcon(dt: DataType, isPrimitive: Boolean): RNode {

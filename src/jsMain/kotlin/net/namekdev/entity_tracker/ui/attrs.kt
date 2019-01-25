@@ -1,5 +1,7 @@
 package net.namekdev.entity_tracker.ui
 
+import org.w3c.dom.Element
+import snabbdom.j
 import kotlin.math.max
 import kotlin.math.min
 
@@ -94,3 +96,5 @@ fun backgroundColor(color: Color) =
 
 fun fontColor(color: Color) =
     Attribute.StyleClass(Flag.fontColor, Colored("font-color-${color.formatWithDashes()}", "color", color))
+
+fun onClick(handler: (Element) -> Unit) = Attribute.Events(j("click" to handler))
