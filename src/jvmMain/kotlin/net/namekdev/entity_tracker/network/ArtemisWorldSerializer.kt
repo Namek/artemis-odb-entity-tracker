@@ -34,10 +34,6 @@ class ArtemisWorldSerializer(server: IServer) : IWorldUpdateListener<BitVector> 
         _worldController = controller
     }
 
-    override // TODO
-    val listeningBitset: Int
-        get() = IWorldUpdateListener.ENTITY_ADDED or IWorldUpdateListener.ENTITY_DELETED or IWorldUpdateListener.ENTITY_SYSTEM_STATS
-
     override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         var i = 0
         val n = _listeners.size()

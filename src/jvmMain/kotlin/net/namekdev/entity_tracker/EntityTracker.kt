@@ -145,10 +145,7 @@ class EntityTracker @JvmOverloads constructor(
         info.subscription!!.addSubscriptionListener(object : SubscriptionListener {
             override fun removed(entities: IntBag) {
                 info.entitiesCount -= entities.size()
-
-                if (updateListener != null && updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
-                    updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
-                }
+                updateListener?.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
             }
 
             override fun inserted(entities: IntBag) {
@@ -158,9 +155,7 @@ class EntityTracker @JvmOverloads constructor(
                     info.maxEntitiesCount = info.entitiesCount
                 }
 
-                if (updateListener != null && updateListener!!.listeningBitset and IWorldUpdateListener.ENTITY_SYSTEM_STATS != 0) {
-                    updateListener!!.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
-                }
+                updateListener?.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
             }
         })
     }
@@ -186,10 +181,6 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun inserted(entities: IntBag) {
-        if (updateListener?.listeningBitset ?: 0 and IWorldUpdateListener.ENTITY_ADDED == 0) {
-            return
-        }
-
         val ids = entities.data
         val size = entities.size()
         var i = 0
@@ -226,9 +217,7 @@ class EntityTracker @JvmOverloads constructor(
                 it.clientId == 0 && it.entityId == entityId
             }
 
-            if (updateListener?.listeningBitset ?: 0 and IWorldUpdateListener.ENTITY_DELETED != 0) {
-                updateListener?.deletedEntity(entityId)
-            }
+            updateListener?.deletedEntity(entityId)
 
             ++i
         }

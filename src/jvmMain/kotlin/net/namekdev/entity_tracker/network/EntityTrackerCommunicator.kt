@@ -82,9 +82,6 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
             .addRawByte(packetType)
     }
 
-    override val listeningBitset: Int
-        get() = IWorldUpdateListener.ENTITY_ADDED or IWorldUpdateListener.ENTITY_DELETED or IWorldUpdateListener.ENTITY_SYSTEM_STATS
-
     override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
         send(
             beginPacket(Communicator.TYPE_ADDED_ENTITY_SYSTEM)

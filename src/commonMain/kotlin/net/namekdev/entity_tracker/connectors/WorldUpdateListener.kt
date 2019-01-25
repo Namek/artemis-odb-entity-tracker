@@ -1,6 +1,5 @@
 package net.namekdev.entity_tracker.connectors
 
-import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.LISTEN_TO_EVERYTHING
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 
 /**
@@ -9,32 +8,17 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo
  */
 interface IWorldUpdateListener<BitVectorType> {
 	fun injectWorldController(controller: IWorldController)
-	val listeningBitset: Int
 	fun addedSystem(index: Int, name: String, allTypes: BitVectorType?, oneTypes: BitVectorType?, notTypes: BitVectorType?)
 	fun addedManager(name: String)
 	fun addedComponentType(index: Int, info: ComponentTypeInfo)
 	fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int)
 	fun addedEntity(entityId: Int, components: BitVectorType)
-	//	void changed(Entity e);
 	fun deletedEntity(entityId: Int)
-
 	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any)
-
-	companion object {
-		const val ENTITY_ADDED = 1 shl 1
-		const val ENTITY_DELETED = 1 shl 2
-		//	const val CHANGED = 1 shl 3;
-		const val ENTITY_SYSTEM_STATS = 1 shl 4
-
-		const val LISTEN_TO_EVERYTHING = ENTITY_ADDED or ENTITY_DELETED or ENTITY_SYSTEM_STATS
-	}
 }
 
 class WorldUpdateListenerImpl<BitVectorType> : IWorldUpdateListener<BitVectorType> {
 	override fun injectWorldController(controller: IWorldController) {}
-
-	override val listeningBitset: Int
-		get() = LISTEN_TO_EVERYTHING
 
 	override fun addedSystem(index: Int, name: String, allTypes: BitVectorType?, oneTypes: BitVectorType?, notTypes: BitVectorType?) {}
 
@@ -58,10 +42,6 @@ class WorldUpdateMultiplexer<BitVectorType>(val listeners: List<IWorldUpdateList
 	override fun injectWorldController(controller: IWorldController) {
 		for (l in listeners) l.injectWorldController(controller)
 	}
-
-	// TODO this does not fit to IWorldUpdateListener, probably move it to worldController?
-	override val listeningBitset: Int
-		get() = LISTEN_TO_EVERYTHING
 
 	override fun addedSystem(
 		index: Int,

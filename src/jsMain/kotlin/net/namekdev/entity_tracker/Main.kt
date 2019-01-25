@@ -2,9 +2,6 @@ package net.namekdev.entity_tracker
 
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateInterfaceListener
-import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_ADDED
-import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_DELETED
-import net.namekdev.entity_tracker.connectors.IWorldUpdateListener.Companion.ENTITY_SYSTEM_STATS
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.model.SystemInfo_Common
@@ -142,9 +139,6 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     override fun injectWorldController(controller: IWorldController) {
         worldController = controller
     }
-
-    override val listeningBitset: Int
-        get() = ENTITY_ADDED or ENTITY_DELETED or ENTITY_SYSTEM_STATS
 
     override fun addedSystem(
         index: Int,
