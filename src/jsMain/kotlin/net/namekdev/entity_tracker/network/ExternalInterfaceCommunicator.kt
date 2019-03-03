@@ -117,6 +117,13 @@ class ExternalInterfaceCommunicator(
         )
     }
 
+    override fun deleteEntity(entityId: Int) {
+        send(
+            beginPacket(Communicator.TYPE_DELETE_ENTITY)
+                .addInt(entityId)
+        )
+    }
+
     override fun requestComponentState(entityId: Int, componentIndex: Int) {
         send(
             beginPacket(Communicator.TYPE_REQUEST_COMPONENT_STATE)

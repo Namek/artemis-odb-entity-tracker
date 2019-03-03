@@ -201,6 +201,16 @@ val globalStylesheet =
     }
 """.trimIndent() +
 
+// We also need some style for buttons, don't we?
+    """
+    button {
+        background-color: aliceblue;
+        border: 0.5px solid rgb(170,170,170);
+        border-radius: 3px;
+        padding: 1px 4px !important;
+    }
+    """.trimIndent() +
+
 // note: those below ARE copied from elm-ui!
     """
     html,body {
@@ -439,7 +449,7 @@ val globalStylesheet =
 """.trimIndent() /* lines 1659-1670*/
 
 
-    fun elDescription(d: String) = """
+fun elDescription(d: String) = """
     $d {
         display: flex;
         flex-direction: column;

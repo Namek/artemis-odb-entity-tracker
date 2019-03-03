@@ -29,6 +29,7 @@ abstract class Communicator : RawConnectionCommunicator {
         // UI requests
         const val TYPE_SET_SYSTEM_STATE: Byte = 90
         const val TYPE_SET_MANAGER_STATE: Byte = 94
+        const val TYPE_DELETE_ENTITY: Byte = 100
         const val TYPE_REQUEST_COMPONENT_STATE: Byte = 103
         const val TYPE_SET_COMPONENT_FIELD_VALUE: Byte = 113
         const val TYPE_SET_COMPONENT_STATE_WATCHER: Byte = 117

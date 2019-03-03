@@ -58,6 +58,12 @@ fun el(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
 fun el(tag: String, vararg nodes: RNode): RNode =
     element(AsEl, ANodeName(tag), null, *nodes)
 
+fun elAsRow(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
+    element(AsRow, ANodeName(tag), attrs, *nodes)
+
+fun elAsRow(tag: String, vararg nodes: RNode): RNode =
+    element(AsRow, ANodeName(tag), null, *nodes)
+
 fun text(txt: String): RNode =
     RNode(textElement(txt))
 

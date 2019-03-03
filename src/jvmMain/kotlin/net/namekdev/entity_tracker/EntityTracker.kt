@@ -293,6 +293,10 @@ class EntityTracker @JvmOverloads constructor(
         else if (!enabled && wcIndex >= 0)
             watchedComponents.removeAt(wcIndex)
     }
+
+    override fun deleteEntity(entityId: Int) {
+        world.delete(entityId)
+    }
 }
 
 data class WatchedComponent(val clientId: Int, val entityId: Int, val componentIndex: Int)

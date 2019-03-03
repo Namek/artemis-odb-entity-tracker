@@ -36,6 +36,15 @@ open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitV
                 val isSystemOn = _deserializer.readBoolean()
                 _worldController.setSystemState(systemName, isSystemOn)
             }
+            Communicator.TYPE_SET_MANAGER_STATE -> {
+                val managerName = _deserializer.readString()!!
+                val isManagerOn = _deserializer.readBoolean()
+                _worldController.setManagerState(managerName, isManagerOn)
+            }
+            Communicator.TYPE_DELETE_ENTITY -> {
+                val entityId = _deserializer.readInt()
+                _worldController.deleteEntity(entityId)
+            }
             Communicator.TYPE_REQUEST_COMPONENT_STATE -> {
                 val entityId = _deserializer.readInt()
                 val componentIndex = _deserializer.readInt()

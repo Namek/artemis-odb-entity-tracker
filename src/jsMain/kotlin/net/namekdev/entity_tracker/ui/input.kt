@@ -9,6 +9,11 @@ import snabbdom.modules.Props
 import snabbdom.modules.VNodeStyle
 import kotlin.js.Json
 
+fun button(label: String, clickHandler: () -> Unit): RNode =
+    el("button", attrs(onClick {
+        clickHandler()
+    }), elems(text("×")))
+
 fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, onChange: (Int?) -> Unit): RNode {
     val modifier = if (allowNull) 1 else 0
     val size = valuesTexts.size + modifier
@@ -54,8 +59,15 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
 }
 
 inline fun checkbox(value: Boolean, crossinline onChange: (Boolean) -> Unit): RNode =
-    nullableCheckbox(value!!, false) { onChange(it!!) }
+    nullableCheckbox(value, false) { onChange(it!!) }
 
+inline fun labelledCheckbox(label: String, value: Boolean, crossinline onChange: (Boolean) -> Unit): RNode =
+    elAsRow("label", attrs(spacing(3)),
+        elems(
+            nullableCheckbox(value, false) { onChange(it!!) },
+            row(attrs(centerY), text(label))
+        )
+    )
 
 fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -> Unit): RNode {
     val isNull = allowNull && value == null
@@ -72,7 +84,7 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
                     onChange(if (isNull) null else true)
                 })
             )
-        else dummyEl
+        else null
 
     val theValue: RNode
 
@@ -93,10 +105,12 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
         theValue = text("<null>")
     }
 
-    return row(attrs(),
-        nullCheckBox,
-        theValue
-    )
+    return if (nullCheckBox != null)
+        row(attrs(),
+            nullCheckBox,
+            theValue
+        )
+    else theValue
 }
 
 fun nullCheckbox(isNull: Boolean, onChange: (Boolean) -> Unit, view: ((Boolean) -> RNode)? = null): RNode {

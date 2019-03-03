@@ -178,6 +178,13 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     }
 
     override fun deletedEntity(entityId: Int) {
+        if (observedEntityId.value == entityId) {
+            observedEntityId.value = null
+        }
+        if (currentComponent.value?.entityId == entityId) {
+            currentComponent.value = null
+        }
+
         entities.removeEntity(entityId)
         notifyUpdate()
     }
@@ -199,7 +206,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 worldController!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
         }
 
-        // if that's first component ever chosen then watch it automatically
+        // if that's first component ever chosen then watch it automatically.
         if (currentComponent.value == null) {
             worldController!!.setComponentStateWatcher(entityId, componentIndex, true)
             currentComponentIsWatched = true
@@ -273,7 +280,11 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     fun showComponent(entityId: Int, componentIndex: Int) {
         observedEntityId.value = entityId
         notifyUpdate()
-        worldController?.requestComponentState(entityId, componentIndex)
+
+        if (currentComponentIsWatched)
+            worldController!!.setComponentStateWatcher(entityId, componentIndex, true)
+        else
+            worldController!!.requestComponentState(entityId, componentIndex)
     }
 
     fun viewEntitiesFilters() =
@@ -311,23 +322,24 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 attrs(width(fillPortion(2)), heightFill, spacing(25)),
 
                 column(attrs(alignTop, heightFill, spacing(15)),
-                    row(attrs(spacing(4)),
-                        if (currentComponent == null)
-                            dummyEl
-                        else {
-                            val componentIndex = currentComponent.componentIndex
-
-                            row(attrs(spacing(4)),
-                                checkbox(currentComponentIsWatched) { enabled ->
-                                    worldController!!.setComponentStateWatcher(entityId, componentIndex, enabled)
-                                    currentComponentIsWatched = enabled
-                                },
-                                text("Watch E$entityId:C$componentIndex")
-                            )
+                    row(attrs(spacing(5)),
+                        row(attrs(borderBottom(1)), text("Entity #$entityId")),
+                        button("×") { //TODO show text on hover: "Delete entity #entityId", stylize buttons (no .any class helps)
+                            worldController?.deleteEntity(entityId)
                         }
                     ),
+                    if (currentComponent == null)
+                        dummyEl
+                    else {
+                        val componentIndex = currentComponent.componentIndex
+
+                        labelledCheckbox("Watch E$entityId:C$componentIndex", currentComponentIsWatched) { enabled ->
+                            worldController!!.setComponentStateWatcher(entityId, componentIndex, enabled)
+                            currentComponentIsWatched = enabled
+                        }
+                    },
                     row(attrs(borderBottom(1)),
-                        text("Entity #$entityId")
+                        text("Components:")
                     ),
                     viewObservedEntity()),
                 column(attrs(widthFill, alignTop, spacing(6)),
