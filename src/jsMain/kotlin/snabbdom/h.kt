@@ -8,7 +8,7 @@ private fun addNS(data: dynamic, children: Array<VNode>?, sel: String?) {
         for (i in 0 until children.size) {
             val childData = children[i].data
             if (childData != null) {
-                addNS(childData, (children[i].unsafeCast<VNode>()).children as Array<VNode>, children[i].sel)
+                addNS(childData, (children[i].unsafeCast<VNode>()).children as Array<VNode>?, children[i].sel)
             }
         }
     }
