@@ -113,12 +113,13 @@ fun _init(modules: Array<Module>, domApi: DOMAPI?): Patch {
             val tag = if (hashIdx != -1 || dotIdx != -1) sel.substring(0, minOf(hash, dot)) else sel
             val elm =
                 {
+                    var el: Element? = null
                     if (data != null) {
                         i = (data.unsafeCast<VNodeData>()).ns
                         if (i != null)
-                            api.createElementNS(i, tag)
+                            el = api.createElementNS(i, tag)
                     }
-                    api.createElement(tag)
+                    if (el == null) api.createElement(tag) else el
                 }()
             vnode.elm = elm
             if (hash < dot) elm.setAttribute("id", sel.substring((hash + 1), dot))
