@@ -22,7 +22,7 @@ private val updateClass = fun(oldVnode: VNode, vnode: VNode): Unit {
     klass = klass ?: newObj().unsafeCast<Classes>()
 
     for (name in jsObjKeys(oldClass)) {
-        if (klass.getBool(name)) {
+        if (!klass.getBool(name)) {
             elm.classList.remove(name)
         }
     }
