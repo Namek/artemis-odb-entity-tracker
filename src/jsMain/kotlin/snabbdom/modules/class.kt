@@ -5,11 +5,10 @@ import snabbdom.*
 import kotlin.js.Json
 
 //export type Classes = Record<string, boolean>
-interface Classes : Json {
-    override fun get(propertyName: String): Boolean {
-        val value = this._get(propertyName)
-        return value != null && value != "false"
-    }
+interface Classes : Json
+fun Classes.getBool(propertyName: String): Boolean {
+    val value = this._get(propertyName)
+    return value != null && value != false && value.toString() != "false"
 }
 
 private val updateClass = fun(oldVnode: VNode, vnode: VNode): Unit {
@@ -23,13 +22,13 @@ private val updateClass = fun(oldVnode: VNode, vnode: VNode): Unit {
     klass = klass ?: newObj().unsafeCast<Classes>()
 
     for (name in jsObjKeys(oldClass)) {
-        if (klass[name]) {
+        if (klass.getBool(name)) {
             elm.classList.remove(name)
         }
     }
     for (name in jsObjKeys(klass)) {
-        val cur = klass[name]
-        if (cur != oldClass[name]) {
+        val cur = klass.getBool(name)
+        if (cur != oldClass.getBool(name)) {
             if (cur)
                 elm.classList.add(name)
             else
