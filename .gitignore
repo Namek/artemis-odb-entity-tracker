@@ -4,3 +4,4 @@ build/
 buildSrc/build/
 buildSrc/out/
 out/
+node_modules/

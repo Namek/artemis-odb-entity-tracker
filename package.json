@@ -1,0 +1,11 @@
+{
+  "name": "entity_tracker",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Kotlin multi-platform project with js tests",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "mocha": "5.2.0"
+  }
+}

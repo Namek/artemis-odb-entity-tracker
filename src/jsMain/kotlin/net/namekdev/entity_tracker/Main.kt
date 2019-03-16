@@ -422,6 +422,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 row(attrs(height(px(22))),
                     dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
                     text("${model.name ?: ""} = ⅟"),
+                    text((value as Boolean?).toString()),
                     nullableCheckbox(value as Boolean?, !model.isTypePrimitive) {
                         onValueChanged(rootValue, path, model.dataType, it)
                     }

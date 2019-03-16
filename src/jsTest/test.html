@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mocha Tests</title>
+    <link rel="stylesheet" href="mocha/mocha.css">
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="mocha/mocha.js"></script>
+    <script>mocha.setup('bdd')</script>
+    
+    <script src="kotlin.js"></script>
+    <script src="kotlin-test.js"></script>
+    <script src="artemis-odb-entity-tracker.js"></script>
+    
+    <script>
+      // the test lib below is generated as commonjs instead of umd, somehow... so here's a workaround
+      window.module = {exports: window};
+      function require(k) {
+		console.log(k, window[k])
+        return window[k];
+      }
+    </script>
+    <script src="artemis-odb-entity-tracker_test.js"></script>
+
+    <script>
+      mocha.run();
+    </script>
+  </body>
+</html>

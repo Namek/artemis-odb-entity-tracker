@@ -36,6 +36,9 @@ fun h(sel: String, vararg nodes: VNode): VNode =
 fun h(sel: String, vararg texts: String): VNode =
     h_(sel, null, null, texts)
 
+fun h(sel: String, vararg nodesOrPrimitives: dynamic): VNode =
+    h_(sel, null, null, arrayOf(*nodesOrPrimitives))
+
 fun h(sel: String, data: VNodeData, text: String): VNode =
     h_(sel, data, text, null)
 
@@ -66,8 +69,10 @@ fun h_(sel: String, data: VNodeData, children: Array<dynamic>): VNode =
     h_(sel, data, null, children)
 
 fun h_(sel: String, data: VNodeData?, text: String?, children: Array<dynamic>?): VNode {
+    val data = if (data != null) data else VNodeData()
     if (children != null) {
         for (i in 0 until children.size) {
+            // yes, we modify the input collection!
             if (isPrimitive(children[i]))
                 children[i] = vnode(null, null, null, children[i], null)
         }
