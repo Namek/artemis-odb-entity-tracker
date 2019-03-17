@@ -2,9 +2,7 @@
 
 package snabbdom
 
-import org.w3c.dom.Element
-import org.w3c.dom.Node
-import org.w3c.dom.get
+import org.w3c.dom.*
 import snabbdom.modules.*
 import kotlin.browser.*
 import kotlin.test.*
@@ -27,15 +25,10 @@ fun prop(name: String): (obj: dynamic) -> dynamic {
     }
 }
 
-//function map(fn, list) {
-//    var ret = [];
-//    for (var i = 0; i < list.length; ++i) {
-//        ret[i] = fn(list[i])
-//    }
-//    return ret;
-//}
+fun map(fn: (dynamic) -> dynamic, list: ItemArrayLike<dynamic>): Array<dynamic> =
+    list.asList().map(fn).toTypedArray()
 
-var inner = prop("innerHTML")
+val inner = prop("innerHTML")
 
 
 fun describe(name: String, action: () -> Unit) {
@@ -466,7 +459,7 @@ class SnabbdomTest : TestBase() {
                     assertEquals(4, elm.children.length)
                     assertEquals(4, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3", "4", "5"])
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3", "4", "5"))
                 }
                 @Test fun add_elements_at_begin_and_end() {
                     val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(2, 3, 4)))
@@ -474,16 +467,16 @@ class SnabbdomTest : TestBase() {
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(3, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3", "4", "5"])
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3", "4", "5"))
                 }
-                @Test fun adds_children_to_parent_with_no_children() {
-                    val vnode1 = h("span", {key: "span"})
-                    val vnode2 = h("span", {key: "span"}, nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
-                    elm = patch(vnode0, vnode1).elm as Element
-                    assertEquals(0, elm.children.length)
-                    elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
-                }
+//                @Test fun adds_children_to_parent_with_no_children() {
+//                    val vnode1 = h("span", {key: "span"})
+//                    val vnode2 = h("span", {key: "span"}, nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
+//                    elm = patch(vnode0, vnode1).elm as Element
+//                    assertEquals(0, elm.children.length)
+//                    elm = patch(vnode1, vnode2).elm as Element
+//                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
+//                }
             }
         }
     }
