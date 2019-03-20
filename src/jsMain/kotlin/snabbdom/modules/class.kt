@@ -12,7 +12,7 @@ fun Classes.getBool(propertyName: String): Boolean {
 }
 
 private val updateClass = fun(oldVnode: VNode, vnode: VNode): Unit {
-    val elm: Element = vnode.elm as Element
+    val elm = vnode.elm as? Element ?: return
     var oldClass = oldVnode.data?.`class`
     var klass = vnode.data?.`class`
 

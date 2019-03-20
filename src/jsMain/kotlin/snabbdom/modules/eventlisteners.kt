@@ -1,6 +1,7 @@
 package snabbdom.modules
 
 import org.w3c.dom.Element
+import org.w3c.dom.Node
 import org.w3c.dom.events.Event
 import snabbdom.*
 import kotlin.js.Json
@@ -63,7 +64,7 @@ private fun updateEventListeners(oldVnode: VNode, vnode: VNode?) {
     val oldListener = (oldVnode.asDynamic()).listener as ((Event) -> Unit)?
     val oldElm = oldVnode.elm as? Element
     val on = vnode?.data?.on
-    val elm: Element? = (vnode?.elm) as Element?
+    val elm: Node? = vnode?.elm
 
 
     // optimization for reused immutable handlers
