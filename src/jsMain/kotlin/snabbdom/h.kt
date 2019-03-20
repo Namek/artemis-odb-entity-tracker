@@ -36,9 +36,6 @@ fun h(sel: String, vararg nodes: VNode): VNode =
 fun h(sel: String, vararg texts: String): VNode =
     h_(sel, null, null, texts)
 
-fun h(sel: String, vararg nodesOrPrimitives: dynamic): VNode =
-    h_(sel, null, null, arrayOf(*nodesOrPrimitives))
-
 fun h(sel: String, data: VNodeData, text: String): VNode =
     h_(sel, data, text, null)
 
