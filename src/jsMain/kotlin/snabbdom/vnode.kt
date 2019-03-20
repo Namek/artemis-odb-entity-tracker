@@ -36,7 +36,7 @@ open class VNodeData(
 
 
 fun vnode(sel: String?, data: VNodeData?, children: Array<VNode>?, text: String?, elm: Element?): VNode {
-    val key = data?.key
+    val key = data?.key ?: null
     val ret = newObj().unsafeCast<VNode>()
     ret.sel = sel
     ret.data = data

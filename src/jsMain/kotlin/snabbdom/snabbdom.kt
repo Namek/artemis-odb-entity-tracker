@@ -24,7 +24,8 @@ typealias VNodeQueue = MutableList<VNode>
 val emptyNode = vnode("", newObj().unsafeCast<VNodeData>(), arrayOf(), null, null)
 
 fun sameVnode(vnode1: VNode, vnode2: VNode): Boolean {
-    return vnode1.key === vnode2.key && vnode1.sel === vnode2.sel
+    return vnode1.key ?: null === vnode2.key ?: null
+        && vnode1.sel ?: null === vnode2.sel ?: null
 }
 
 fun isVnode(vnode: dynamic): Boolean {
