@@ -8,6 +8,8 @@ interface Props : Json
 //operator fun Props.get(key: String): dynamic = this._get(key)
 //operator fun Props.set(key: String, value: dynamic): Unit { this._set(key, value) }
 
+external fun delete(p: dynamic): Boolean = definedExternally
+
 private fun updateProps(oldVnode: VNode, vnode: VNode) {
     var cur: dynamic
     var old: dynamic
@@ -22,8 +24,7 @@ private fun updateProps(oldVnode: VNode, vnode: VNode) {
 
     for (key in jsObjKeys(oldProps.asDynamic())) {
         if (props[key] == null) {
-            // originally there was `delete elm[key]`
-            (elm.asDynamic())[key] = null
+            delete(elm.asDynamic()[key])
         }
     }
     for (key in jsObjKeys(props.asDynamic())) {
