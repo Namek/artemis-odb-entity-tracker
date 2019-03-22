@@ -9,20 +9,9 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.*
 
-
-//var assert = require("assert")
-//var shuffle = require("knuth-shuffle").knuthShuffle;
-
-//var snabbdom = require("../snabbdom")
-val patch = Snabbdom.init(
+private val patch = Snabbdom.init(
     arrayOf(ClassModule(), PropsModule(), EventListenersModule())
 )
-//var h = require("../h").default;
-//var toVNode = require("../tovnode").default;
-//val vnode = require("../vnode").default;
-//var htmlDomApi = require("../htmldomapi").htmlDomApi;
-
-val assert = window["chai"].unsafeCast<dynamic>().assert
 
 fun prop(name: String): (obj: dynamic) -> dynamic {
     return { obj ->
@@ -36,22 +25,7 @@ fun map(fn: (dynamic) -> dynamic, list: ItemArrayLike<dynamic>): Array<dynamic> 
 val inner = prop("innerHTML")
 
 
-fun describe(name: String, action: () -> Unit) {
-    action()
-}
-
-abstract class TestBase {
-    lateinit var elm: Element
-    lateinit var vnode0: Element
-
-    @BeforeTest
-    fun beforeEach() {
-        elm = document.createElement("div")
-        vnode0 = elm
-    }
-}
-
-class SnabbdomTest : TestBase() {
+private class Core : TestBase() {
     fun _it(descr: String, action: () -> Unit) {
         elm = document.createElement("div")
         vnode0 = elm as Element
