@@ -22,29 +22,29 @@ private fun updateAttrs(oldVnode: VNode, vnode: VNode): Unit {
 
     if (oldAttrs == null && attrs == null) return
     if (oldAttrs === attrs) return
-    oldAttrs = oldAttrs ?: newObj().unsafeCast<Attrs>()
-    attrs = attrs ?: newObj().unsafeCast<Attrs>()
+    oldAttrs = oldAttrs ?: j<Attrs>()
+    attrs = attrs ?: j<Attrs>()
 
     // update modified attributes, add new attributes
     for (key: dynamic in jsObjKeys(attrs)) {
-        val cur = attrs[key]!!
+        val cur = attrs[key]
         val old = oldAttrs[key]
         if (old !== cur) {
-            if (cur == true) {
+            if (cur === true) {
                 elm.setAttribute(key, "")
-            } else if (cur == false) {
+            } else if (cur === false) {
                 elm.removeAttribute(key)
             } else {
-                if (key.charCodeAt(0) != xChar) {
-                    elm.setAttribute(key, cur.toString())
-                } else if (key.charCodeAt(3) == colonChar) {
+                if (key.charCodeAt(0) !== xChar) {
+                    elm.setAttribute(key, cur.unsafeCast<String>())
+                } else if (key.charCodeAt(3) === colonChar) {
                     // Assume xml namespace
-                    elm.setAttributeNS(xmlNS, key, cur.toString())
-                } else if (key.charCodeAt(5) == colonChar) {
+                    elm.setAttributeNS(xmlNS, key, cur.unsafeCast<String>())
+                } else if (key.charCodeAt(5) === colonChar) {
                     // Assume xlink namespace
-                    elm.setAttributeNS(xlinkNS, key, cur.toString())
+                    elm.setAttributeNS(xlinkNS, key, cur.unsafeCast<String>())
                 } else {
-                    elm.setAttribute(key, cur.toString())
+                    elm.setAttribute(key, cur.unsafeCast<String>())
                 }
             }
         }
