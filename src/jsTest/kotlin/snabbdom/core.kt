@@ -5,7 +5,10 @@ package snabbdom
 import org.w3c.dom.*
 import snabbdom.modules.*
 import kotlin.browser.*
+import kotlin.math.roundToInt
+import kotlin.random.Random
 import kotlin.test.*
+
 
 //var assert = require("assert")
 //var shuffle = require("knuth-shuffle").knuthShuffle;
@@ -18,6 +21,8 @@ val patch = Snabbdom.init(
 //var toVNode = require("../tovnode").default;
 //val vnode = require("../vnode").default;
 //var htmlDomApi = require("../htmldomapi").htmlDomApi;
+
+val assert = window["chai"].unsafeCast<dynamic>().assert
 
 fun prop(name: String): (obj: dynamic) -> dynamic {
     return { obj ->
@@ -42,7 +47,7 @@ abstract class TestBase {
     @BeforeTest
     fun beforeEach() {
         elm = document.createElement("div")
-        vnode0 = elm;
+        vnode0 = elm
     }
 }
 
@@ -77,7 +82,7 @@ class SnabbdomTest : TestBase() {
             assertEquals(vnode.children!![0].sel, "span#hello")
         })
         _it("can create vnode with text content", {
-            val vnode = h("a", "I am a string")
+            val vnode = h("a", arrayOf("I am a string"))
             assertEquals("I am a string", vnode.children!![0].text)
         })
         _it("can create vnode with text content in string", {
@@ -262,7 +267,6 @@ class SnabbdomTest : TestBase() {
             assertTrue(elm.classList.contains("am"))
             assertFalse(elm.classList.contains("horse"))
         }
-        
         @Test fun changes_classes_in_selector() {
             val vnode1 = h("i", VNodeData(`class` = j("i" to true, "am" to true, "horse" to true)))
             val vnode2 = h("i", VNodeData(`class` = j("i" to true, "am" to true, "horse" to false)))
@@ -272,7 +276,6 @@ class SnabbdomTest : TestBase() {
             assertTrue(elm.classList.contains("am"))
             assertFalse(elm.classList.contains("horse"))
         }
-
         @Test fun preserves_memoized_classes() {
             val cachedClass = j<Boolean>("i" to true, "am" to true, "horse" to false).unsafeCast<Classes>()
             val vnode1 = h("i", VNodeData(`class` = cachedClass))
@@ -328,7 +331,7 @@ class SnabbdomTest : TestBase() {
                 prevElm.id = "id";
                 prevElm.className = "class";
                 prevElm.appendChild(h2)
-                var nextVNode = h("div#id.class", [h("span", "Hi")])
+                var nextVNode = h("div#id.class", arrayOf(h("span", "Hi")))
                 elm = patch(toVNode(prevElm), nextVNode).elm as Element
                 assert.strictEqual(elm, prevElm)
                 assertEquals("DIV", elm.tagName)
@@ -342,7 +345,7 @@ class SnabbdomTest : TestBase() {
             _it("can support patching in a DocumentFragment", function () {
                 var prevElm = document.createDocumentFragment()
                 var nextVNode = vnode("", {}, [
-                    h("div#id.class", [h("span", "Hi")])
+                    h("div#id.class", arrayOf(h("span", "Hi")))
                 ], undefined, prevElm)
                 elm = patch(toVNode(prevElm), nextVNode).elm as Element
                 assert.strictEqual(elm, prevElm)
@@ -365,7 +368,7 @@ class SnabbdomTest : TestBase() {
                 text.testProperty = function () {}; // ensures we dont recreate the Text Node
                 prevElm.appendChild(text)
                 prevElm.appendChild(h2)
-                var nextVNode = h("div#id.class", ["Foobar"])
+                var nextVNode = h("div#id.class", ["Foobar"))
                 elm = patch(toVNode(prevElm), nextVNode).elm as Element
                 assert.strictEqual(elm, prevElm)
                 assertEquals("DIV", elm.tagName)
@@ -385,7 +388,7 @@ class SnabbdomTest : TestBase() {
                 var text = new Text("Foobar")
                 prevElm.appendChild(text)
                 prevElm.appendChild(h2)
-                var nextVNode = h("div#id.class", [h("h2", "Hello")])
+                var nextVNode = h("div#id.class", arrayOf(h("h2", "Hello")))
                 elm = patch(toVNode(prevElm), nextVNode).elm as Element
                 assert.strictEqual(elm, prevElm)
                 assertEquals("DIV", elm.tagName)
@@ -435,8 +438,8 @@ class SnabbdomTest : TestBase() {
 
             class addition_of_elements : TestBase() {
                 @Test fun appends_elements() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
+                    val vnode1 = h_("span", spanNums(arrayOf(1)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 3)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(1, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
@@ -445,16 +448,16 @@ class SnabbdomTest : TestBase() {
                     assertEquals("3", elm.children[2]!!.innerHTML)
                 }
                 @Test fun prepends_elements() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode1 = h_("span", spanNums(arrayOf(4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(2, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
-//                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3", "4", "5"])
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3", "4", "5"))
                 }
                 @Test fun add_elements_in_the_middle() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(4, elm.children.length)
                     assertEquals(4, elm.children.length)
@@ -462,580 +465,589 @@ class SnabbdomTest : TestBase() {
                     assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3", "4", "5"))
                 }
                 @Test fun add_elements_at_begin_and_end() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(2, 3, 4)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode1 = h_("span", spanNums(arrayOf(2, 3, 4)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(3, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3", "4", "5"))
                 }
-//                @Test fun adds_children_to_parent_with_no_children() {
-//                    val vnode1 = h("span", {key: "span"})
-//                    val vnode2 = h("span", {key: "span"}, nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
-//                    elm = patch(vnode0, vnode1).elm as Element
-//                    assertEquals(0, elm.children.length)
-//                    elm = patch(vnode1, vnode2).elm as Element
-//                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
-//                }
-            }
-        }
-    }
-/*
-    describe("patching an element", {
-
-        describe("using toVNode()", function () {
-
-        })
-        describe("updating children with keys", {
-
-            describe("addition of elements", {
-
-                
-
-                @Test fun removes all children from parent() {
-                    val vnode1 = h("span", {key: "span"}, nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
-                    val vnode2 = h("span", {key: "span"})
+                @Test fun adds_children_to_parent_with_no_children() {
+                    val vnode1 = h("span", VNodeData(key = "span"))
+                    val vnode2 = h_("span", VNodeData(key = "span"), spanNums(arrayOf(1, 2, 3)))
                     elm = patch(vnode0, vnode1).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
+                    assertEquals(0, elm.children.length)
+                    elm = patch(vnode1, vnode2).elm as Element
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3"))
+                }
+                @Test fun removes_all_children_from_parent() {
+                    val vnode1 = h_("span", VNodeData(key = "span"), spanNums(arrayOf(1, 2, 3)))
+                    val vnode2 = h("span", VNodeData(key = "span"))
+                    elm = patch(vnode0, vnode1).elm as Element
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3"))
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(0, elm.children.length)
-                })
-                @Test fun update one child with same key but different sel() {
-                    val vnode1 = h("span", {key: "span"}, nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
-                    val vnode2 = h("span", {key: "span"}, [spanNum(1), h("i", {key: 2}, "2"), spanNum(3)])
+                }
+                @Test fun update_one_child_with_same_key_but_different_sel() {
+                    val vnode1 = h_("span", VNodeData(key = "span"), spanNums(arrayOf(1, 2, 3)))
+                    val vnode2 = h_("span", VNodeData(key = "span"), arrayOf(spanNum(1), h("i", VNodeData(key = 2), "2"), spanNum(3)))
                     elm = patch(vnode0, vnode1).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3"))
                     elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["1", "2", "3"])
+                    assert.deepEqual(map(inner, elm.children), arrayOf("1", "2", "3"))
                     assertEquals(3, elm.children.length)
-                    assertEquals("I", elm.children[1].tagName)
-                })
-            })
-            describe("removal of elements", {
-                @Test fun removes elements from the beginning() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(3, 4, 5)))
+                    assertEquals("I", elm.children[1]!!.tagName)
+                }
+            }
+
+            class removal_of_elements : TestBase() {
+                @Test fun removes_elements_from_the_beginning() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(3, 4, 5)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(5, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["3", "4", "5"])
-                })
-                @Test fun removes elements from the end() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
+                    assert.deepEqual(map(inner, elm.children), arrayOf("3", "4", "5"))
+                }
+                @Test fun removes_elements_from_the_end() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 3)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(5, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(3, elm.children.length)
-                    assertEquals("1", elm.children[0].innerHTML)
-                    assertEquals("2", elm.children[1].innerHTML)
-                    assertEquals("3", elm.children[2].innerHTML)
-                })
-                @Test fun removes elements from the middle() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 4, 5)))
+                    assertEquals("1", elm.children[0]!!.innerHTML)
+                    assertEquals("2", elm.children[1]!!.innerHTML)
+                    assertEquals("3", elm.children[2]!!.innerHTML)
+                }
+                @Test fun removes_elements_from_the_middle() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 2, 4, 5)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(5, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(4, elm.children.length)
-                    assert.deepEqual(elm.children[0].innerHTML, "1")
-                    assertEquals("1", elm.children[0].innerHTML)
-                    assertEquals("2", elm.children[1].innerHTML)
-                    assertEquals("4", elm.children[2].innerHTML)
-                    assertEquals("5", elm.children[3].innerHTML)
-                })
-            })
-            describe("element reordering", {
-                @Test fun moves element forward() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(2, 3, 1, 4)))
+                    assert.deepEqual(elm.children[0]!!.innerHTML, "1")
+                    assertEquals("1", elm.children[0]!!.innerHTML)
+                    assertEquals("2", elm.children[1]!!.innerHTML)
+                    assertEquals("4", elm.children[2]!!.innerHTML)
+                    assertEquals("5", elm.children[3]!!.innerHTML)
+                }
+            }
+
+            class element_reordering : TestBase() {
+                @Test fun moves_element_forward() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4)))
+                    val vnode2 = h_("span", spanNums(arrayOf(2, 3, 1, 4)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(4, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(4, elm.children.length)
-                    assertEquals("2", elm.children[0].innerHTML)
-                    assertEquals("3", elm.children[1].innerHTML)
-                    assertEquals("1", elm.children[2].innerHTML)
-                    assertEquals("4", elm.children[3].innerHTML)
-                })
-                @Test fun moves element to end() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(2, 3, 1)))
+                    assertEquals("2", elm.children[0]!!.innerHTML)
+                    assertEquals("3", elm.children[1]!!.innerHTML)
+                    assertEquals("1", elm.children[2]!!.innerHTML)
+                    assertEquals("4", elm.children[3]!!.innerHTML)
+                }
+                @Test fun moves_element_to_end() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3)))
+                    val vnode2 = h_("span", spanNums(arrayOf(2, 3, 1)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(3, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(3, elm.children.length)
-                    assertEquals("2", elm.children[0].innerHTML)
-                    assertEquals("3", elm.children[1].innerHTML)
-                    assertEquals("1", elm.children[2].innerHTML)
-                })
-                @Test fun moves element backwards() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 4, 2, 3)))
+                    assertEquals("2", elm.children[0]!!.innerHTML)
+                    assertEquals("3", elm.children[1]!!.innerHTML)
+                    assertEquals("1", elm.children[2]!!.innerHTML)
+                }
+                @Test fun moves_element_backwards() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4)))
+                    val vnode2 = h_("span", spanNums(arrayOf(1, 4, 2, 3)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(4, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(4, elm.children.length)
-                    assertEquals("1", elm.children[0].innerHTML)
-                    assertEquals("4", elm.children[1].innerHTML)
-                    assertEquals("2", elm.children[2].innerHTML)
-                    assertEquals("3", elm.children[3].innerHTML)
-                })
-                @Test fun swaps first and last() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 2, 3, 1)))
+                    assertEquals("1", elm.children[0]!!.innerHTML)
+                    assertEquals("4", elm.children[1]!!.innerHTML)
+                    assertEquals("2", elm.children[2]!!.innerHTML)
+                    assertEquals("3", elm.children[3]!!.innerHTML)
+                }
+                @Test fun swaps_first_and_last() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4)))
+                    val vnode2 = h_("span", spanNums(arrayOf(4, 2, 3, 1)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(4, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(4, elm.children.length)
-                    assertEquals("4", elm.children[0].innerHTML)
-                    assertEquals("2", elm.children[1].innerHTML)
-                    assertEquals("3", elm.children[2].innerHTML)
-                    assertEquals("1", elm.children[3].innerHTML)
-                })
-            })
-            describe("combinations of additions, removals and reorderings", {
-                @Test fun move to left and replace() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 1, 2, 3, 6)))
+                    assertEquals("4", elm.children[0]!!.innerHTML)
+                    assertEquals("2", elm.children[1]!!.innerHTML)
+                    assertEquals("3", elm.children[2]!!.innerHTML)
+                    assertEquals("1", elm.children[3]!!.innerHTML)
+                }
+            }
+
+            class combinations_of_additions_and_removals_and_reorderings : TestBase() {
+                @Test fun move_to_left_and_replace() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(4, 1, 2, 3, 6)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(5, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(5, elm.children.length)
-                    assertEquals("4", elm.children[0].innerHTML)
-                    assertEquals("1", elm.children[1].innerHTML)
-                    assertEquals("2", elm.children[2].innerHTML)
-                    assertEquals("3", elm.children[3].innerHTML)
-                    assertEquals("6", elm.children[4].innerHTML)
-                })
-                @Test fun moves to left and leaves hole() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 6)))
+                    assertEquals("4", elm.children[0]!!.innerHTML)
+                    assertEquals("1", elm.children[1]!!.innerHTML)
+                    assertEquals("2", elm.children[2]!!.innerHTML)
+                    assertEquals("3", elm.children[3]!!.innerHTML)
+                    assertEquals("6", elm.children[4]!!.innerHTML)
+                }
+                @Test fun moves_to_left_and_leaves_hole() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(4, 6)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(3, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
-                    assert.deepEqual(map(inner, elm.children), ["4", "6"])
-                })
-                @Test fun handles moved and set to undefined element ending at the end() {
-                    val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(2, 4, 5)))
-                    val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 5, 3)))
+                    assert.deepEqual(map(inner, elm.children), arrayOf("4", "6"))
+                }
+                @Test fun handles_moved_and_set_to_undefined_element_ending_at_the_end() {
+                    val vnode1 = h_("span", spanNums(arrayOf(2, 4, 5)))
+                    val vnode2 = h_("span", spanNums(arrayOf(4, 5, 3)))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(3, elm.children.length)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(3, elm.children.length)
-                    assertEquals("4", elm.children[0].innerHTML)
-                    assertEquals("5", elm.children[1].innerHTML)
-                    assertEquals("3", elm.children[2].innerHTML)
-                })
-                @Test fun moves a key in non-keyed nodes with a size up {
-                    val vnode1 = h("span", [1, "a", "b", "c"].map(spanNum))
-                    val vnode2 = h("span", ["d", "a", "b", "c", 1, "e"].map(spanNum))
+                    assertEquals("4", elm.children[0]!!.innerHTML)
+                    assertEquals("5", elm.children[1]!!.innerHTML)
+                    assertEquals("3", elm.children[2]!!.innerHTML)
+                }
+                @Test fun moves_a_key_in_non_keyed_nodes_with_a_size_up() {
+                    val vnode1 = h_("span", spanNums(arrayOf(1, "a", "b", "c")))
+                    val vnode2 = h_("span", spanNums(arrayOf("d", "a", "b", "c", 1, "e")))
                     elm = patch(vnode0, vnode1).elm as Element
                     assertEquals(4, elm.childNodes.length)
                     assertEquals("1abc", elm.textContent)
                     elm = patch(vnode1, vnode2).elm as Element
                     assertEquals(6, elm.childNodes.length)
                     assertEquals("dabc1e", elm.textContent)
-                })
-            })
-            @Test fun reverses elements() {
-                val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(1, 2, 3, 4, 5, 6, 7, 8)))
-                val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(8, 7, 6, 5, 4, 3, 2, 1)))
+                }
+            }
+
+            @Test fun reverses_elements() {
+                val vnode1 = h_("span", spanNums(arrayOf(1, 2, 3, 4, 5, 6, 7, 8)))
+                val vnode2 = h_("span", spanNums(arrayOf(8, 7, 6, 5, 4, 3, 2, 1)))
                 elm = patch(vnode0, vnode1).elm as Element
                 assertEquals(8, elm.children.length)
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["8", "7", "6", "5", "4", "3", "2", "1"])
-            })
+                assert.deepEqual(map(inner, elm.children), arrayOf("8", "7", "6", "5", "4", "3", "2", "1"))
+            }
             @Test fun something() {
-                val vnode1 = h("span", nodesOrPrimitives = *spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
-                val vnode2 = h("span", nodesOrPrimitives = *spanNums(arrayOf(4, 3, 2, 1, 5, 0)))
+                val vnode1 = h_("span", spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
+                val vnode2 = h_("span", spanNums(arrayOf(4, 3, 2, 1, 5, 0)))
                 elm = patch(vnode0, vnode1).elm as Element
                 assertEquals(6, elm.children.length)
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["4", "3", "2", "1", "5", "0"])
-            })
-            @Test fun handles random shuffles() {
-                var n, i, arr = [], opacities = [], elms = 14, samples = 5;
-                function spanNumWithOpacity(n, o) {
-                return h("span", {key: n, style: {opacity: o}}, n.toString())
+                assert.deepEqual(map(inner, elm.children), arrayOf("4", "3", "2", "1", "5", "0"))
             }
-                for (n = 0; n < elms; ++n) { arr[n] = n; }
-                for (n = 0; n < samples; ++n) {
-                val vnode1 = h("span", arr.map(function(n) {
-                    return spanNumWithOpacity(n, "1")
-                }))
-                var shufArr = shuffle(arr.slice(0))
-                var elm = document.createElement("div")
-                elm = patch(elm, vnode1).elm as Element
-                for (i = 0; i < elms; ++i) {
-                assertEquals(elm.children[i].innerHTML, i.toString())
-                opacities[i] = Math.random().toFixed(5).toString()
+            @Test fun handles_random_shuffles() {
+                val elms = 14
+                val samples = 4
+
+                fun spanNumWithOpacity(n: Int, o: String): VNode =
+                    h("span", VNodeData(key = n, style = j("opacity" to o)), text = n.toString())
+
+                val arr = Array(elms) {n -> n}
+                val opacities = Array(elms) {n -> "0"}
+
+                for (n in 0 until samples) {
+                    val vnode1 = h_("span", arr.map {n -> spanNumWithOpacity(n, "1")}.toTypedArray())
+                    var shufArr = arr.asIterable().shuffled()
+                    var elm = document.createElement("div")
+                    elm = patch(elm, vnode1).elm as Element
+                    for (i in 0 until elms) {
+                        assertEquals(elm.children[i]!!.innerHTML, i.toString())
+                        opacities[i] = ((Random.nextFloat()*100000).roundToInt() / 100000f).toString()
+                    }
+                    val vnode2 = h("span", Array(elms) {n -> spanNumWithOpacity(shufArr[n], opacities[n])})
+                    elm = patch(vnode1, vnode2).elm as Element
+                    for (i in 0 until elms) {
+                        assertEquals(elm.children[i]!!.innerHTML, shufArr[i].toString())
+                        assertEquals(0, opacities[i].indexOf((elm.children[i]!! as HTMLElement).style.opacity))
+                    }
+                }
             }
-                val vnode2 = h("span", arr.map(function(n) {
-                    return spanNumWithOpacity(shufArr[n], opacities[n])
-                }))
-                elm = patch(vnode1, vnode2).elm as Element
-                for (i = 0; i < elms; ++i) {
-                assertEquals(elm.children[i].innerHTML, shufArr[i].toString())
-                assertEquals(0, opacities[i].indexOf(elm.children[i].style.opacity))
-            }
-            }
-            })
-            @Test fun supports null/undefined children {
-                val vnode1 = h("i", nodesOrPrimitives = *spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
-                val vnode2 = h("i", [null, 2, undefined, null, 1, 0, null, 5, 4, null, 3, undefined].map(spanNum))
+            @Test fun supports_null_or_undefined_children() {
+                val vnode1 = h_("i", spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
+                val vnode2 = h_("i", spanNums(arrayOf(null, 2, undefined, null, 1, 0, null, 5, 4, null, 3, undefined)))
                 elm = patch(vnode0, vnode1).elm as Element
                 assertEquals(6, elm.children.length)
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["2", "1", "0", "5", "4", "3"])
-            })
-            @Test fun supports all null/undefined children {
-                val vnode1 = h("i", nodesOrPrimitives = *spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
-                val vnode2 = h("i", [null, null, undefined, null, null, undefined])
-                val vnode3 = h("i", nodesOrPrimitives = *spanNums(arrayOf(5, 4, 3, 2, 1, 0)))
+                assert.deepEqual(map(inner, elm.children), arrayOf("2", "1", "0", "5", "4", "3"))
+            }
+            @Test fun supports_all_null_or_undefined_children() {
+                val vnode1 = h_("i", spanNums(arrayOf(0, 1, 2, 3, 4, 5)))
+                val vnode2 = h_("i", arrayOf(null, null, undefined, null, null, undefined))
+                val vnode3 = h_("i", spanNums(arrayOf(5, 4, 3, 2, 1, 0)))
                 patch(vnode0, vnode1)
                 elm = patch(vnode1, vnode2).elm as Element
                 assertEquals(0, elm.children.length)
                 elm = patch(vnode2, vnode3).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["5", "4", "3", "2", "1", "0"])
-            })
-            @Test fun handles random shuffles with null/undefined children {
-                var i, j, r, len, arr, maxArrLen = 15, samples = 5, vnode1 = vnode0, vnode2;
-                for (i = 0; i < samples; ++i, vnode1 = vnode2) {
-                len = Math.floor(Math.random() * maxArrLen)
-                arr = [];
-                for (j = 0; j < len; ++j) {
-                if ((r = Math.random()) < 0.5) arr[j] = String(j)
-                else if (r < 0.75) arr[j] = null;
-                else arr[j] = undefined;
+                assert.deepEqual(map(inner, elm.children), arrayOf("5", "4", "3", "2", "1", "0"))
             }
-                shuffle(arr)
-                vnode2 = h("div", arr.map(spanNum))
-                elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), arr.filter(function(x) {return x != null;}))
+            @Test fun handles_random_shuffles_with_null_or_undefined_children() {
+                val maxArrLen = 15
+                val samples = 5
+                var vnode1: VNode? = null
+                lateinit var vnode2: VNode
+
+                for (i in 0 until samples) {
+                    val len = Random.nextInt(maxArrLen + 1)
+                    val arr = Array(len) { j ->
+                        if (Random.nextBoolean()) j.toString()
+                        else if (Random.nextFloat() < 0.75) null
+                        else undefined
+                    }.asIterable().shuffled().toTypedArray<dynamic>()
+
+                    vnode2 = h_("div", arr.map(::spanNum).toTypedArray())
+                    elm = patch(if (vnode1 == null) vnode0 else vnode1, vnode2).elm as Element
+                    assert.deepEqual(
+                        map(inner, elm.children),
+                        arr.filter {x -> x != null}.toTypedArray()
+                    )
+
+                    vnode1 = vnode2
+                }
             }
-            })
-        })
-        describe("updating children without keys", {
-            @Test fun appends elements() {
-                val vnode1 = h("div", [h("span", "Hello")])
-                val vnode2 = h("div", [h("span", "Hello"), h("span", "World")])
+        }
+
+        object updating_children_without_keys : TestBase() {
+            @Test fun appends_elements() {
+                val vnode1 = h("div", arrayOf(h("span", "Hello")))
+                val vnode2 = h("div", arrayOf(h("span", "Hello"), h("span", "World")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["Hello"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("Hello"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["Hello", "World"])
-            })
-            @Test fun handles unmoved text nodes() {
-                val vnode1 = h("div", ["Text", h("span", "Span")])
-                val vnode2 = h("div", ["Text", h("span", "Span")])
+                assert.deepEqual(map(inner, elm.children), arrayOf("Hello", "World"))
+            }
+            @Test fun handles_unmoved_text_nodes() {
+                val vnode1 = h_("div", arrayOf("Text", h("span", "Span")))
+                val vnode2 = h_("div", arrayOf("Text", h("span", "Span")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
                 elm = patch(vnode1, vnode2).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
-            })
-            @Test fun handles changing text children() {
-                val vnode1 = h("div", ["Text", h("span", "Span")])
-                val vnode2 = h("div", ["Text2", h("span", "Span")])
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
+            }
+            @Test fun handles_changing_text_children() {
+                val vnode1 = h_("div", arrayOf("Text", h("span", "Span")))
+                val vnode2 = h_("div", arrayOf("Text2", h("span", "Span")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
                 elm = patch(vnode1, vnode2).elm as Element
-                assertEquals("Text2", elm.childNodes[0].textContent)
-            })
-            @Test fun handles unmoved comment nodes() {
-                val vnode1 = h("div", [h("!", "Text"), h("span", "Span")])
-                val vnode2 = h("div", [h("!", "Text"), h("span", "Span")])
+                assertEquals("Text2", elm.childNodes[0]!!.textContent)
+            }
+            @Test fun handles_unmoved_comment_nodes() {
+                val vnode1 = h("div", arrayOf(h("!", "Text"), h("span", "Span")))
+                val vnode2 = h("div", arrayOf(h("!", "Text"), h("span", "Span")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
                 elm = patch(vnode1, vnode2).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
-            })
-            @Test fun handles changing comment text() {
-                val vnode1 = h("div", [h("!", "Text"), h("span", "Span")])
-                val vnode2 = h("div", [h("!", "Text2"), h("span", "Span")])
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
+            }
+            @Test fun handles_changing_comment_text() {
+                val vnode1 = h("div", arrayOf(h("!", "Text"), h("span", "Span")))
+                val vnode2 = h("div", arrayOf(h("!", "Text2"), h("span", "Span")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assertEquals("Text", elm.childNodes[0].textContent)
+                assertEquals("Text", elm.childNodes[0]!!.textContent)
                 elm = patch(vnode1, vnode2).elm as Element
-                assertEquals("Text2", elm.childNodes[0].textContent)
-            })
-            @Test fun handles changing empty comment() {
-                val vnode1 = h("div", [h("!"), h("span", "Span")])
-                val vnode2 = h("div", [h("!", "Test"), h("span", "Span")])
+                assertEquals("Text2", elm.childNodes[0]!!.textContent)
+            }
+            @Test fun handles_changing_empty_comment() {
+                val vnode1 = h("div", arrayOf(h("!"), h("span", "Span")))
+                val vnode2 = h("div", arrayOf(h("!", "Test"), h("span", "Span")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assertEquals("", elm.childNodes[0].textContent)
+                assertEquals("", elm.childNodes[0]!!.textContent)
                 elm = patch(vnode1, vnode2).elm as Element
-                assertEquals("Test", elm.childNodes[0].textContent)
-            })
-            @Test fun prepends element() {
-                val vnode1 = h("div", [h("span", "World")])
-                val vnode2 = h("div", [h("span", "Hello"), h("span", "World")])
+                assertEquals("Test", elm.childNodes[0]!!.textContent)
+            }
+            @Test fun prepends_element() {
+                val vnode1 = h("div", arrayOf(h("span", "World")))
+                val vnode2 = h("div", arrayOf(h("span", "Hello"), h("span", "World")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["World"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("World"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["Hello", "World"])
-            })
-            @Test fun prepends element of different tag type() {
-                val vnode1 = h("div", [h("span", "World")])
-                val vnode2 = h("div", [h("div", "Hello"), h("span", "World")])
+                assert.deepEqual(map(inner, elm.children), arrayOf("Hello", "World"))
+            }
+            @Test fun prepends_element_of_different_tag_type() {
+                val vnode1 = h("div", arrayOf(h("span", "World")))
+                val vnode2 = h("div", arrayOf(h("div", "Hello"), h("span", "World")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["World"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("World"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(prop("tagName"), elm.children), ["DIV", "SPAN"])
-                assert.deepEqual(map(inner, elm.children), ["Hello", "World"])
-            })
-            @Test fun removes elements() {
-                val vnode1 = h("div", [h("span", "One"), h("span", "Two"), h("span", "Three")])
-                val vnode2 = h("div", [h("span", "One"), h("span", "Three")])
+                assert.deepEqual(map(prop("tagName"), elm.children), arrayOf("DIV", "SPAN"))
+                assert.deepEqual(map(inner, elm.children), arrayOf("Hello", "World"))
+            }
+            @Test fun removes_elements() {
+                val vnode1 = h("div", arrayOf(h("span", "One"), h("span", "Two"), h("span", "Three")))
+                val vnode2 = h("div", arrayOf(h("span", "One"), h("span", "Three")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["One", "Two", "Three"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("One", "Two", "Three"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["One", "Three"])
-            })
-            @Test fun removes a single text node() {
+                assert.deepEqual(map(inner, elm.children), arrayOf("One", "Three"))
+            }
+            @Test fun removes_a_single_text_node() {
                 val vnode1 = h("div", "One")
                 val vnode2 = h("div")
                 patch(vnode0, vnode1)
                 assertEquals("One", elm.textContent)
                 patch(vnode1, vnode2)
                 assertEquals("", elm.textContent)
-            })
-            @Test fun removes a single text node when children are updated() {
+            }
+            @Test fun removes_a_single_text_node_when_children_are_updated() {
                 val vnode1 = h("div", "One")
-                val vnode2 = h("div", [ h("div", "Two"), h("span", "Three") ])
+                val vnode2 = h("div", arrayOf( h("div", "Two"), h("span", "Three") ))
                 patch(vnode0, vnode1)
                 assertEquals("One", elm.textContent)
                 patch(vnode1, vnode2)
-                assert.deepEqual(map(prop("textContent"), elm.childNodes), ["Two", "Three"])
-            })
-            @Test fun removes a text node among other elements() {
-                val vnode1 = h("div", [ "One", h("span", "Two") ])
-                val vnode2 = h("div", [ h("div", "Three")])
+                assert.deepEqual(map(prop("textContent"), elm.childNodes), arrayOf("Two", "Three"))
+            }
+            @Test fun removes_a_text_node_among_other_elements() {
+                val vnode1 = h_("div", arrayOf( "One", h("span", "Two") ))
+                val vnode2 = h_("div", arrayOf( h("div", "Three")))
                 patch(vnode0, vnode1)
-                assert.deepEqual(map(prop("textContent"), elm.childNodes), ["One", "Two"])
+                assert.deepEqual(map(prop("textContent"), elm.childNodes), arrayOf("One", "Two"))
                 patch(vnode1, vnode2)
                 assertEquals(1, elm.childNodes.length)
-                assertEquals("DIV", elm.childNodes[0].tagName)
-                assertEquals("Three", elm.childNodes[0].textContent)
-            })
-            @Test fun reorders elements() {
-                val vnode1 = h("div", [h("span", "One"), h("div", "Two"), h("b", "Three")])
-                val vnode2 = h("div", [h("b", "Three"), h("span", "One"), h("div", "Two")])
+                assertEquals("DIV", (elm.childNodes[0]!! as Element).tagName)
+                assertEquals("Three", (elm.childNodes[0]!! as Element).textContent)
+            }
+            @Test fun reorders_elements() {
+                val vnode1 = h_("div", arrayOf(h("span", "One"), h("div", "Two"), h("b", "Three")))
+                val vnode2 = h_("div", arrayOf(h("b", "Three"), h("span", "One"), h("div", "Two")))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["One", "Two", "Three"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("One", "Two", "Three"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(prop("tagName"), elm.children), ["B", "SPAN", "DIV"])
-                assert.deepEqual(map(inner, elm.children), ["Three", "One", "Two"])
-            })
-            @Test fun supports null/undefined children {
-                val vnode1 = h("i", [null, h("i", "1"), h("i", "2"), null])
-                val vnode2 = h("i", [h("i", "2"), undefined, undefined, h("i", "1"), undefined])
-                val vnode3 = h("i", [null, h("i", "1"), undefined, null, h("i", "2"), undefined, null])
+                assert.deepEqual(map(prop("tagName"), elm.children), arrayOf("B", "SPAN", "DIV"))
+                assert.deepEqual(map(inner, elm.children), arrayOf("Three", "One", "Two"))
+            }
+            @Test fun supports_null_or_undefined_children() {
+                val vnode1 = h_("i", arrayOf(null, h("i", "1"), h("i", "2"), null))
+                val vnode2 = h_("i", arrayOf(h("i", "2"), undefined, undefined, h("i", "1"), undefined))
+                val vnode3 = h_("i", arrayOf(null, h("i", "1"), undefined, null, h("i", "2"), undefined, null))
                 elm = patch(vnode0, vnode1).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["1", "2"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("1", "2"))
                 elm = patch(vnode1, vnode2).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["2", "1"])
+                assert.deepEqual(map(inner, elm.children), arrayOf("2", "1"))
                 elm = patch(vnode2, vnode3).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["1", "2"])
-            })
-            @Test fun supports all null/undefined children {
-                val vnode1 = h("i", [h("i", "1"), h("i", "2")])
-                val vnode2 = h("i", [null, undefined])
-                val vnode3 = h("i", [h("i", "2"), h("i", "1")])
+                assert.deepEqual(map(inner, elm.children), arrayOf("1", "2"))
+            }
+            @Test fun supports_all_null_or_undefined_children() {
+                val vnode1 = h_("i", arrayOf(h("i", "1"), h("i", "2")))
+                val vnode2 = h_("i", arrayOf(null, undefined))
+                val vnode3 = h_("i", arrayOf(h("i", "2"), h("i", "1")))
                 patch(vnode0, vnode1)
                 elm = patch(vnode1, vnode2).elm as Element
                 assertEquals(0, elm.children.length)
                 elm = patch(vnode2, vnode3).elm as Element
-                assert.deepEqual(map(inner, elm.children), ["2", "1"])
-            })
-        })
-    })
-    describe("hooks", {
-        describe("element hooks", {
-            @Test fun calls `create` listener before inserted into parent but after children {
-                var result = [];
-                function cb(empty, vnode) {
-                assertTrue(vnode.elm instanceof Element)
-                assertEquals(2, vnode.elm.children.length)
-                assert.strictEqual(vnode.elm.parentNode, null)
-                result.push(vnode)
+                assert.deepEqual(map(inner, elm.children), arrayOf("2", "1"))
             }
-                val vnode1 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {create: cb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                    h("span", "Can\"t touch me"),
-                ])
-                patch(vnode0, vnode1)
-                assertEquals(result.length, 1)
-            })
-            @Test fun calls `insert` listener after both parents, siblings and children have been inserted {
-                var result = [];
-                function cb(vnode) {
-                    assertTrue(vnode.elm instanceof Element)
-                    assertEquals(2, vnode.elm.children.length)
-                    assertEquals(3, vnode.elm.parentNode.children.length)
-                    result.push(vnode)
+        }
+    }
+
+    class hooks {
+        class element_hooks : TestBase() {
+            @Test fun calls_create_listener_before_inserted_into_parent_but_after_children() {
+                val result = mutableListOf<dynamic>()
+                val cb = { empty: dynamic, vnode: VNode ->
+                    assertTrue(vnode.elm is Element)
+                    assertEquals(2, (vnode.elm as Element).children.length)
+                    assert.strictEqual((vnode.elm as Element).parentNode, null)
+                    result.add(vnode)
                 }
-                val vnode1 = h("div", [
+                val vnode1 = h("div", arrayOf(
                     h("span", "First sibling"),
-                    h("div", {hook: {insert: cb}}, [
+                    h("div", VNodeData(hook = j<dynamic>("create" to cb).unsafeCast<Hooks>()), arrayOf(
                         h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                    h("span", "Can touch me"),
-                ])
+                        h("span", "Child 2")
+                    )),
+                    h("span", "Can\"t touch me")
+                ))
                 patch(vnode0, vnode1)
-                assertEquals(result.length, 1)
-            })
-            @Test fun calls `prepatch` listener {
-                var result = [];
-                function cb(oldVnode, vnode) {
-                assert.strictEqual(oldVnode, vnode1.children[1])
-                assert.strictEqual(vnode, vnode2.children[1])
-                result.push(vnode)
+                assertEquals(result.size, 1)
             }
-                val vnode1 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {prepatch: cb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
-                val vnode2 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {prepatch: cb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
-                patch(vnode0, vnode1)
-                patch(vnode1, vnode2)
-                assertEquals(1, result.length)
-            })
-            @Test fun calls `postpatch` after `prepatch` listener {
-                var pre = [], post = [];
-                function preCb(oldVnode, vnode) {
-                pre.push(pre)
-            }
-                function postCb(oldVnode, vnode) {
-                assertEquals(post.length + 1, pre.length)
-                post.push(post)
-            }
-                val vnode1 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {prepatch: preCb, postpatch: postCb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
-                val vnode2 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {prepatch: preCb, postpatch: postCb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
-                patch(vnode0, vnode1)
-                patch(vnode1, vnode2)
-                assertEquals(1, pre.length)
-                assertEquals(1, post.length)
-            })
-            @Test fun calls `update` listener {
-                var result1 = [];
-                var result2 = [];
-                function cb(result, oldVnode, vnode) {
-                if (result.length > 0) {
-                    console.log(result[result.length-1])
-                    console.log(oldVnode)
-                    assert.strictEqual(result[result.length-1], oldVnode)
+            @Test fun calls_insert_listener_after_both_parents_and_siblings_and_children_have_been_inserted() {
+                val result = mutableListOf<dynamic>()
+                val cb = { vnode: VNode ->
+                    assertTrue(vnode.elm is Element)
+                    assertEquals(2, (vnode.elm as Element).children.length)
+                    assertEquals(3, ((vnode.elm as Element).parentNode as Element).children.length)
+                    result.add(vnode)
                 }
-                result.push(vnode)
-            }
-                val vnode1 = h("div", [
+                val vnode1 = h("div", arrayOf(
                     h("span", "First sibling"),
-                    h("div", {hook: {update: cb.bind(null, result1)}}, [
+                    h("div", VNodeData(hook = j("insert" to cb as InsertHook)), arrayOf(
                         h("span", "Child 1"),
-                        h("span", {hook: {update: cb.bind(null, result2)}}, "Child 2"),
-                    ]),
-                ])
-                val vnode2 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {update: cb.bind(null, result1)}}, [
-                        h("span", "Child 1"),
-                        h("span", {hook: {update: cb.bind(null, result2)}}, "Child 2"),
-                    ]),
-                ])
+                        h("span", "Child 2")
+                    )),
+                    h("span", "Can touch me")
+                ))
                 patch(vnode0, vnode1)
-                patch(vnode1, vnode2)
-                assertEquals(1, result1.length)
-                assertEquals(1, result2.length)
-            })
-            @Test fun calls `remove` listener {
-                var result = [];
-                function cb(vnode, rm) {
-                var parent = vnode.elm.parentNode;
-                assertTrue(vnode.elm instanceof Element)
-                assertEquals(2, vnode.elm.children.length)
-                assertEquals(2, parent.children.length)
-                result.push(vnode)
-                rm()
-                assertEquals(1, parent.children.length)
+                assertEquals(result.size, 1)
             }
-                val vnode1 = h("div", [
-                    h("span", "First sibling"),
-                    h("div", {hook: {remove: cb}}, [
-                        h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
-                val vnode2 = h("div", [
-                    h("span", "First sibling"),
-                ])
-                patch(vnode0, vnode1)
-                patch(vnode1, vnode2)
-                assertEquals(result.length, 1)
-            })
-            @Test fun calls `destroy` listener when patching text node over node with children {
-                var calls = 0;
-                function cb(vnode) {
-                    calls++;
+            @Test fun calls_prepatch_listener() {
+                val result = mutableListOf<VNode>()
+                lateinit var vnode1: VNode
+                lateinit var vnode2: VNode
+
+                val cb = { oldVnode: VNode, vnode: VNode ->
+                    assert.strictEqual(oldVnode, vnode1.children!![1])
+                    assert.strictEqual(vnode, vnode2.children!![1])
+                    result.add(vnode)
                 }
-                val vnode1 = h("div", [
-                    h("div", {hook: {destroy: cb}}, [
+                vnode1 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("prepatch" to cb)), arrayOf(
                         h("span", "Child 1"),
-                    ]),
-                ])
+                        h("span", "Child 2")
+                    ))
+                ))
+                vnode2 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("prepatch" to cb)), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", "Child 2")
+                    ))
+                ))
+                patch(vnode0, vnode1)
+                patch(vnode1, vnode2)
+                assertEquals(1, result.size)
+            }
+            @Test fun calls_postpatch_after_prepatch_listener() {
+                val pre = mutableListOf<dynamic>()
+                val post = mutableListOf<dynamic>()
+                val preCb = {oldVnode: VNode, vnode: VNode ->
+                    pre.add(pre)
+                }
+                val postCb = {oldVnode: VNode, vnode: VNode ->
+                    assertEquals(post.size + 1, pre.size)
+                    post.add(post)
+                }
+                val vnode1 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("prepatch" to preCb, "postpatch" to postCb)), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", "Child 2")
+                    ))
+                ))
+                val vnode2 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("prepatch" to preCb, "postpatch" to postCb)), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", "Child 2")
+                    ))
+                ))
+                patch(vnode0, vnode1)
+                patch(vnode1, vnode2)
+                assertEquals(1, pre.size)
+                assertEquals(1, post.size)
+            }
+            @Test fun calls_update_listener() {
+                val result1 = mutableListOf<VNode>()
+                val result2 = mutableListOf<VNode>()
+                val cb = { result: MutableList<VNode> ->
+                    { oldVnode: VNode, vnode: VNode ->
+                        if (result.size > 0) {
+                            console.log(result[result.size - 1])
+                            console.log(oldVnode)
+                            assert.strictEqual(result[result.size - 1], oldVnode)
+                        }
+                        result.add(vnode)
+                    }
+                }
+                val vnode1 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("update" to cb(result1))), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", VNodeData(hook = j("update" to cb(result2))), "Child 2")
+                    ))
+                ))
+                val vnode2 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("update" to cb(result1))), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", VNodeData(hook = j("update" to cb(result2))), "Child 2")
+                    ))
+                ))
+                patch(vnode0, vnode1)
+                patch(vnode1, vnode2)
+                assertEquals(1, result1.size)
+                assertEquals(1, result2.size)
+            }
+            @Test fun calls_remove_listener() {
+                val result = mutableListOf<VNode>()
+                val cb = { vnode: VNode, rm: dynamic ->
+                    val parent = vnode.elm!!.parentNode as Element
+                    assertTrue(vnode.elm is Element)
+                    assertEquals(2, (vnode.elm as Element).children.length)
+                    assertEquals(2, parent.children.length)
+                    result.add(vnode)
+                    rm()
+                    assertEquals(1, parent.children.length)
+                }
+                val vnode1 = h("div", arrayOf(
+                    h("span", "First sibling"),
+                    h("div", VNodeData(hook = j("remove" to cb)), arrayOf(
+                        h("span", "Child 1"),
+                        h("span", "Child 2")
+                    ))
+                ))
+                val vnode2 = h("div", arrayOf(
+                    h("span", "First sibling")
+                ))
+                patch(vnode0, vnode1)
+                patch(vnode1, vnode2)
+                assertEquals(result.size, 1)
+            }
+            @Test fun calls_destroy_listener_when_patching_text_node_over_node_with_children() {
+                var calls = 0
+                val cb = {vnode: VNode ->
+                    calls++
+                }
+                val vnode1 = h("div", arrayOf(
+                    h("div", VNodeData(hook =  j("destroy" to cb)), arrayOf(
+                        h("span", "Child 1")
+                    ))
+                ))
                 val vnode2 = h("div", "Text node")
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
                 assertEquals(1, calls)
-            })
-            @Test fun calls `init` and `prepatch` listeners on root {
-                var count = 0;
-                function in_it(vnode) {
-                    assert.strictEqual(vnode, vnode2)
-                    count += 1;
-                }
-                function prepatch(oldVnode, vnode) {
-                assert.strictEqual(vnode, vnode1)
-                count += 1;
             }
-                val vnode1 = h("div", {hook: {init: init, prepatch: prepatch}})
+            @Test fun calls_init_and_prepatch_listeners_on_root() {
+                var count = 0
+                lateinit var vnode1: VNode
+                lateinit var vnode2: VNode
+                val init = { vnode: VNode ->
+                    assert.strictEqual(vnode, vnode2)
+                    count += 1
+                }
+                val prepatch = { oldVnode: VNode, vnode: VNode ->
+                    assert.strictEqual(vnode, vnode1)
+                    count += 1
+                }
+                vnode1 = h("div", VNodeData(hook = j("init" to init, "prepatch" to prepatch)))
                 patch(vnode0, vnode1)
                 assertEquals(count, 1)
-                val vnode2 = h("span", {hook: {init: init, prepatch: prepatch}})
+                vnode2 = h("span", VNodeData(hook = j("init" to init, "prepatch" to prepatch)))
                 patch(vnode1, vnode2)
                 assertEquals(count, 2)
-            })
-            @Test fun removes element when all remove listeners are done() {
-                var rm1, rm2, rm3;
-                var patch = snabbdom.in_it([
-                    {remove: function(_, rm) { rm1 = rm; }},
-                    {remove: function(_, rm) { rm2 = rm; }},
-                ])
-                val vnode1 = h("div", [h("a", {hook: {remove: function(_, rm) { rm3 = rm; }}})])
-                val vnode2 = h("div", [])
+            }
+            @Test fun removes_element_when_all_remove_listeners_are_done() {
+                lateinit var rm1: () -> Unit
+                lateinit var rm2 : () -> Unit
+                lateinit var rm3 : () -> Unit
+                val patch = Snabbdom.init(arrayOf(
+                    Module(remove = { _: VNode, rm: () -> Unit -> rm1 = rm; undefined }),
+                    Module(remove = { _: VNode, rm: () -> Unit -> rm2 = rm } as RemoveHook)
+                ))
+                val vnode1 = h("div", arrayOf(h("a", VNodeData(hook = j("remove" to { _: VNode, rm: () -> Unit -> rm3 = rm } as RemoveHook)))))
+                val vnode2 = h("div", arrayOf<VNode>())
                 elm = patch(vnode0, vnode1).elm as Element
                 assertEquals(1, elm.children.length)
                 elm = patch(vnode1, vnode2).elm as Element
@@ -1046,147 +1058,147 @@ class SnabbdomTest : TestBase() {
                 assertEquals(1, elm.children.length)
                 rm2()
                 assertEquals(0, elm.children.length)
-            })
-            @Test fun invokes remove hook on replaced root() {
-                var result = [];
-                var parent = document.createElement("div")
+            }
+            @Test fun invokes_remove_hook_on_replaced_root() {
+                val result = mutableListOf<VNode>()
+                val parent = document.createElement("div")
                 val vnode0 = document.createElement("div")
                 parent.appendChild(vnode0)
-                function cb(vnode, rm) {
-                result.push(vnode)
-                rm()
-            }
-                val vnode1 = h("div", {hook: {remove: cb}}, [
+                val cb = {vnode: VNode, rm: dynamic ->
+                    result.add(vnode)
+                    rm()
+                }
+                val vnode1 = h("div", VNodeData(hook = j("remove" to cb)), arrayOf(
                     h("b", "Child 1"),
-                    h("i", "Child 2"),
-                ])
-                val vnode2 = h("span", [
+                    h("i", "Child 2")
+                ))
+                val vnode2 = h("span", arrayOf(
                     h("b", "Child 1"),
-                    h("i", "Child 2"),
-                ])
+                    h("i", "Child 2")
+                ))
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
-                assertEquals(result.length, 1)
-            })
-        })
-        describe("module hooks", {
-            @Test fun invokes `pre` and `post` hook {
-                var result = [];
-                var patch = snabbdom.in_it([
-                    {pre: { result.push("pre") }},
-                    {post: { result.push("post") }},
-                ])
+                assertEquals(result.size, 1)
+            }
+        }
+        class module_hooks : TestBase() {
+            @Test fun invokes_pre_and_post_hook() {
+                val result = mutableListOf<String>()
+                val patch = Snabbdom.init(arrayOf(
+                    Module(pre = { result.add("pre") }),
+                    Module(post = { result.add("post") })
+                ))
                 val vnode1 = h("div")
                 patch(vnode0, vnode1)
-                assert.deepEqual(result, ["pre", "post"])
-            })
-            @Test fun invokes global `destroy` hook for all removed children {
-                var result = [];
-                function cb(vnode) { result.push(vnode) }
-                val vnode1 = h("div", [
+                assert.deepEqual(result.toTypedArray(), arrayOf("pre", "post"))
+            }
+            @Test fun invokes_global_destroy_hook_for_all_removed_children() {
+                val result = mutableListOf<VNode>()
+                val cb = { vnode: VNode -> result.add(vnode) }
+                val vnode1 = h("div", arrayOf(
                     h("span", "First sibling"),
-                    h("div", [
-                        h("span", {hook: {destroy: cb}}, "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
+                    h("div", arrayOf(
+                        h("span", VNodeData(hook = j("destroy" to cb)), "Child 1"),
+                        h("span", "Child 2")
+                    ))
+                ))
                 val vnode2 = h("div")
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
-                assertEquals(1, result.length)
-            })
-            @Test fun handles text vnodes with `undefined` `data` property {
-                val vnode1 = h("div", [
+                assertEquals(1, result.size)
+            }
+            @Test fun handles_text_vnodes_with_undefined_data_property() {
+                val vnode1 = h("div", arrayOf(
                     " "
-                ])
-                val vnode2 = h("div", [])
+                ))
+                val vnode2 = h("div", arrayOf<VNode>())
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
-            })
-            @Test fun invokes `destroy` module hook for all removed children {
-                var created = 0;
-                var destroyed = 0;
-                var patch = snabbdom.in_it([
-                    {create: { created++; }},
-                    {destroy: { destroyed++; }},
-                ])
-                val vnode1 = h("div", [
+            }
+            @Test fun invokes_destroy_module_hook_for_all_removed_children() {
+                var created = 0
+                var destroyed = 0
+                val patch = Snabbdom.init(arrayOf(
+                    Module(create = { created++ } as CreateHook),
+                    Module(destroy = { destroyed++ })
+                ))
+                val vnode1 = h("div", arrayOf(
                     h("span", "First sibling"),
-                    h("div", [
+                    h("div", arrayOf(
                         h("span", "Child 1"),
-                        h("span", "Child 2"),
-                    ]),
-                ])
+                        h("span", "Child 2")
+                    ))
+                ))
                 val vnode2 = h("div")
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
                 assertEquals(4, created)
                 assertEquals(4, destroyed)
-            })
-            @Test fun does not invoke `create` and `remove` module hook for text nodes {
-                var created = 0;
-                var removed = 0;
-                var patch = snabbdom.in_it([
-                    {create: { created++; }},
-                    {remove: { removed++; }},
-                ])
-                val vnode1 = h("div", [
+            }
+            @Test fun does_not_invoke_create_and_remove_module_hook_for_text_nodes() {
+                var created = 0
+                var removed = 0
+                val patch = Snabbdom.init(arrayOf(
+                    Module(create = { _, _ -> created++ }),
+                    Module(remove = { _, _ -> removed++ })
+                ))
+                val vnode1 = h_("div", arrayOf(
                     h("span", "First child"),
                     "",
-                    h("span", "Third child"),
-                ])
+                    h("span", "Third child")
+                ))
                 val vnode2 = h("div")
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
                 assertEquals(2, created)
                 assertEquals(2, removed)
-            })
-            @Test fun does not invoke `destroy` module hook for text nodes {
-                var created = 0;
-                var destroyed = 0;
-                var patch = snabbdom.in_it([
-                    {create: { created++; }},
-                    {destroy: { destroyed++; }},
-                ])
-                val vnode1 = h("div", [
+            }
+            @Test fun does_not_invoke_destroy_module_hook_for_text_nodes() {
+                var created = 0
+                var destroyed = 0
+                val patch = Snabbdom.init(arrayOf(
+                    Module(create = { _, _ -> created++ }),
+                    Module(destroy = { destroyed++; })
+                ))
+                val vnode1 = h("div", arrayOf(
                     h("span", "First sibling"),
-                    h("div", [
-                        h("span", "Child 1"),
-                        h("span", ["Text 1", "Text 2"]),
-                    ]),
-                ])
+                        h("div", arrayOf(
+                            h("span", "Child 1"),
+                            h("span", arrayOf("Text 1", "Text 2"))
+                        ))
+                    ))
                 val vnode2 = h("div")
                 patch(vnode0, vnode1)
                 patch(vnode1, vnode2)
                 assertEquals(4, created)
                 assertEquals(4, destroyed)
-            })
-        })
-    })
-    describe("short circuiting", {
-        @Test fun does not update strictly equal vnodes() {
-            var result = [];
-            function cb(vnode) { result.push(vnode) }
-            val vnode1 = h("div", [
-                h("span", {hook: {update: cb}}, "Hello"),
-                h("span", "there"),
-            ])
+            }
+        }
+    }
+    class short_circuiting : TestBase() {
+        @Test fun does_not_update_strictly_equal_vnodes() {
+            val result = mutableListOf<VNode>()
+            val cb = { vnode: VNode -> result.add(vnode) }
+            val vnode1 = h("div", arrayOf(
+                h("span", VNodeData(hook = j("update" to cb)), "Hello"),
+                h("span", "there")
+            ))
             patch(vnode0, vnode1)
             patch(vnode1, vnode1)
-            assertEquals(0, result.length)
-        })
-        @Test fun does not update strictly equal children() {
-            var result = [];
-            function cb(vnode) { result.push(vnode) }
-            val vnode1 = h("div", [
-                h("span", {hook: {patch: cb}}, "Hello"),
-                h("span", "there"),
-            ])
+            assertEquals(0, result.size)
+        }
+        @Test fun does_not_update_strictly_equal_children() {
+            val result = mutableListOf<VNode>()
+            val cb = { vnode: VNode -> result.add(vnode) }
+            val vnode1 = h("div", arrayOf(
+                h("span", VNodeData(hook = j("patch" to cb)), "Hello"),
+                h("span", "there")
+            ))
             val vnode2 = h("div")
-            vnode2.children = vnode1.children;
+            vnode2.children = vnode1.children
             patch(vnode0, vnode1)
             patch(vnode1, vnode2)
-            assertEquals(0, result.length)
-        })
-    })*/
+            assertEquals(0, result.size)
+        }
+    }
 }

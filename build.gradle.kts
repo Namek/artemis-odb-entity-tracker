@@ -146,6 +146,11 @@ tasks {
 
                 into("$rootDir/node_modules")
             }
+
+            copy {
+                from("src/jsTest/test.html")
+                into("$rootDir/node_modules")
+            }
         }
     }
 

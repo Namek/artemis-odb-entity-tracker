@@ -3,9 +3,10 @@
   "private": true,
   "version": "0.0.1",
   "description": "Kotlin multi-platform project with js tests",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
+    "chai": "^4.2.0",
+    "deep-eql": "4.0.0",
     "mocha": "5.2.0"
   }
 }
