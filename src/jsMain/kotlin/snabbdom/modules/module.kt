@@ -2,14 +2,14 @@ package snabbdom.modules
 
 import snabbdom.*
 
-abstract class Module {
-    open val pre: PreHook? = null
-    open val create: CreateHook? = null
-    open val update: UpdateHook? = null
-    open val destroy: DestroyHook? = null
-    open val remove: RemoveHook? = null
-    open val post: PostHook? = null
-}
+open class Module(
+    var pre: PreHook? = null,
+    var create: CreateHook? = null,
+    var update: UpdateHook? = null,
+    var destroy: DestroyHook? = null,
+    var remove: RemoveHook? = null,
+    var post: PostHook? = null
+)
 
 class ModuleHooks(
     val pre: Array<PreHook>,

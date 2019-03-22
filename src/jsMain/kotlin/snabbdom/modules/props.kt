@@ -35,10 +35,7 @@ private fun updateProps(oldVnode: VNode, vnode: VNode) {
     }
 }
 
-class PropsModule : Module() {
-    override val create
-        get() = ::updateProps
-
-    override val update: UpdateHook?
-        get() = ::updateProps
-}
+class PropsModule : Module(
+    create = ::updateProps,
+    update = ::updateProps
+)

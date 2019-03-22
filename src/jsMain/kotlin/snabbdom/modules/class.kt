@@ -37,10 +37,7 @@ private val updateClass = fun(oldVnode: VNode, vnode: VNode): Unit {
     }
 }
 
-class ClassModule : Module() {
-    override val create: CreateHook?
-        get() = updateClass
-
-    override val update: UpdateHook?
-        get() = updateClass
-}
+class ClassModule : Module(
+    create = updateClass,
+    update = updateClass
+)

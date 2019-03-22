@@ -116,13 +116,8 @@ private fun updateEventListeners(oldVnode: VNode, vnode: VNode?) {
     }
 }
 
-class EventListenersModule : Module() {
-    override val create: CreateHook?
-        get() = ::updateEventListeners
-
-    override val update: UpdateHook?
-        get() = ::updateEventListeners
-
-    override val destroy: DestroyHook?
-        get() = { vnode -> updateEventListeners(vnode, null) }
-}
+class EventListenersModule : Module(
+    create = ::updateEventListeners,
+    update = ::updateEventListeners,
+    destroy = { vnode -> updateEventListeners(vnode, null) }
+)

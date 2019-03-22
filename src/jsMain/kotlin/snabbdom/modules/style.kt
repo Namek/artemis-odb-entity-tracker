@@ -2,7 +2,6 @@ package snabbdom.modules
 
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
-import org.w3c.dom.css.CSSStyleDeclaration
 import snabbdom.*
 import kotlin.browser.document
 import kotlin.browser.window
@@ -26,21 +25,13 @@ interface VNodeStyle : Json {
 class StyleModule : Module() {
     private var reflowForced = false
 
-    override val pre: PreHook?
-        get() = ::forceReflow
-
-    override val create: CreateHook?
-        get() = ::updateStyle
-
-    override val update: UpdateHook?
-        get() = ::updateStyle
-
-    override val destroy: DestroyHook?
-        get() = ::applyDestroyStyle
-
-    override val remove: RemoveHook?
-        get() = ::applyRemoveStyle
-
+    init {
+        pre = ::forceReflow
+        create = ::updateStyle
+        update = ::updateStyle
+        destroy = ::applyDestroyStyle
+        remove = ::applyRemoveStyle
+    }
 
     private fun updateStyle(oldVnode: VNode, vnode: VNode) {
         val elm = vnode.elm!! as HTMLElement

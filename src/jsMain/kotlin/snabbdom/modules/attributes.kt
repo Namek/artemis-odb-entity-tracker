@@ -60,10 +60,7 @@ private fun updateAttrs(oldVnode: VNode, vnode: VNode): Unit {
     }
 }
 
-class AttributesModule : Module() {
-    override val create: CreateHook?
-        get() = ::updateAttrs
-
-    override val update: UpdateHook?
-        get() = ::updateAttrs
-}
+class AttributesModule : Module(
+    create = ::updateAttrs,
+    update = ::updateAttrs
+)
