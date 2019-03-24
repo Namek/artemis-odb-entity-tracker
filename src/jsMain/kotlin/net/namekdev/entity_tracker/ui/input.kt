@@ -74,8 +74,7 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
     val isChecked = value == true
 
     val attrs: Attrs = j("type" to "checkbox")
-    if (isChecked)
-        attrs["checked"] = "checked"
+    val props: Props = j("checked" to isChecked)
 
     val nullCheckBox =
         if (allowNull)
@@ -97,7 +96,7 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
 
         theValue = row(
             elems(
-                RNode(h("input", VNodeData(attrs = attrs, on = on)))
+                RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
             )
         )
     }
