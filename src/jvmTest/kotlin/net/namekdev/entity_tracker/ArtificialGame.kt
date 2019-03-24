@@ -46,7 +46,11 @@ fun main(args: Array<String>) {
         }
 
         e.add(Collider(ColliderType.AABB, Rect(pos.x, pos.y, 10f, 10f)))
-        e.add(AllTypes())
+
+        val allTypes = AllTypes()
+        e.add(allTypes)
+        allTypes.obj2.rec = RecurrentObj()
+        allTypes.obj2.rec!!.rec = RecurrentObj()
     }
 
     world.process()
@@ -110,7 +114,9 @@ class AllTypes(
 //    var str: String = "asdsad",
 //    var strNullable: String? = null,
     var enum1: ColliderType = ColliderType.AABB,
-    var enum2: RenderLayer = RenderLayer.Front
+    var enum2: RenderLayer = RenderLayer.Front,
+    var obj1: RecurrentObj? = null,
+    var obj2: RecurrentObj = RecurrentObj()
 ) : Component()
 
 
@@ -171,3 +177,9 @@ enum class ColliderType {
 }
 
 data class Rect(var x: Float, var y: Float, var width: Float, var height: Float)
+
+data class RecurrentObj(
+    var rect1: Rect = Rect(0f, 0f, 50f, 50f),
+    var rect2: Rect = Rect(0f, 0f, 100f, 100f),
+    var rec: RecurrentObj? = null
+)

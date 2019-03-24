@@ -392,6 +392,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         }
     }
 
+    val treeSpacing = 3
+    val treeNodeHeight = 18
+
     fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, path: List<Int> = listOf(), level: Int = 0): RNode {
         return if (model.isArray) {
             // TODO value is ValueTree
@@ -410,7 +413,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 val enumTypeName = enumDescription.name!!
                 val enumValuesNames = enumDescription.children!!.map { it.name!! }
 
-                row(attrs(height(px(22))),
+                row(attrs(height(px(treeNodeHeight))),
                     dataTypeToIcon(DataType.Enum, false),
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
@@ -419,7 +422,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 )
             }
             else if (model.dataType == DataType.Boolean) {
-                row(attrs(height(px(22))),
+                row(attrs(height(px(treeNodeHeight))),
                     dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
                     text("${model.name ?: ""} = ⅟"),
                     nullableCheckbox(value as Boolean?, !model.isTypePrimitive) {
@@ -432,7 +435,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 val isNullable = !model.isTypePrimitive
 
                 fun showEditor() =
-                    row(attrs(spacing(4)),
+                    row(attrs(spacing(treeSpacing)),
                         text("${value?.toString() ?: "<null>"} →"),
                         textEdit(currentlyEditedInput?.text ?: "", inputType, true,
                             onChange = { _, str ->
@@ -463,7 +466,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     }
                     else showEditor()
 
-                row(attrs(height(px(22))),
+                row(attrs(height(px(treeNodeHeight))),
                     dataTypeToIcon(model.dataType, model.isTypePrimitive),
                     text("${model.name ?: ""} = "),
 
@@ -497,6 +500,12 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 )
             }
         }
+        else if (value == null) {
+            row(attrs(height(px(treeNodeHeight))), elems(
+                dataTypeToIcon(model.dataType, false),
+                text("${model.name ?: ""}: <null>")
+            ))
+        }
         else {
             val vt = value as ValueTree
             val fields = model.children!!
@@ -506,15 +515,15 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 }
 
             if (level > 0)
-                column(attrs(spacing(4)),
-                    row(elems(
+                column(attrs(spacing(treeSpacing)),
+                    row(attrs(height(px(treeNodeHeight))), elems(
                         dataTypeToIcon(model.dataType, false),
                         text("${model.name ?: ""}:")
                     )),
-                    column(attrs(paddingLeft(12)), fields.toTypedArray())
+                    column(attrs(paddingLeft(12), spacing(treeSpacing)), fields.toTypedArray())
                 )
             else
-                column(attrs(spacing(6)), fields.toTypedArray())
+                column(attrs(spacing(treeSpacing)), fields.toTypedArray())
         }
     }
 
