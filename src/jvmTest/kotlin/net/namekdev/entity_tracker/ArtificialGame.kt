@@ -116,7 +116,9 @@ class AllTypes(
     var enum1: ColliderType = ColliderType.AABB,
     var enum2: RenderLayer = RenderLayer.Front,
     var obj1: RecurrentObj? = null,
-    var obj2: RecurrentObj = RecurrentObj()
+    var obj2: RecurrentObj = RecurrentObj(),
+    var arrayInt: IntArray = IntArray(10) { it + 1 },
+    var arrayIntRef: Array<Int> = Array<Int>(10) { it + 1 }
 ) : Component()
 
 

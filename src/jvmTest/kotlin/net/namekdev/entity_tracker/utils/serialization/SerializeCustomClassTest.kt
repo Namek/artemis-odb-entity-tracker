@@ -171,14 +171,19 @@ class SerializeCustomClassTest {
 
     @Test
     fun deserialize_simple_arrays() {
-        val floats = arrayOf(0f, 1f, 2f)
         val strings = arrayOf("asd", "omg", "this is a test?")
+        val floats = arrayOf(0f, 1f, 2f)
+        val floats2 = floatArrayOf(0f, 1f, 2f)
 
-        testArray(floats as Array<Any>, inspector)
-        testArray(strings as Array<Any>, inspector)
+        // array of objects
+        testArray(strings, inspector)
+        testArray(floats, inspector)
+
+        // array of primitives
+        testArray(floats2, inspector)
     }
 
-    private fun testArray(arr: Array<Any>, inspector: ObjectTypeInspector) {
+    private fun testArray(arr: Any, inspector: ObjectTypeInspector) {
         val serializer = JvmSerializer().beginPacket()
         val model = inspector.inspect(arr.javaClass)
         serializer.addDataDescriptionOrRef(model)

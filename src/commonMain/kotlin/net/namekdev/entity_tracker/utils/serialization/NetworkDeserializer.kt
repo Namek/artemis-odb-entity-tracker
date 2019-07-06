@@ -262,7 +262,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             dbgType(node.dataSubType)
 
             if (node.dataSubType.isSimpleType) {
-                // do nothing
+                node.isSubTypePrimitive = readBoolean()
             }
             else if (node.dataSubType == DataType.Object) {
                 // do nothing more

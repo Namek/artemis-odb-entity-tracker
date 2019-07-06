@@ -297,7 +297,7 @@ abstract class NetworkSerializer<Self : NetworkSerializer<Self, BitVectorType>, 
             addType(if (arrayType == DataType.Unknown) DataType.Object else arrayType)
 
             if (arrayType.isSimpleType) {
-                // do nothing
+                addBoolean(model.isSubTypePrimitive)
             }
             else if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
                 // do nothing
