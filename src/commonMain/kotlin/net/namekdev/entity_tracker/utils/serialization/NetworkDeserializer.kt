@@ -400,17 +400,18 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
 
             if (dataType == DataType.Object) {
                 val n = model.children!!.size
-                val tree = ValueTree(n)
+
+                val tree = ValueTree()
                 tree.id = id
                 tree.parent = parentTree
 
                 session.remember(id, tree, model)
 
-                for (i in 0..n - 1) {
+                val arr = Array(n) { i->
                     val child = model.children!![i]
-                    tree.values[i] = readRawObject(child, tree, session)
+                    readRawObject(child, tree, session)
                 }
-
+                tree.values = CommonArray(arr)
                 tree.model = model
 
                 return tree
@@ -504,10 +505,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
 
     fun readPrimitiveIntArray(): IntArray {
         val n = beginArray(DataType.Int, true)
-        val arr = IntArray(n)
-        for (i in 0..n-1) {
-            arr[i] = readRawInt()
-        }
+        val arr = IntArray(n) { readRawInt() }
         return arr
     }
 
@@ -534,106 +532,96 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
         return DoubleArray(n, { readRawDouble() })
     }
 
-    fun readBooleanArray(): Array<Boolean?> {
-        val n = beginArray(DataType.Boolean, false)
-        return Array<Boolean?>(n, {
+    fun readRawBooleanArray(n: Int): Array<Boolean?> {
+        return Array<Boolean?>(n) {
             if (expectTypeOrNull(DataType.Boolean))
                 readRawBoolean()
             else null
-        })
+        }
+    }
+
+    fun readRawByteArray(n: Int): Array<Byte?> {
+        return Array<Byte?>(n) {
+            if (expectTypeOrNull(DataType.Byte))
+                readRawByte()
+            else null
+        }
+    }
+
+    fun readRawShortArray(n: Int): Array<Short?> {
+        return Array<Short?>(n) {
+            if (expectTypeOrNull(DataType.Short))
+                readRawShort()
+            else null
+        }
+    }
+
+    fun readRawIntArray(n: Int): Array<Int?> {
+        return Array<Int?>(n) {
+            if (expectTypeOrNull(DataType.Int))
+                readRawInt()
+            else null
+        }
+    }
+
+    fun readRawLongArray(n: Int): Array<Long?> {
+        return Array<Long?>(n) { i->
+            if (expectTypeOrNull(DataType.Long))
+                readRawLong()
+            else null
+        }
+    }
+
+    fun readRawFloatArray(n: Int): Array<Float?> {
+        return Array<Float?>(n) {
+            if (expectTypeOrNull(DataType.Float))
+                readRawFloat()
+            else null
+        }
+    }
+
+    fun readRawDoubleArray(n: Int): Array<Double?> {
+        return Array<Double?>(n) {
+            if (expectTypeOrNull(DataType.Double))
+                readRawDouble()
+            else null
+        }
+    }
+
+    fun readBooleanArray(): Array<Boolean?> {
+        val n = beginArray(DataType.Boolean, false)
+        return readRawBooleanArray(n)
     }
 
     fun readByteArray(): Array<Byte?> {
         val n = beginArray(DataType.Byte, false)
-        return Array<Byte?>(n, {
-            if (expectTypeOrNull(DataType.Byte))
-                readRawByte()
-            else null
-        })
+        return readRawByteArray(n)
     }
 
     fun readShortArray(): Array<Short?> {
         val n = beginArray(DataType.Short, false)
-        return Array<Short?>(n, {
-            if (expectTypeOrNull(DataType.Short))
-                readRawShort()
-            else null
-        })
+        return readRawShortArray(n)
     }
 
     fun readIntArray(): Array<Int?> {
         val n = beginArray(DataType.Int, false)
-        return Array<Int?>(n, {
-            if (expectTypeOrNull(DataType.Int))
-                readRawInt()
-            else null
-        })
+        return readRawIntArray(n)
     }
 
     fun readLongArray(): Array<Long?> {
         val n = beginArray(DataType.Long, false)
-        return Array<Long?>(n, { i->
-            if (expectTypeOrNull(DataType.Long))
-                readRawLong()
-            else null
-        })
+        return readRawLongArray(n)
     }
 
     fun readFloatArray(): Array<Float?> {
         val n = beginArray(DataType.Float, false)
-        return Array<Float?>(n, {
-            if (expectTypeOrNull(DataType.Float))
-                readRawFloat()
-            else null
-        })
+        return readRawFloatArray(n)
     }
 
     fun readDoubleArray(): Array<Double?> {
         val n = beginArray(DataType.Double, false)
-        return Array<Double?>(n, {
-            if (expectTypeOrNull(DataType.Double))
-                readRawDouble()
-            else null
-        })
+        return readRawDoubleArray(n)
     }
-
-    fun readPrimitiveBooleanArray_asBoxedArray(): Array<Boolean?> {
-        val n = beginArray(DataType.Boolean, true)
-
-        // TODO: optimize by using CommonBitVector?
-        return Array<Boolean?>(n, { readRawBoolean() })
-    }
-
-    fun readPrimitiveByteArray_asBoxedArray(): Array<Byte?> {
-        val n = beginArray(DataType.Byte, true)
-        return Array<Byte?>(n, { readRawByte() })
-    }
-
-    fun readPrimitiveShortArray_asBoxedArray(): Array<Short?> {
-        val n = beginArray(DataType.Short, true)
-        return Array<Short?>(n, { readRawShort() })
-    }
-
-    fun readPrimitiveIntArray_asBoxedArray(): Array<Int?> {
-        val n = beginArray(DataType.Int, true)
-        return Array<Int?>(n, { readRawInt() })
-    }
-
-    fun readPrimitiveLongArray_asBoxedArray(): Array<Long?> {
-        val n = beginArray(DataType.Long, true)
-        return Array<Long?>(n, { readRawLong() })
-    }
-
-    fun readPrimitiveFloatArray_asBoxedArray(): Array<Float?> {
-        val n = beginArray(DataType.Float, true)
-        return Array<Float?>(n, { readRawFloat() })
-    }
-
-    fun readPrimitiveDoubleArray_asBoxedArray(): Array<Double?> {
-        val n = beginArray(DataType.Double, true)
-        return Array<Double?>(n, { readRawDouble() })
-    }
-
 
     /**
      * Read array of primitives.
@@ -652,25 +640,9 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
     }
 
     /**
-     * Read array of primitives and return it as array of boxed values.
-     */
-    fun readPrimitiveArrayByType_asBoxedArray(arrayType: DataType): Array<*> {
-        when (arrayType) {
-            DataType.Boolean -> return readPrimitiveBooleanArray_asBoxedArray()
-            DataType.Byte -> return readPrimitiveByteArray_asBoxedArray()
-            DataType.Short -> return readPrimitiveShortArray_asBoxedArray()
-            DataType.Int -> return readPrimitiveIntArray_asBoxedArray()
-            DataType.Long -> return readPrimitiveLongArray_asBoxedArray()
-            DataType.Float -> return readPrimitiveFloatArray_asBoxedArray()
-            DataType.Double -> return readPrimitiveDoubleArray_asBoxedArray()
-            else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
-        }
-    }
-
-    /**
      * Read array of non-primitives (can contain nulls).
      */
-    fun readArrayByType(arrayType: DataType): Array<*> {
+    fun readRawArrayByType(arrayType: DataType): Array<*> {
         when (arrayType) {
             DataType.Boolean -> return readBooleanArray()
             DataType.Byte -> return readByteArray()
@@ -679,6 +651,22 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             DataType.Long -> return readLongArray()
             DataType.Float -> return readFloatArray()
             DataType.Double -> return readDoubleArray()
+            else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
+        }
+    }
+
+    /**
+     * Read array of non-primitives (can contain nulls).
+     */
+    internal fun readRawArrayByType(arrayType: DataType, n: Int): Array<*> {
+        when (arrayType) {
+            DataType.Boolean -> return readRawBooleanArray(n)
+            DataType.Byte -> return readRawByteArray(n)
+            DataType.Short -> return readRawShortArray(n)
+            DataType.Int -> return readRawIntArray(n)
+            DataType.Long -> return readRawLongArray(n)
+            DataType.Float -> return readRawFloatArray(n)
+            DataType.Double -> return readRawDoubleArray(n)
             else -> throw RuntimeException("unknown primitive array type: ${arrayType}")
         }
     }
@@ -708,16 +696,18 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             val node: ValueTree?
 
             if (isPrimitive) {
-                val arr = readPrimitiveArrayByType_asBoxedArray(elementType) as Array<Any?>
-                node = ValueTree(arr)
+                val arr = readPrimitiveArrayByType(elementType)
+                node = ValueTree()
+                node.values = CommonArray(arr)
             }
             else if (elementType == DataType.Unknown) {
                 val n = beginArray(DataType.Unknown, false)
-                node = ValueTree(Array<Any?>(n, { readObject() }))
+                node = ValueTree(Array(n) { readObject() })
             }
             else {
-                val arr = readArrayByType(elementType) as Array<Any?>
-                node = ValueTree(arr)
+                val arr = readRawArrayByType(elementType)
+                node = ValueTree()
+                node.values = CommonArray(arr)
             }
 
             return node
@@ -729,9 +719,9 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
             return null
 
         if (model.isSubTypePrimitive) {
-            val array = readPrimitiveArrayByType_asBoxedArray(model.arrayType())
-            val node = ValueTree(array as Array<Any?>)
-
+            val array = readPrimitiveArrayByType(model.arrayType())
+            val node = ValueTree()
+            node.values = CommonArray(array)
             node.model = model
 
             return node
@@ -739,51 +729,54 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
         else {
             val arrayType = model.arrayType()
             val n = beginArray(arrayType, false)
-            val node = ValueTree(n)
+            val node = ValueTree()
 
             node.model = model
 
             if (arrayType == DataType.Object || arrayType == DataType.Unknown) {
-                for (i in 0..n - 1) {
+                val vals = Array<Any?>(n) {
                     val value = readObject(session)
 
                     if (value != null) {
                         value.parent = node
                     }
 
-                    node.values[i] = value
+                    value
                 }
+                node.values = CommonArray(vals)
             }
             else if (arrayType.isSimpleType) {
-                for (i in 0..n - 1) {
-                    node.values[i] = readRawByType(arrayType)
-                }
+                val arr = if (arrayType.isLanguageType)
+                    readRawArrayByType(arrayType, n)
+                else
+                    Array(n) { readRawByType(arrayType) }
+
+                node.values = CommonArray(arr)
             }
             else if (/*model.isEnumArray()*/ arrayType == DataType.Enum) {
-                for (i in 0..n - 1) {
+                val vals = Array(n) {
                     val type = readType()
-                    node.values[i] = (
-                        if (type == DataType.Null)
-                            null
-                        else if (type == DataType.EnumValue)
-                            readRawInt()
-                        else
-                            throw RuntimeException("array enum didn't expect type: $type")
-                    )
+                    if (type == DataType.Null)
+                        null
+                    else if (type == DataType.EnumValue)
+                        readRawInt()
+                    else
+                        throw RuntimeException("array enum didn't expect type: $type")
                 }
+                node.values = CommonArray(vals)
             }
             else if (arrayType == DataType.Array) {
                 val subModel = model.children!![0]
-
-                for (i in 0..n-1) {
+                val vals = Array(n) {
                     val subArray = readArray(subModel, session)
 
                     if (subArray != null) {
                         subArray.parent = node
                     }
 
-                    node.values[i] = subArray
+                    subArray
                 }
+                node.values = CommonArray(vals)
             }
             else {
                 throw RuntimeException("unsupported array type: " + arrayType)

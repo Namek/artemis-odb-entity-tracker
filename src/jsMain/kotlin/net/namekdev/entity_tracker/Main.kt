@@ -345,7 +345,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 column(attrs(widthFill, alignTop, spacing(6)),
                     row(attrs(borderBottom(0)),
                         elems(text(componentName?.let {"<$it>:"} ?: "" ))),
-                    column(attrs(paddingLeft(12)), viewSelectedComponent()))
+                    column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent()))
             )
         }
     }
@@ -388,24 +388,62 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         if (cmp == null)
             column(arrayOf(text("")))
         else {
-            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree, listOf(cmp.entityId, cmp.componentIndex))
+            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree, true, listOf(cmp.entityId, cmp.componentIndex))
         }
     }
 
     val treeSpacing = 3
     val treeNodeHeight = 18
+    val treeIndentation = 10
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, path: List<Int> = listOf(), level: Int = 0): RNode {
+    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, shouldShowLeafDataTypeIcon: Boolean = true, path: List<Int> = listOf(), level: Int = 0): RNode {
         return if (model.isArray) {
-            // TODO value is ValueTree
+            column(attrs(spacing(treeSpacing)),
+                row(attrs(height(px(treeNodeHeight))),
+                    dataTypeToIcon(DataType.Array, model.isSubTypePrimitive),
 
-            if (model.isEnumArray) {
-                text("enum array!")
-            }
-            else {
-//                if (model.isSubTypePrimitive)
-                text("some array!")
-            }
+                    if (model.isSubTypePrimitive)
+                        dataTypeToIcon(model.dataSubType, model.isSubTypePrimitive)
+                    else dummyEl,
+
+                    text("${model.name ?: ""} = "),
+
+                    nullCheckbox(value == null,
+                        onChange = { isNull ->
+                            if (isNull) {
+                                currentlyEditedInput = null
+                                // TODO this currently would crash since Array is not a flat type!
+//                                onValueChanged(rootValue, path, model.dataType, null)
+                                notifyCurrentlyEditedInputChanged()
+                            }
+                        },
+                        view = { isNull ->
+                            if (isNull) {
+                                text("<null>")
+
+                                // TODO add interface that would instantiate an array of specific type and size!
+//                                onValueChanged(rootValue, path, model.dataType, newValue)
+//                                notifyCurrentlyEditedInputChanged()
+                            }
+                            else
+                                dummyEl
+                        }
+                    )
+                ),
+                if (value != null) {
+                    val vt = value as ValueTree
+                    val subModel = model.extractArraySubTypeModel()
+
+                    column(attrs(paddingLeft(3), spacing(treeSpacing)),
+                        vt.asIterable().mapIndexed { index, value ->
+                            row(attrs(), elems(
+                                column(attrs(alignTop, paddingTop(2)), text("[$index]")),
+                                viewValueTree(subModel, value, rootValue, !model.isSubTypePrimitive, path + index, level + 1)
+                            ))
+                        }.toTypedArray()
+                    )
+                } else dummyEl
+            )
         }
         else if (model.isLeaf) {
             if (model.isEnum) {
@@ -414,7 +452,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 val enumValuesNames = enumDescription.children!!.map { it.name!! }
 
                 row(attrs(height(px(treeNodeHeight))),
-                    dataTypeToIcon(DataType.Enum, false),
+                    if (shouldShowLeafDataTypeIcon)
+                        dataTypeToIcon(DataType.Enum, false)
+                    else dummyEl,
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
                         onValueChanged(rootValue, path, model.dataType, it)
@@ -423,7 +463,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             }
             else if (model.dataType == DataType.Boolean) {
                 row(attrs(height(px(treeNodeHeight))),
-                    dataTypeToIcon(DataType.Boolean, model.isTypePrimitive),
+                    if (shouldShowLeafDataTypeIcon)
+                        dataTypeToIcon(DataType.Boolean, model.isTypePrimitive)
+                    else dummyEl,
                     text("${model.name ?: ""} = ⅟"),
                     nullableCheckbox(value as Boolean?, !model.isTypePrimitive) {
                         onValueChanged(rootValue, path, model.dataType, it)
@@ -467,7 +509,9 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     else showEditor()
 
                 row(attrs(height(px(treeNodeHeight))),
-                    dataTypeToIcon(model.dataType, model.isTypePrimitive),
+                    if (shouldShowLeafDataTypeIcon)
+                        dataTypeToIcon(model.dataType, model.isTypePrimitive)
+                    else dummyEl,
                     text("${model.name ?: ""} = "),
 
                     if (!isNullable) {
@@ -507,11 +551,11 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             ))
         }
         else {
-            val vt = value as ValueTree
+            val vtValues = (value as ValueTree).values
             val fields = model.children!!
                 .mapIndexed { i, fieldModel ->
-                    val fieldValue = vt.values[i]
-                    viewValueTree(fieldModel, fieldValue, rootValue, path + i, level + 1)
+                    val fieldValue: Any? = vtValues[i]
+                    viewValueTree(fieldModel, fieldValue, rootValue, true, path + i, level + 1)
                 }
 
             if (level > 0)
@@ -520,7 +564,7 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                         dataTypeToIcon(model.dataType, false),
                         text("${model.name ?: ""}:")
                     )),
-                    column(attrs(paddingLeft(12), spacing(treeSpacing)), fields.toTypedArray())
+                    column(attrs(paddingLeft(treeIndentation), spacing(treeSpacing)), fields.toTypedArray())
                 )
             else
                 column(attrs(spacing(treeSpacing)), fields.toTypedArray())
@@ -530,7 +574,8 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     fun onValueChanged(rootValue: ValueTree, path: List<Int>, newValueType: DataType, newValue: Any?) {
         val entityId: Int = path[0]
         val componentIndex: Int = path[1]
-        worldController!!.setComponentFieldValue(entityId, componentIndex, path.subList(2, path.size).toIntArray(), newValueType, newValue)
+        val valueTreePath = path.subList(2, path.size).toIntArray()
+        worldController!!.setComponentFieldValue(entityId, componentIndex, valueTreePath, newValueType, newValue)
 
         // TODO this is just a workaround, we should modify the value in our model instead of refreshing state of whole component. (?)
         worldController!!.requestComponentState(entityId, componentIndex)

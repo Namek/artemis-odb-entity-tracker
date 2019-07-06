@@ -80,22 +80,21 @@ class SerializeCustomClassTest {
 
         // there is only one field - "objects"
         assertEquals(1, deserializedGameState.values.size.toLong())
-        assert(deserializedGameState.values[0] is ValueTree)
 
-        val objects = deserializedGameState.values[0] as ValueTree
+        val objects: ValueTree = deserializedGameState.values[0]
         assertEquals(gameState.objects.size.toLong(), objects.values.size.toLong())
         assertEquals(deserializedGameState, objects.parent)
 
-        for (i in objects.values.indices) {
+        for (i in 0 until objects.values.size) {
             val originalGameObject = gameState.objects[i]
-            val gameObject = objects.values[i] as ValueTree
+            val gameObject = objects.values.get<ValueTree>(i)
 
             assertEquals(objects, gameObject.parent)
 
             // two fields: pos, size
             assertEquals(2, gameObject.values.size.toLong())
-            val posField = gameObject.values[0] as ValueTree
-            val sizeField = gameObject.values[1] as ValueTree
+            val posField: ValueTree = gameObject.values[0]
+            val sizeField: ValueTree = gameObject.values[1]
 
             assertEquals(gameObject, posField.parent)
             assertEquals(gameObject, sizeField.parent)
@@ -176,22 +175,52 @@ class SerializeCustomClassTest {
         val floats2 = floatArrayOf(0f, 1f, 2f)
 
         // array of objects
-        testArray(strings, inspector)
-        testArray(floats, inspector)
+//        val strings_ = serializeAndDeserializeArray(strings, inspector) as Array<String>
+//        assertArrayEquals(strings, strings_)
+
+        val floats__ = serializeAndDeserializeArray(floats, inspector)
+
+        val floats_ = serializeAndDeserializeArray(floats, inspector) as Array<Float>
+        assertArrayEquals(floats.map(Float::toRawBits).toTypedArray(), floats_.map(Float::toRawBits).toTypedArray())
 
         // array of primitives
-        testArray(floats2, inspector)
+        val floats2_ = serializeAndDeserializeArray(floats2, inspector) as FloatArray
+        assertArrayEquals(floats2.map(Float::toRawBits).toTypedArray(), floats2_.map(Float::toRawBits).toTypedArray())
     }
 
-    private fun testArray(arr: Any, inspector: ObjectTypeInspector) {
+    private fun serializeAndDeserializeArray_method2(arr: Any, inspector: ObjectTypeInspector): Any {
+        val serializer = JvmSerializer().beginPacket()
+        val model = inspector.inspect(arr.javaClass)
+        serializer.addObject(model, arr)
+        val serialized = serializer.endPacket()
+        deserializer.setSource(serialized.buffer, 0, serialized.size)
+
+        val obj = deserializer.readObject()
+        val output1 = obj!!.values.array
+        val output2 = serializeAndDeserializeArray_method2(arr, inspector)
+
+        assertEquals(output1, output2)
+
+        return output1
+    }
+
+    private fun serializeAndDeserializeArray(arr: Any, inspector: ObjectTypeInspector): Any {
         val serializer = JvmSerializer().beginPacket()
         val model = inspector.inspect(arr.javaClass)
         serializer.addDataDescriptionOrRef(model)
+        serializer.addObject(model, arr)
         val serialized = serializer.endPacket()
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val model2 = deserializer.readDataDescription()
         assertEquals(model, model2)
+
+        val obj = deserializer.readObject(model2)
+        val output1 = obj!!.values.array
+//        val output2 = serializeAndDeserializeArray_method2(arr, inspector)
+//        assertEquals(output1, output2)
+
+        return output1
     }
 
     @Test
@@ -219,7 +248,7 @@ class SerializeCustomClassTest {
         val gameStateFields = result.values
         assertEquals(1, gameStateFields.size.toLong())
 
-        val objectsField = gameStateFields[0] as ValueTree
+        val objectsField: ValueTree = gameStateFields[0]
         assertNotNull(objectsField.parent)
         assertEquals(result, objectsField.parent)
 
@@ -228,17 +257,17 @@ class SerializeCustomClassTest {
 
         val n = objects.size
         for (i in 0..n - 1) {
-            val gameObj = objects[i] as ValueTree
+            val gameObj: ValueTree = objects[i]
             assertNotNull(gameObj.parent)
             assertEquals(objectsField, gameObj.parent)
             assertEquals(2, gameObj.values.size.toLong())
 
-            val posField = gameObj.values[0] as ValueTree
+            val posField: ValueTree = gameObj.values[0]
             assertNotNull(posField.parent)
             assertEquals(gameObj, posField.parent)
             val pos = posField.values
 
-            val sizeField = gameObj.values[1] as ValueTree
+            val sizeField: ValueTree = gameObj.values[1]
             assertNotNull(sizeField.parent)
             assertEquals(gameObj, sizeField.parent)
             val size = sizeField.values
@@ -454,9 +483,9 @@ class SerializeCustomClassTest {
         val obj = EnumArrayTestClass()
         val value = serializeAndDeserialize(obj)
 
-        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[0] as ValueTree).values[0])
-        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[0] as ValueTree).values[1])
-        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[0] as ValueTree).values[2])
+        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values.get<ValueTree>(0)).values[0])
+        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values.get<ValueTree>(0)).values[1])
+        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values.get<ValueTree>(0)).values[2])
     }
 
     @Test
@@ -466,9 +495,9 @@ class SerializeCustomClassTest {
 
         assertEquals(obj.enumUndefined, value.values[0])
         assertEquals((obj.enumValued as TestEnum).ordinal, value.values[1])
-        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values[2] as ValueTree).values[0])
-        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values[2] as ValueTree).values[1])
-        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values[2] as ValueTree).values[2])
+        assertEquals((obj.enums[0] as TestEnum).ordinal, (value.values.get<ValueTree>(2)).values[0])
+        assertEquals((obj.enums[1] as TestEnum).ordinal, (value.values.get<ValueTree>(2)).values[1])
+        assertEquals((obj.enums[2] as TestEnum).ordinal, (value.values.get<ValueTree>(2)).values[2])
 
         val deserializedModels = ReflectionUtils.getHiddenFieldValue(deserializer.javaClass.superclass, "_models", deserializer) as ObjectModelsCollection
         val deserializedModelCount = deserializedModels.size()
@@ -600,17 +629,17 @@ class SerializeCustomClassTest {
         val arr = deserializer.readArray()!!
         assertEquals(array.size.toLong(), arr.values.size.toLong())
 
-        val v2d = arr.values[0] as ValueTree
-        val v3d = arr.values[1] as ValueTree
+        val v2d: ValueTree = arr.values[0]
+        val v3d: ValueTree = arr.values[1]
 
         assertEquals(2, v2d.values.size.toLong())
         assertEquals(3, v3d.values.size.toLong())
 
-        assert(v2.x == v2d.values[0] as Float)
-        assert(v2.y == v2d.values[1] as Float)
-        assert(v3.x == v3d.values[0] as Float)
-        assert(v3.y == v3d.values[1] as Float)
-        assert(v3.z == v3d.values[2] as Float)
+        assert(v2.x == v2d.values[0])
+        assert(v2.y == v2d.values[1])
+        assert(v3.x == v3d.values[0])
+        assert(v3.y == v3d.values[1])
+        assert(v3.z == v3d.values[2])
     }
 
     @Test

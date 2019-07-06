@@ -90,22 +90,22 @@ class SophisticatedTest {
         assertTrue(result.model!!.equals(model))
 
         // boolean omg
-        assertEquals(gameState.omg, result.values[1] as Boolean)
+        assertEquals(gameState.omg, result.values[1])
 
         // arrayOf GameObjects
-        val objects = result.values[0] as ValueTree
+        val objects: ValueTree = result.values[0]
 
         assert(objects.model!!.isArray)
         for (i in 0..gameState.objects!!.size-1) {
             val origObj = gameState.objects!![i]
-            val obj = objects.values[i] as ValueTree
+            val obj: ValueTree = objects.values[i]
 
-            val objPos = obj.values[0] as ValueTree
+            val objPos: ValueTree = obj.values[0]
             assertEquals(origObj.pos.x, objPos.values[0])
             assertEquals(origObj.pos.y, objPos.values[1])
             assertEquals(origObj.pos.z, objPos.values[2])
 
-            val objSize = obj.values[1] as ValueTree
+            val objSize: ValueTree = obj.values[1]
             assertEquals(origObj.size.x, objSize.values[0])
             assertEquals(origObj.size.y, objSize.values[1])
         }
@@ -122,8 +122,8 @@ class SophisticatedTest {
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
-        val children = result.values[0] as ValueTree
-        assert(children.values[0] === result)
+        val children: ValueTree = result.values[0]
+        assert(children.values.get<ValueTree>(0) === result)
     }
 
     @Test
@@ -181,12 +181,12 @@ class SophisticatedTest {
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
-        val a = (result.values[0] as ValueTree)
-        val b = (a.values[0] as ValueTree)
-        val c = (b.values[0] as ValueTree)
-        val d = c.values[1] as Boolean
+        val a: ValueTree = result.values[0]
+        val b: ValueTree = a.values[0]
+        val c: ValueTree = b.values[0]
+        val d: Boolean = c.values[1]
         assertEquals(true, d)
-        val _a = (c.values[0] as ValueTree)
+        val _a: ValueTree = c.values[0]
 
         // models has to be different because model of OuterClass is a different thing than a field of type OuterClass
         assert(_a !== a)
@@ -225,9 +225,9 @@ class SophisticatedTest {
         deserializer.setSource(serialized.buffer, 0, serialized.size)
 
         val result = deserializer.readObject()!!
-        val a = result.values[0] as ValueTree
-        val b = result.values[1] as ValueTree
-        val c = a.values[0] as ValueTree
+        val a: ValueTree = result.values[0]
+        val b: ValueTree = result.values[1]
+        val c: ValueTree = a.values[0]
         assertEquals(b, c)
 
         assertEquals(null, c.values[0])//a1
@@ -320,28 +320,28 @@ class SophisticatedTest {
 
     private fun validate_deep_array_values(origArr: Array<Array<Array<IntArray>>>, result: ValueTree) {
         assertEquals(1, result.model!!.ch().size)
-        val arr = result.values[0] as ValueTree
+        val arr: ValueTree = result.values[0]
         assertEquals(2, arr.values.size)
-        val arrLeft = arr.values[0] as ValueTree
-        val arrRight = arr.values[1] as ValueTree
+        val arrLeft: ValueTree = arr.values[0]
+        val arrRight: ValueTree = arr.values[1]
 
         // left
         assertEquals(1, arrLeft.values.size)
-        val arrLeft0 = arrLeft.values[0] as ValueTree
+        val arrLeft0: ValueTree = arrLeft.values[0]
         assertEquals(1, arrLeft0.values.size)
-        val arrLeft0_0 = arrLeft0.values[0] as ValueTree
+        val arrLeft0_0: ValueTree = arrLeft0.values[0]
         assertEquals(2, arrLeft0_0.values.size)
-        assertEquals(origArr[0][0][0][0], arrLeft0_0.values[0] as Int)
-        assertEquals(origArr[0][0][0][1], arrLeft0_0.values[1] as Int)
+        assertEquals(origArr[0][0][0][0], arrLeft0_0.values[0])
+        assertEquals(origArr[0][0][0][1], arrLeft0_0.values[1])
 
         // right
         assertEquals(2, arrRight.values.size)
         assertNull(arrRight.values[1])
-        val arrRight0 = arrRight.values[0] as ValueTree
+        val arrRight0: ValueTree = arrRight.values[0]
         assertEquals(1, arrRight0.values.size)
-        val arrRight0_0 = arrRight0.values[0] as ValueTree
+        val arrRight0_0: ValueTree = arrRight0.values[0]
         assertEquals(1, arrRight0_0.values.size)
-        assertEquals(origArr[1][0][0][0], arrRight0_0.values[0] as Int)
+        assertEquals(origArr[1][0][0][0], arrRight0_0.values[0])
     }
 
 

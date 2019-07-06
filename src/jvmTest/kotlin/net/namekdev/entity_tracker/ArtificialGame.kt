@@ -51,6 +51,8 @@ fun main(args: Array<String>) {
         e.add(allTypes)
         allTypes.obj2.rec = RecurrentObj()
         allTypes.obj2.rec!!.rec = RecurrentObj()
+
+        e.add(TestingArrays())
     }
 
     world.process()
@@ -121,6 +123,12 @@ class AllTypes(
     var arrayIntRef: Array<Int> = Array<Int>(10) { it + 1 }
 ) : Component()
 
+class TestingArrays(
+    var noArray: IntArray? = null,
+    var arrayInt: IntArray = IntArray(4) { it + 1 },
+    var arrayIntRef: Array<Int> = Array<Int>(4) { it + 1 },
+    var arrayArrayInt: Array<Array<Int>> = Array(4) { Array<Int>(3) { it + 1 } }
+) : Component()
 
 //
 // Systems
@@ -151,16 +159,22 @@ class CollisionSystem : EntityProcessingSystem(
 }
 
 class ConstantlyChangingValuesSystem : EntityProcessingSystem(
-    Aspect.all(AllTypes::class.java)
+    Aspect.all(AllTypes::class.java, TestingArrays::class.java)
 ) {
     lateinit var mPos: ComponentMapper<Pos>
+    lateinit var mArrs: ComponentMapper<TestingArrays>
 
     override fun process(e: Entity) {
         val pos = mPos[e]
+        val arr = mArrs[e]
 
         pos.x += world.delta * 3f
         if (pos.x > 1000f)
             pos.x = 0f
+
+        arr.arrayInt[1] = (arr.arrayInt[1] + 1) % 100
+        arr.arrayIntRef[1] = (arr.arrayIntRef[1] + 1) % 100
+        arr.arrayArrayInt[1][1] = (arr.arrayArrayInt[1][1] + 1) % 100
     }
 }
 

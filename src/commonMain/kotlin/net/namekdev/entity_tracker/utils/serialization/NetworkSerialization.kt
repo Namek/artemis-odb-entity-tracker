@@ -51,4 +51,19 @@ enum class DataType {
 
             else -> false
         }
+
+    val isLanguageType: kotlin.Boolean
+        get() = when(this) {
+            DataType.Boolean,
+            DataType.Byte,
+            DataType.Short,
+            DataType.Int,
+            DataType.Long,
+            DataType.String,
+            DataType.Float,
+            DataType.Double ->
+                true
+
+            else -> false
+        }
 }

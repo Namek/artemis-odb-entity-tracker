@@ -179,6 +179,14 @@ open class ObjectModelNode(
             }
             else this.dataType.toString()
         )
-        return "id=" + this.id.toString() + ": " + type + ":: name=" + this.name ?: ""
+        return "id=" + this.id.toString() + ": " + type + ":: name=" + (this.name ?: "")
+    }
+
+    fun extractArraySubTypeModel(): ObjectModelNode {
+        val model = ObjectModelNode(-1, this)
+        model.dataType = dataSubType
+        model.isTypePrimitive = isSubTypePrimitive
+
+        return model
     }
 }
