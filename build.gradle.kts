@@ -43,12 +43,12 @@ kotlin {
 
 
     sourceSets {
-        commonMain {
+        val commonMain by getting {
             dependencies {
                 implementation(kotlin("stdlib-common"))
             }
         }
-        commonTest {
+        val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
@@ -122,7 +122,7 @@ tasks {
     // thanks to this we don't have to delete `build/test-results` folder when running
     // `gradle check` instead of `gradle cleanTest check` which is hard to remember.
     val cleanTest = named("cleanTest")
-    named("check") {
+    named("check").configure {
         dependsOn(cleanTest)
     }
 
