@@ -505,37 +505,92 @@ class SerializeCustomClassTest {
     }
 
     @Test
-    fun inspect_cyclic_reference() {
-        val obj = CyclicClass()
-        obj.other = CyclicClass()
-        obj.other.other = obj
+    fun inspect_and_deserialize_cyclic_reference() {
+        val original = CyclicClass()
+        original.other = CyclicClass()
+        original.other.other = original
 
-        val model = inspector.inspect(obj.javaClass)
+        // inspection
+        val model = inspector.inspect(original.javaClass)
         assertEquals(2, model.children!!.size.toLong())
         assertNotEquals(model.id.toLong(), model.children!!.elementAt(0).id.toLong())
         assert(model !== model.children!!.elementAt(0))
+
+        // serialization
+        val obj = serializeAndDeserialize(original)
+        assertEquals(2, obj.values.size)
+        val obj_0: ValueTree = obj.values[0]
+        val obj_0_0: ValueTree = obj_0.values[0]
+        assertSame(obj, obj_0_0)
+        assertTrue(obj === obj_0_0)
     }
 
     @Test
-    fun inspect_indirectly_cyclic_class() {
-        val obj = CyclicClassIndirectly()
-        obj.obj = CyclicClassIndirectly.OtherClass()
-        obj.obj.obj = obj
-        obj.obj.obj.obj = CyclicClassIndirectly.OtherClass()
+    fun deserialize_short_cyclic_reference() {
+        val original = CyclicClass()
+        original.other = original
 
-        val model = inspector.inspect(obj.javaClass)
+        val deserialized = serializeAndDeserialize(original)
+        assertEquals(2, deserialized.values.size)
+        val obj: ValueTree = deserialized.values[0]
+        val obj_0: ValueTree = obj.values[0]
+        assertSame(obj, obj_0)
+        assertTrue(obj === obj_0)
+    }
+
+    @Test
+    fun deserialize_cyclic_reference_in_array() {
+        val original: Array<CyclicClass> = Array(2) { CyclicClass() }
+        original[0].other = original[1]
+        original[1].other = original[0]
+
+        val deserialized = serializeAndDeserialize(original)
+        assertEquals(2, deserialized.values.size)
+        val obj0: ValueTree = deserialized.values[0]
+        val obj0_other: ValueTree = obj0.values[0]
+        val obj0_alwaysNull: Any? = obj0.values[1]
+        val obj1: ValueTree = deserialized.values[1]
+        val obj1_other: ValueTree = obj1.values[0]
+        val obj1_alwaysNull: Any? = obj1.values[1]
+
+        assertNull(obj0_alwaysNull)
+        assertNull(obj1_alwaysNull)
+        assertNotNull(obj0_other)
+        assertTrue(obj0_other === obj1)
+        assertTrue(obj1_other === obj0)
+    }
+
+    @Test
+    fun inspect_and_deserialize_indirectly_cyclic_class() {
+        val original = CyclicClassIndirectly()
+        original.obj = CyclicClassIndirectly.OtherClass()
+        original.obj.obj = original
+
+        // check inspection first
+        val model = inspector.inspect(original.javaClass)
         assertEquals(2, model.children!!.size.toLong())
         val fieldModel = model.children!!.elementAt(0)
         assertNotEquals(model.id.toLong(), fieldModel.children!!.elementAt(0).id.toLong())
+
+        // now serialization
+        val org = serializeAndDeserialize(original)
+        val org_obj: ValueTree = org.values[0] // Other Class
+        val org_obj_obj: ValueTree = org_obj.values[0]
+        assertSame(org, org_obj_obj)
+        assertTrue(org === org_obj_obj)
+
+        val org_obj_obj_obj: ValueTree = org_obj_obj.values[0]
+        assertSame(org_obj, org_obj_obj_obj)
+        assertTrue(org_obj === org_obj_obj_obj)
     }
 
     @Test
     fun inspect_indirectly_cyclic_class_in_array() {
-        val obj = CyclicClassIndirectly()
-        obj.arr = CyclicClassIndirectly.ArrayClass()
-        obj.arr.objs = arrayOf(obj)
+        val original = CyclicClassIndirectly()
+        original.arr = CyclicClassIndirectly.ArrayClass()
+        original.arr.objs = arrayOf(original)
 
-        val model = inspector.inspect(obj.javaClass)
+        val model = inspector.inspect(original.javaClass)
         assertEquals(2, model.children!!.size.toLong())
         val arrFieldModel = model.children!!.elementAt(1)
         val objsFieldModel = arrFieldModel.children!!.elementAt(0)
@@ -545,9 +600,44 @@ class SerializeCustomClassTest {
 
         // Note: the dependency is indeed cyclic, however array of `CyclicClassIndirectly`
         // is just an array, it could contain anything else that inherits this class.
-        // Thus, we can't assume that childType of this filed is a concrete type,
+        // Thus, we can't assume that childType of this field is a concrete type,
         // it's rather just an Object.
         // Therefore, we do NOT assert: model.id == objsFieldModel.arrayType()
+    }
+
+    @Test
+    fun deserialize_indirectly_cyclic_class_in_array() {
+        val original = CyclicClassIndirectly()
+        original.arr = CyclicClassIndirectly.ArrayClass()
+        original.arr.objs = arrayOf(original)
+
+        val obj = serializeAndDeserialize(original)
+        val arr: ValueTree = obj.values[1]
+        val arr_objs: ValueTree = arr.values[0]
+        val arr_objs_0: ValueTree = arr_objs.values[0]
+        assertSame(arr_objs_0, obj)
+        assertTrue(arr_objs_0 === obj)
+    }
+
+    @Test
+    fun deserialize_cyclic_objects_in_array() {
+        val original = ArrayTestClass()
+        original.array = Array(2) { CyclicClass() }
+
+        // arr[0].other = arr[1]
+        // arr[1].other = arr[0]
+        (original.array[0] as CyclicClass).other = original.array[1] as CyclicClass
+        (original.array[1] as CyclicClass).other = original.array[0] as CyclicClass
+
+        val obj = serializeAndDeserialize(original)
+        val array: ValueTree = obj.values[0]
+        val array_0: ValueTree = array.values[0]
+        val array_0_other: ValueTree = array_0.values[0]
+        val array_1: ValueTree = array.values[1]
+        val array_1_other: ValueTree = array_1.values[0]
+        assertNotNull(array_1_other)
+        assertSame(array_0, array_1_other)
+        assertSame(array_1, array_0_other)
     }
 
     @Test
@@ -557,16 +647,20 @@ class SerializeCustomClassTest {
             5// Integer
         )
 
+        var failCount = 0
         for (testSubject in testSubjects) {
             var model: ObjectModelNode? = null
             try {
                 model = inspector.inspect(testSubject.javaClass)
             }
             catch (exc: Error) {
+                failCount += 1
             } finally {
                 assertEquals(null, model)
             }
         }
+
+        assertEquals(testSubjects.size, failCount)
     }
 
     @Test
