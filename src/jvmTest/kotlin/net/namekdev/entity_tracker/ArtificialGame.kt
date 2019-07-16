@@ -5,13 +5,16 @@ import com.artemis.systems.EntityProcessingSystem
 import net.namekdev.entity_tracker.connectors.IWorldControlListener
 import net.namekdev.entity_tracker.network.ArtemisWorldSerializer
 import net.namekdev.entity_tracker.network.base.WebSocketServer
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 
 /**
  *
  */
 fun main(args: Array<String>) {
+    val inspector = ObjectTypeInspector()
     val entityTracker = EntityTracker(
-        ArtemisWorldSerializer(WebSocketServer().start()),
+        inspector,
+        ArtemisWorldSerializer(WebSocketServer().start(), inspector),
         worldControlListener = object : IWorldControlListener {
             override fun onComponentFieldValueChanged(entityId: Int, componentIndex: Int, treePath: IntArray, newValue: Any?) {
                 println("E$entityId C$componentIndex [${treePath.joinToString(", ")}] = $newValue")
@@ -127,8 +130,14 @@ class TestingArrays(
     var noArray: IntArray? = null,
     var arrayInt: IntArray = IntArray(4) { it + 1 },
     var arrayIntRef: Array<Int> = Array<Int>(4) { it + 1 },
-    var arrayArrayInt: Array<Array<Int>> = Array(4) { Array<Int>(3) { it + 1 } }
-) : Component()
+    var arrayArrayInt: Array<Array<Int>> = Array(4) { Array<Int>(3) { it + 1 } },
+    var arrayCyclicRef: Array<RecurrentObj> = Array(2) { RecurrentObj() }
+) : Component() {
+    init {
+//        arrayCyclicRef[0].rec = arrayCyclicRef[1]
+//        arrayCyclicRef[1].rec = arrayCyclicRef[0]
+    }
+}
 
 //
 // Systems
@@ -194,8 +203,6 @@ enum class ColliderType {
 
 data class Rect(var x: Float, var y: Float, var width: Float, var height: Float)
 
-data class RecurrentObj(
-    var rect1: Rect = Rect(0f, 0f, 50f, 50f),
-    var rect2: Rect = Rect(0f, 0f, 100f, 100f),
+class RecurrentObj(
     var rec: RecurrentObj? = null
 )

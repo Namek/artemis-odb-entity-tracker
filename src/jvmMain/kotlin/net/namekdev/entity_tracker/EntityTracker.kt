@@ -27,12 +27,9 @@ import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode_Server
  */
 class EntityTracker @JvmOverloads constructor(
     private val componentInspector: ObjectTypeInspector = ObjectTypeInspector(),
-    worldUpdateListener: IWorldUpdateListener<BitVector>? = null,
+    private val updateListener: IWorldUpdateListener<BitVector>,
     var worldControlListener: IWorldControlListener? = null
-
 ) : BaseSystem(), IWorldController, SubscriptionListener {
-    private var updateListener: IWorldUpdateListener<BitVector>? = null
-
     val systemsInfo = Bag<SystemInfo>()
     val systemsInfoByName: MutableMap<String, SystemInfo> = HashMap()
 
@@ -58,14 +55,8 @@ class EntityTracker @JvmOverloads constructor(
         : this(ObjectTypeInspector(), worldUpdateListener, worldControlListener)
 
     init {
-        setUpdateListener(worldUpdateListener)
+        updateListener.injectWorldController(this)
     }
-
-    fun setUpdateListener(listener: IWorldUpdateListener<BitVector>?) {
-        this.updateListener = listener
-        listener?.injectWorldController(this)
-    }
-
 
     override fun initialize() {
         world.aspectSubscriptionManager

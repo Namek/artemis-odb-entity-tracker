@@ -8,6 +8,7 @@ import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.JvmDeserializer
 import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 
 /**
  * Deserializes data from network and serializes data sent to the network.
@@ -17,11 +18,13 @@ import net.namekdev.entity_tracker.utils.serialization.JvmSerializer
  *
  * @author Namek
  */
-open class EntityTrackerCommunicator : Communicator(), IWorldUpdateListener<BitVector> {
+open class EntityTrackerCommunicator(inspector: ObjectTypeInspector)
+    : Communicator(), IWorldUpdateListener<BitVector>
+{
     private lateinit var _worldController: IWorldController
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
 
-    private val _serializer = JvmSerializer()
+    private val _serializer = JvmSerializer(inspector)
     private val _deserializer = JvmDeserializer()
 
 

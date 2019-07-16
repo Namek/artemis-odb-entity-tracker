@@ -9,6 +9,7 @@ import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 import net.namekdev.entity_tracker.utils.tuple.Tuple3
 
 
@@ -18,7 +19,7 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
  *
  * @author Namek
  */
-class ArtemisWorldSerializer(server: IServer) : IWorldUpdateListener<BitVector> {
+class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : IWorldUpdateListener<BitVector> {
     private lateinit var _worldController: IWorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
@@ -118,7 +119,7 @@ class ArtemisWorldSerializer(server: IServer) : IWorldUpdateListener<BitVector> 
         override fun getListener(remoteName: String): RawConnectionCommunicator {
             // Server requests communicator for given remote.
 
-            val newCommunicator = object : EntityTrackerCommunicator() {
+            val newCommunicator = object : EntityTrackerCommunicator(inspector) {
                 override fun connected(identifier: String, output: RawConnectionOutputListener) {
                     super.connected(identifier, output)
                     injectWorldController(_worldController)

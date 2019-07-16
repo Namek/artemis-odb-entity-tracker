@@ -11,7 +11,7 @@ interface IWorldUpdateListener<BitVectorType> {
 	fun addedSystem(index: Int, name: String, allTypes: BitVectorType?, oneTypes: BitVectorType?, notTypes: BitVectorType?)
 	fun addedManager(name: String)
 	fun addedComponentType(index: Int, info: ComponentTypeInfo)
-	fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int)
+	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int)
 	fun addedEntity(entityId: Int, components: BitVectorType)
 	fun deletedEntity(entityId: Int)
 	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any)

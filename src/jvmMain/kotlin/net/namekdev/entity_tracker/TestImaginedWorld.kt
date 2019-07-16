@@ -4,6 +4,7 @@ import com.artemis.*
 import com.artemis.systems.EntityProcessingSystem
 import net.namekdev.entity_tracker.network.ArtemisWorldSerializer
 import net.namekdev.entity_tracker.network.base.WebSocketServer
+import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
 
 object TestImaginedWorld {
     @JvmStatic fun main(args: Array<String>) {
@@ -13,8 +14,10 @@ object TestImaginedWorld {
     lateinit var world: World
 
     fun initTestWorld() {
+        val inspector = ObjectTypeInspector()
         val entityTracker = EntityTracker(
-            ArtemisWorldSerializer(WebSocketServer().start())
+            inspector,
+            ArtemisWorldSerializer(WebSocketServer().start(), inspector)
         )
 
         world = World(WorldConfiguration()
