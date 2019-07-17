@@ -432,13 +432,16 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                 ),
                 if (value != null) {
                     val vt = value as ValueTree
-                    val subModel = model.extractArraySubTypeModel()
 
                     column(attrs(paddingLeft(3), spacing(treeSpacing)),
                         vt.asIterable().mapIndexed { index, value ->
+                            val valueModel =
+                                (value as? ValueTree)?.let {v -> v.model}
+                                ?: model.extractArraySubTypeModel()
+
                             row(attrs(), elems(
                                 column(attrs(alignTop, paddingTop(2)), text("[$index]")),
-                                viewValueTree(subModel, value, rootValue, !model.isSubTypePrimitive, path + index, level + 1)
+                                viewValueTree(valueModel, value, rootValue, !model.isSubTypePrimitive, path + index, level + 1)
                             ))
                         }.toTypedArray()
                     )
