@@ -439,8 +439,8 @@ internal class ObjectSerializationSession {
         val hashCode: Int = obj.hashCode()
         var container = objsMap.get(hashCode)
 
-        if (container == null) {
-            container = objs.find { it.obj == obj }
+        if (container == null || container.obj !== obj) {
+            container = objs.find { it.obj === obj }
         }
 
         val found = container != null
