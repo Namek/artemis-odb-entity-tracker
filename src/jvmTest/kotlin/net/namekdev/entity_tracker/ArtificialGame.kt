@@ -53,7 +53,7 @@ fun main(args: Array<String>) {
         val allTypes = AllTypes()
         e.add(allTypes)
         allTypes.obj2.rec = RecurrentObj()
-        allTypes.obj2.rec!!.rec = RecurrentObj()
+        allTypes.obj2.rec!!.rec = allTypes.obj2
 
         e.add(TestingArrays())
     }
@@ -134,8 +134,8 @@ class TestingArrays(
     var arrayCyclicRef: Array<RecurrentObj> = Array(2) { RecurrentObj() }
 ) : Component() {
     init {
-//        arrayCyclicRef[0].rec = arrayCyclicRef[1]
-//        arrayCyclicRef[1].rec = arrayCyclicRef[0]
+        arrayCyclicRef[0].rec = arrayCyclicRef[1]
+        arrayCyclicRef[1].rec = arrayCyclicRef[0]
     }
 }
 

@@ -388,7 +388,8 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
         if (cmp == null)
             column(arrayOf(text("")))
         else {
-            viewValueTree(cmp.valueTree.model!!, cmp.valueTree, cmp.valueTree, true, listOf(cmp.entityId, cmp.componentIndex))
+            val value = cmp.valueTree
+            viewValueTree(value.model!!, value, value, true, listOf(cmp.entityId, cmp.componentIndex), 0, listOf(value))
         }
     }
 
@@ -396,7 +397,10 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
     val treeNodeHeight = 18
     val treeIndentation = 10
 
-    fun viewValueTree(model: ObjectModelNode, value: Any?, rootValue: ValueTree, shouldShowLeafDataTypeIcon: Boolean = true, path: List<Int> = listOf(), level: Int = 0): RNode {
+    fun viewValueTree(
+        model: ObjectModelNode, value: Any?, rootValue: ValueTree, shouldShowLeafDataTypeIcon: Boolean = true,
+        path: List<Int> = listOf(), level: Int = 0, visitedObjects: List<ValueTree> = listOf()
+    ): RNode {
         return if (model.isArray) {
             column(attrs(spacing(treeSpacing)),
                 row(attrs(height(px(treeNodeHeight))),
@@ -434,14 +438,20 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
                     val vt = value as ValueTree
 
                     column(attrs(paddingLeft(3), spacing(treeSpacing)),
-                        vt.asIterable().mapIndexed { index, value ->
+                        vt.asIterable().mapIndexed { index, subValue ->
                             val valueModel =
-                                (value as? ValueTree)?.let {v -> v.model}
+                                (subValue as? ValueTree)?.let {v -> v.model}
                                 ?: model.extractArraySubTypeModel()
 
                             row(attrs(), elems(
                                 column(attrs(alignTop, paddingTop(2)), text("[$index]")),
-                                viewValueTree(valueModel, value, rootValue, !model.isSubTypePrimitive, path + index, level + 1)
+
+                                if (valueModel.isLeaf || !visitedObjects.contains(subValue)) {
+                                    val visited = if (subValue != null && subValue is ValueTree) visitedObjects + subValue else visitedObjects
+                                    viewValueTree(valueModel, subValue, rootValue, !model.isSubTypePrimitive, path + index, level + 1, visited)
+                                }
+                                else
+                                    text("<rec_obj>")
                             ))
                         }.toTypedArray()
                     )
@@ -558,7 +568,12 @@ class Main(container: HTMLElement) : IWorldUpdateInterfaceListener<CommonBitVect
             val fields = model.children!!
                 .mapIndexed { i, fieldModel ->
                     val fieldValue: Any? = vtValues[i]
-                    viewValueTree(fieldModel, fieldValue, rootValue, true, path + i, level + 1)
+
+                    if (fieldModel.isLeaf || !visitedObjects.contains(fieldValue)) {
+                        val visited = if (fieldValue != null && fieldValue is ValueTree) visitedObjects + fieldValue else visitedObjects
+                        viewValueTree(fieldModel, fieldValue, rootValue, true, path + i, level + 1, visited)
+                    }
+                    else text("<rec_obj>")
                 }
 
             if (level > 0)
