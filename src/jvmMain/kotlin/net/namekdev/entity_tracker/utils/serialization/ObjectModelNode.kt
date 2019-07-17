@@ -23,6 +23,7 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
 
     while (pathIndex < treePath!!.size) {
         val index = treePath[pathIndex]
+        val isLast = index == treePath.size - 1
 
         if (node.dataType == DataType.Object || node.dataType == DataType.Unknown /*!node.isArray() && node.children != null*/) {
             node = node.children!![index]
@@ -59,17 +60,22 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
             val array = traverseObj as Array<Any?>
             val arrayType = node.arrayType()
 
-            if (arrayType == DataType.Unknown || arrayType == DataType.Object) {
+            if (arrayType == DataType.Unknown || arrayType == DataType.Object || arrayType == DataType.Array) {
                 net.namekdev.entity_tracker.utils.assert(pathIndex < treePath.size - 1)
                 net.namekdev.entity_tracker.utils.assert(node.children == null)
                 ++pathIndex
 
                 // @Note: This may need some attention. `arrayEl` could be null, then model couldn't be defined.
-                val arrayEl = array[pathIndex]
-                val arrayElModel = _models.get(arrayEl!!::class)
+                if (!isLast) {
+                    val arrayEl = array[pathIndex]
+                    val arrayElModel = _models.get(arrayEl!!::class)
 
-                traverseObj = arrayEl
-                node = arrayElModel
+                    traverseObj = arrayEl
+                    node = arrayElModel
+                }
+                else {
+                    array[index] = value
+                }
             }
             else if (arrayType.isSimpleType) {
                 net.namekdev.entity_tracker.utils.assert(pathIndex == treePath.size - 1)
@@ -80,19 +86,6 @@ fun ObjectModelNode_Server.setValue(targetObj: Any, treePath: IntArray?, value: 
             else {
                 throw RuntimeException("unsupported operation")
             }
-
-            //				if (node.arrayType == Type.Object || node.arrayType == TYPE_UNKNOWN) {
-            //					assert pathIndex < treePath.length;
-            //					targetObj = array[index];
-            //					index = treePath[++pathIndex];
-            //					node = node.children.get(index);
-            //					String fieldName = node.name;
-            //					targetObj = ReflectionUtils.getHiddenFieldValue(targetObj.getClass(), fieldName, targetObj);
-            //				}
-            //				else {
-            //					assert pathIndex+1 < treePath.length;
-            //					array[pathIndex] = value;
-            //				}
         }
         else {
             throw RuntimeException("oops, logical error")
