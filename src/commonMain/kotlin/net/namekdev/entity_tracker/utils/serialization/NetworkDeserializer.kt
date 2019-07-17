@@ -323,13 +323,14 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
     }
 
     private fun readObject(session: ObjectReadSession): ValueTree? {
+        if (checkNull()) {
+            return null
+        }
+
         val model = possiblyReadDescriptions()
 
         if (model != null) {
             return readObject(model, session)
-        }
-        else if (checkNull()) {
-            return null
         }
         else {
             // This is hidden array in Object field.
@@ -339,8 +340,8 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
         }
     }
 
-    private fun possiblyReadDescriptions(force: Boolean = true): ObjectModelNode? {
-        if (force) {
+    private fun possiblyReadDescriptions(allowNoDescriptions: Boolean = false): ObjectModelNode? {
+        if (!allowNoDescriptions) {
             checkType(DataType.MultipleDescriptions)
         }
         else {
@@ -384,9 +385,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
     }
 
     private fun readObject(model: ObjectModelNode, session: ObjectReadSession): ValueTree {
-        checkType(DataType.Object)
         val root = readRawObject(model, null, session) as ValueTree?
-
         return root!!
     }
 
@@ -683,7 +682,7 @@ abstract class NetworkDeserializer<BitVectorType> : NetworkSerialization() {
      * Read array without a known model a priori.
      */
     private fun readArray(session: ObjectReadSession): ValueTree? {
-        val rootModel = possiblyReadDescriptions(false)
+        val rootModel = possiblyReadDescriptions(true)
 
         if (checkNull())
             return null

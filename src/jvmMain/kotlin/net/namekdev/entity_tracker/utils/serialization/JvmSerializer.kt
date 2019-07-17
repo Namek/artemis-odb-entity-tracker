@@ -167,14 +167,12 @@ class JvmSerializer : NetworkSerializer<JvmSerializer, BitVector> {
     }
 
     fun addObject(model: ObjectModelNode, obj: Any): JvmSerializer {
-        addType(DataType.Object)
         addRawObject(model, obj, ObjectSerializationSession())
 
         return this
     }
 
     private fun addObject(model: ObjectModelNode, obj: Any, session: ObjectSerializationSession): JvmSerializer {
-        addType(DataType.Object)
         addRawObject(model, obj, session)
 
         return this
