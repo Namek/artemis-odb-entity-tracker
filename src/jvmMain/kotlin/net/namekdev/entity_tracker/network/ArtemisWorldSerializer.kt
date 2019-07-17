@@ -170,7 +170,7 @@ class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : 
                     }
                 }
 
-                override fun disconnected() {
+                override fun worldDisconnected() {
                     _listeners.remove(this)
                 }
             }

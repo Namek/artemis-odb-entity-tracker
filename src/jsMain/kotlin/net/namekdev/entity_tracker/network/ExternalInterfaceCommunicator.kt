@@ -1,7 +1,7 @@
 package net.namekdev.entity_tracker.network
 
 import net.namekdev.entity_tracker.connectors.IWorldController
-import net.namekdev.entity_tracker.connectors.IWorldUpdateInterfaceListener
+import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.AutoSizedArray
 import net.namekdev.entity_tracker.utils.CommonBitVector
@@ -15,7 +15,7 @@ import net.namekdev.entity_tracker.utils.serialization.DataType
  * @author Namek
  */
 class ExternalInterfaceCommunicator(
-    private val _listener: IWorldUpdateInterfaceListener<CommonBitVector>
+    private val _listener: IWorldUpdateListener<CommonBitVector>
 ) : Communicator(), IWorldController {
     //	private final ArrayPool<Object> _objectArrayPool = new ArrayPool<>(Object.class);
     private val _componentTypes = AutoSizedArray<ComponentTypeInfo>()
@@ -30,7 +30,7 @@ class ExternalInterfaceCommunicator(
     }
 
     override fun disconnected() {
-        _listener.disconnected()
+        _listener.worldDisconnected()
     }
 
     override fun bytesReceived(bytes: ByteArray, offset: Int, length: Int) {

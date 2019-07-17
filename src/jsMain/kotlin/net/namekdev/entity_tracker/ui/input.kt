@@ -207,3 +207,5 @@ private fun inputTypeToInputValue(inputType: InputType, text: String): InputValu
         InputType.FloatingPointNumber ->
             InputValueFloatingPoint(text.toDouble())
     }
+
+data class EditedInputState(val path: List<Int>, var text: String?)
