@@ -53,10 +53,14 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
 
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
-    var connection: WebSocketClient? = null
     val entities = ECSModel()
     var worldView: WorldView? = null
 
+    var connection: WebSocketClient? = null
+    var connectionHostname = "localhost"
+    var connectionPort = 8025
+    fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
+    var connectionStatus = ValueContainer<Boolean>(false)
 
     init {
         // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
@@ -72,8 +76,28 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         }
 //        update()
 
-        connection = WebSocketClient(ExternalInterfaceCommunicator(worldUpdateListener))
-        connection!!.connect("ws://localhost:8025/actions")
+        val artemisUiCommunicator = ExternalInterfaceCommunicator(worldUpdateListener)
+        connection = WebSocketClient()
+        connection?.let {
+            it.listeners.add(artemisUiCommunicator)
+            it.listeners.add(object: RawConnectionCommunicator {
+                override fun connected(identifier: String, output: RawConnectionOutputListener) {
+                    connectionStatus.value = true
+                    notifyUpdate()
+                }
+
+                override fun disconnected() {
+                    connectionStatus.value = false
+                    notifyUpdate()
+
+                    // auto-reconnect
+                    window.setTimeout({
+                        it.connect(connectionString())
+                    }, 500)
+                }
+            })
+            it.connect(connectionString())
+        }
     }
 
     val notifyUpdate = {
