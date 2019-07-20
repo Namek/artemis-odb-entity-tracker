@@ -3,24 +3,27 @@ package net.namekdev.entity_tracker.view
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.ui.*
-import net.namekdev.entity_tracker.utils.CommonBitVector
-import net.namekdev.entity_tracker.utils.MemoContainer
-import net.namekdev.entity_tracker.utils.mapToArray
+import net.namekdev.entity_tracker.utils.*
 import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
-import net.namekdev.entity_tracker.utils.transformMultiple
 
 
-class WorldView(
-    val notifyUpdate: () -> Unit,
+data class WorldView(
+//    val notifyChanged: () -> Unit,
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
-) : IView, IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = MemoContainer<Int?>(null)
-    val currentComponent = MemoContainer<CurrentComponent?>(null)
+) : IChangeable(), IWorldUpdateListener<CommonBitVector> {
+    val observedEntityId = ValueContainer<Int?>(null)
+    val currentComponent = ValueContainer<CurrentComponent?>(null)
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
+
+    override fun hashCode(): Int =
+        observedEntityId.value.hashCode() +
+        currentComponent.value.hashCode() +
+        currentComponentIsWatched.hashCode() +
+        entities().hashCode()
 
     override fun deletedEntity(entityId: Int) {
         if (observedEntityId.value == entityId) {
@@ -29,7 +32,7 @@ class WorldView(
         if (currentComponent.value?.entityId == entityId) {
             currentComponent.value = null
         }
-        notifyUpdate()
+        notifyChanged()
     }
 
     /**
@@ -55,10 +58,10 @@ class WorldView(
         }
 
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
-        notifyUpdate()
+        notifyChanged()
     }
 
-    override fun view() =
+    fun view() =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
             viewEntitiesTable(),
@@ -72,7 +75,7 @@ class WorldView(
     private fun notifyCurrentlyEditedInputChanged() {
         viewSelectedComponent.cachedResult = null
         viewCurrentEntity.cachedResult = null
-        notifyUpdate()
+        notifyChanged()
     }
 
     val viewEntitiesTable = transformMultiple(entities().entityComponents, entities().componentTypes) { entityComponents, componentTypes ->
@@ -105,7 +108,7 @@ class WorldView(
 
     fun showComponent(entityId: Int, componentIndex: Int) {
         observedEntityId.value = entityId
-        notifyUpdate()
+        notifyChanged()
 
         if (currentComponentIsWatched)
             worldController()?.setComponentStateWatcher(entityId, componentIndex, true)

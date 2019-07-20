@@ -13,29 +13,25 @@ inline fun <K, V, R> Map<out K, V>.mapToArray(transform: (Map.Entry<K, V>) -> R)
     return map(transform).toTypedArray()
 }
 
-
-abstract class MemoizerBase<T>(var lastHashCode: Int = 0) {
+/**
+ * Abstract value container that is able to to be transformed/mapped.
+ */
+abstract class Transformable<T>(open var lastHashCode: Int = 0) {
     abstract val value: T
 
-    fun <R> transform(transformer: (T) -> R): TransformMemoizer<T, R> {
-        return TransformMemoizer(this, transformer)
+    fun <R> transform(transformer: (T) -> R): ValueTransformer<T, R> {
+        return ValueTransformer(this, transformer)
     }
+
+    open operator fun invoke(): T =
+        value
 }
 
-fun <T1, T2, R> transformMultiple(memo1: MemoizerBase<T1>, memo2: MemoizerBase<T2>, transformer: (T1, T2) -> R): TransformMemoizer<Pair<T1, T2>, R> {
-    fun getValues(): Pair<T1, T2> {
-        return Pair(memo1.value, memo2.value)
-    }
-
-    fun t(pair: Pair<T1, T2>): R {
-        val (v1, v2) = pair
-        return transformer(v1, v2)
-    }
-
-    return TransformMemoizer(ExternalMemoizer(::getValues), ::t)
+fun <T1, T2, R> transformMultiple(memo1: ValueContainer<T1>, memo2: ValueContainer<T2>, transformer: (T1, T2) -> R): ValueTransformer2<T1, T2, R> {
+    return ValueTransformer2(memo1, memo2, transformer)
 }
 
-fun <T1, T2, T3, R> transformMultiple(memo1: MemoizerBase<T1>, memo2: MemoizerBase<T2>, memo3: MemoizerBase<T3>, transformer: (T1, T2, T3) -> R): TransformMemoizer<Triple<T1, T2, T3>, R> {
+fun <T1, T2, T3, R> transformMultiple(memo1: Transformable<T1>, memo2: Transformable<T2>, memo3: Transformable<T3>, transformer: (T1, T2, T3) -> R): ValueTransformer<Triple<T1, T2, T3>, R> {
     fun getValues(): Triple<T1, T2, T3> {
         return Triple(memo1.value, memo2.value, memo3.value)
     }
@@ -45,20 +41,19 @@ fun <T1, T2, T3, R> transformMultiple(memo1: MemoizerBase<T1>, memo2: MemoizerBa
         return transformer(v1, v2, v3)
     }
 
-    return TransformMemoizer(ExternalMemoizer(::getValues), ::t)
+    return ValueTransformer(ExternalMemoizer(::getValues), ::t)
 }
 
 
 /**
  * This structure does not hold transformation result, only the last hash code is kept.
  */
-class ExternalMemoizer<T>(val itemToCheck: () -> T) : MemoizerBase<T>(itemToCheck().hashCode()) {
+class ExternalMemoizer<T>(val itemToCheck: () -> T) : Transformable<T>(itemToCheck().hashCode()) {
     override inline val value: T
         get() = itemToCheck()
-
 }
 
-class MemoContainer<T>(private var _value: T) : MemoizerBase<T>() {
+open class ValueContainer<T>(protected var _value: T) : Transformable<T>() {
     override var value: T
         get() = _value
         set(newValue) {
@@ -69,36 +64,129 @@ class MemoContainer<T>(private var _value: T) : MemoizerBase<T>() {
     init {
         lastHashCode = _value.hashCode()
     }
-
-    operator fun invoke(): T =
-        _value
-
 }
 
+abstract class IChangeable {
+    internal var notificationReceivers: MutableList<() -> Unit> = mutableListOf()
+
+    fun notifyChanged() {
+        for (r in notificationReceivers)
+            r()
+    }
+}
+class WatchableValueContainer<T : IChangeable?>(
+    value: T,
+    val onChangeDetected: () -> Unit = { }
+) : ValueContainer<T>(value) {
+    private var isDirty = true
+
+    private val itChangedState = {
+        isDirty = true
+        lastHashCode = 0
+
+        // this call is usually needed because otherwise the invoke() below wouldn't be called
+        onChangeDetected()
+    }
+
+    override var value: T
+        get() = _value
+        set(newValue) {
+            _value?.notificationReceivers?.remove(itChangedState)
+            _value = newValue
+            lastHashCode = 0
+            _value?.notificationReceivers?.let { receivers ->
+                if (!receivers.contains(itChangedState))
+                    receivers.add(itChangedState)
+            }
+        }
+
+    init {
+        _value?.notificationReceivers?.let { receivers ->
+            if (!receivers.contains(itChangedState))
+                receivers.add(itChangedState)
+        }
+        lastHashCode = _value.hashCode()
+    }
+
+//    override operator fun invoke(): T {
+//        if (isDirty) {
+//            lastHashCode = 0
+//            isDirty = false
+//
+//            onChangeDetected() // TODO seems like a duplicate call in some cases!
+//        }
+//
+//        return value
+//    }
+}
+
+
 /**
- * Maps given object to another value.
- * Transform result is cached and invalidated when object's hash code changes.
- * To obtain this object use {@see MemoizerBase.transform()}.
+ * Maps a value to another value. Caches the transformation result.
+ * Input value is invalidated when object's hash code changes,
+ * so then a next invocation will transform again and cache it.
+ * Invoke it to obtain the result value. Use {@see Transformable.transform(t)} for transformation.
  */
-class TransformMemoizer<T, R>(
-    val valueHolder: MemoizerBase<T>,
+class ValueTransformer<T, R>(
+    val valueContainer: Transformable<T>,
     val transformer: (T) -> R
 ) {
     var cachedResult: R? = null
+    var lastHashCode = 0
 
     operator fun invoke(): R {
-        val value = valueHolder.value
+        val value = valueContainer.value
         val hashCode = value.hashCode()
 
         // lazy call
         val previousResult = cachedResult ?: transformer(value)
 
-        if (hashCode != valueHolder.lastHashCode) {
-            valueHolder.lastHashCode = hashCode
+        if (hashCode != lastHashCode) {
+            lastHashCode = hashCode
             cachedResult = transformer(value)
         }
         else if (cachedResult == null) {
             cachedResult = previousResult
+        }
+
+        return cachedResult!!
+    }
+
+    var name: String = ""
+    fun named(name: String): ValueTransformer<T, R> {
+        this.name = name
+        return this
+    }
+}
+
+class ValueTransformer2<T1, T2, R>(
+    val valueContainer1: ValueContainer<T1>,
+    val valueContainer2: ValueContainer<T2>,
+    val transformer: (T1, T2) -> R
+) {
+    var cachedResult: R? = null
+    private var lastHashCode1 = 0
+    private var lastHashCode2 = 0
+
+    operator fun invoke(): R {
+        val value1 = valueContainer1()
+        val value2 = valueContainer2()
+        val hashCode1 = value1.hashCode()
+        val hashCode2 = value2.hashCode()
+
+        var needsTransforming = cachedResult == null
+
+        if (hashCode1 != lastHashCode1) {
+            lastHashCode1 = hashCode1
+            needsTransforming = true
+        }
+        if (hashCode2 != lastHashCode2) {
+            lastHashCode2 = hashCode2
+            needsTransforming = true
+        }
+
+        if (needsTransforming) {
+            cachedResult = transformer(value1, value2)
         }
 
         return cachedResult!!

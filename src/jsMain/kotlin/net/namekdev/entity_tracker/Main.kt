@@ -5,6 +5,8 @@ import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.connectors.WorldUpdateMultiplexer
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionOutputListener
 import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
@@ -51,10 +53,27 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
     lateinit var lastVnode: VNode
     private var dynamicStyles: Element = createStyleElement("")
 
+    val notifyUpdate = {
+        // a very simple debouncer using the fact that JavaScript is single-threaded
+        var alreadyRequested = false
+
+        {
+            if (!alreadyRequested) {
+                alreadyRequested = true
+
+                // timeout is because of JS compilation - we have lateinit vars!
+                window.setTimeout({
+                    alreadyRequested = false
+                    renderView()
+                }, 0)
+            }
+        }
+    }()
+
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
     val entities = ECSModel()
-    var worldView: WorldView? = null
+    var worldView = WatchableValueContainer<WorldView?>(null, notifyUpdate)
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
@@ -100,22 +119,6 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         }
     }
 
-    val notifyUpdate = {
-        // a very simple debouncer using the fact that JavaScript is single-threaded
-        var alreadyRequested = false
-
-        {
-            if (!alreadyRequested) {
-                alreadyRequested = true
-
-                // timeout is because of JS compilation - we have lateinit vars!
-                window.setTimeout({
-                    alreadyRequested = false
-                    renderView()
-                }, 0)
-            }
-        }
-    }()
 
     val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
 
@@ -129,39 +132,45 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         console.log("update")
     }
 
-    fun view() =
-        column(attrs(widthFill),
-            (if (connection?.isConnected == true)
-                row(attrs(spacing(5)),
+//    val view = worldView.transform { worldView -> worldView?.view() ?: text("connecting...") }
+
+    val view = transformMultiple(connectionStatus, worldView) { isConnected, worldView ->
+        console.log("status changed: $isConnected")
+        column(
+            attrs(widthFill),
+            (if (isConnected)
+                row(
+                    attrs(spacing(5)),
                     // TODO disconnect button; hostname, port info as read-only text
-                    text("title: <TODO_title>"))
+                    text("title: <TODO_title>")
+                )
             else
-                row(attrs(spacing(5)),
+                row(
+                    attrs(spacing(5)),
                     text("hostname: "),
                     // TODO add inputs: hostname, port; and connect/disconnect button; and connection state
-                    text("port: "))),
-            worldView?.view() ?: text("connecting..."))
+                    text("port: ")
+                )),
+            worldView?.view() ?: text("connecting...")
+        )
+    }//.named("mainView")
 
 
     override fun worldDisconnected() {
-        worldView?.let {
+        worldView.value?.let {
             worldUpdateListener.listeners.remove(it)
-            it.dispose()
         }
-        worldView = null
+        worldController = null
+        worldView.value = null
         entities.clear()
-
-        // TODO initiate auto-reconnect somehow (maybe use MemoTransformers?)
-        connection = null
     }
 
     // it's called when connection is successfully established
     override fun injectWorldController(controller: IWorldController) {
         worldController = controller
 
-        worldView?.dispose()
-        worldView = WorldView(notifyUpdate, { entities }, { worldController })
-        worldView?.let {
+        worldView.value = WorldView({ entities }, { worldController })
+        worldView.value?.let {
             worldUpdateListener.listeners.add(it)
         }
         notifyUpdate()
