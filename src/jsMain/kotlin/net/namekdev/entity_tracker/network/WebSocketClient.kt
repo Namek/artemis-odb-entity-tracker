@@ -10,31 +10,34 @@ import org.w3c.dom.WebSocket
 import org.w3c.dom.WebSocket.Companion.CLOSED
 import org.w3c.dom.WebSocket.Companion.CLOSING
 
-class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
+class WebSocketClient(val listeners: MutableList<RawConnectionCommunicator> = mutableListOf()) {
     private var socket: WebSocket? = null
+    private var alreadyNotifiedDisconnection = false
 
     var isConnected = false
         private set
-
-    init {
-
-    }
 
     fun connect(url: String) {
         if (socket?.readyState ?: CLOSED < CLOSING) {
             throw IllegalStateException("Cannot connect twice in the same time.")
         }
 
+        alreadyNotifiedDisconnection = false
         socket = WebSocket(url)
         socket!!.let {
             it.binaryType = BinaryType.ARRAYBUFFER
             it.onopen = {
                 isConnected = true
-                connectionListener.connected(url, outputListener)
+                for (l in listeners) l.connected(url, outputListener)
             }
             it.onclose = {
+                val wasConnected = isConnected
                 isConnected = false
-                connectionListener.disconnected()
+                socket = null
+
+                if (wasConnected && !alreadyNotifiedDisconnection) {
+                    for (l in listeners) l.disconnected()
+                }
             }
             it.onmessage = {
                 val buf = Uint8Array(it.asDynamic().data.unsafeCast<ArrayBuffer>())
@@ -44,8 +47,14 @@ class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
                 for (j in 0 until length)
                     bytes[j] = buf[j]
 
-                connectionListener.bytesReceived(bytes, 0, length)
+                for (l in listeners) l.bytesReceived(bytes, 0, length)
                 undefined
+            }
+            it.onerror = {
+                socket = null
+                isConnected = false
+                alreadyNotifiedDisconnection = true
+                for (l in listeners) l.disconnected()
             }
         }
     }
@@ -53,6 +62,7 @@ class WebSocketClient(val connectionListener: RawConnectionCommunicator) {
     fun stop() {
         isConnected = false
         socket?.close()
+        socket = null
     }
 
     fun send(buffer: ByteArray, offset: Int, length: Int) =

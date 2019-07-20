@@ -5,6 +5,8 @@ import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.connectors.WorldUpdateMultiplexer
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionCommunicator
+import net.namekdev.entity_tracker.network.RawConnectionOutputListener
 import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
@@ -36,46 +38,7 @@ fun main(args: Array<String>) {
     }
 }
 
-
-class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
-    val patch = Snabbdom.init(
-        arrayOf(
-            ClassModule(),
-            AttributesModule(),
-            PropsModule(),
-            StyleModule(),
-            EventListenersModule(),
-            DatasetModule()
-        )
-    )
-    lateinit var lastVnode: VNode
-    private var dynamicStyles: Element = createStyleElement("")
-
-    private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
-    var worldController: IWorldController? = null
-    var connection: WebSocketClient? = null
-    val entities = ECSModel()
-    var worldView: WorldView? = null
-
-
-    init {
-        // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
-        window.setTimeout({
-            lastVnode = patch(container, h("div"))
-        }, 0)
-
-        fun update() {
-//            lastVnode = patch(lastVnode, view())
-//            window.setTimeout({
-//                update()
-//            }, 50)
-        }
-//        update()
-
-        connection = WebSocketClient(ExternalInterfaceCommunicator(worldUpdateListener))
-        connection!!.connect("ws://localhost:8025/actions")
-    }
-
+abstract class RenderRoot : Invalidable {
     val notifyUpdate = {
         // a very simple debouncer using the fact that JavaScript is single-threaded
         var alreadyRequested = false
@@ -93,54 +56,123 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         }
     }()
 
+    override fun invalidate() = notifyUpdate()
+
+    abstract fun renderView()
+}
+
+class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBitVector> {
+    val patch = Snabbdom.init(
+        arrayOf(
+            ClassModule(),
+            AttributesModule(),
+            PropsModule(),
+            StyleModule(),
+            EventListenersModule(),
+            DatasetModule()
+        )
+    )
+    lateinit var lastVnode: VNode
+    private var dynamicStyles: Element = createStyleElement("")
+
+    private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
+    var worldController: IWorldController? = null
+    val entities = ECSModel()
+    var worldView = ValueContainer<WorldView?>(null).named("World.worldView")
+
+    var connection: WebSocketClient? = null
+    var connectionHostname = "localhost"
+    var connectionPort = 8025
+    fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
+    var connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
+
+    init {
+        // due to JS compilation - render() can't be called before fields are initialized, so delay its first execution
+        window.setTimeout({
+            lastVnode = patch(container, h("div"))
+        }, 0)
+
+        fun update() {
+//            lastVnode = patch(lastVnode, render())
+//            window.setTimeout({
+//                update()
+//            }, 50)
+        }
+//        update()
+
+        val artemisUiCommunicator = ExternalInterfaceCommunicator(worldUpdateListener)
+        connection = WebSocketClient()
+        connection?.let {
+            it.listeners.add(artemisUiCommunicator)
+            it.listeners.add(object: RawConnectionCommunicator {
+                override fun connected(identifier: String, output: RawConnectionOutputListener) {
+                    connectionStatus.value = true
+                }
+
+                override fun disconnected() {
+                    connectionStatus.value = false
+
+                    // auto-reconnect
+                    window.setTimeout({
+                        it.connect(connectionString())
+                    }, 500)
+                }
+            })
+            it.connect(connectionString())
+        }
+
+        invalidate()
+    }
+
     val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
 
-    fun renderView() {
-        val ctx: RNode = view()
+    override fun renderView() {
+        val rendering = RenderSession(this)
+        val ctx: RNode = render(rendering)
         ctx.stylesheet?.let {
             dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
         }
         lastVnode = patch(lastVnode, ctx.vnode)
-
-        console.log("update")
     }
 
-    fun view() =
-        column(attrs(widthFill),
-            (if (connection?.isConnected == true)
-                row(attrs(spacing(5)),
+    val render = renderTo(connectionStatus, worldView) { r, isConnected, worldView ->
+        column(
+            attrs(widthFill),
+            (if (isConnected)
+                row(
+                    attrs(spacing(5)),
                     // TODO disconnect button; hostname, port info as read-only text
-                    text("title: <TODO_title>"))
+                    text("title: <TODO_title>")
+                )
             else
-                row(attrs(spacing(5)),
+                row(
+                    attrs(spacing(5)),
                     text("hostname: "),
                     // TODO add inputs: hostname, port; and connect/disconnect button; and connection state
-                    text("port: "))),
-            worldView?.view() ?: text("connecting..."))
+                    text("port: ")
+                )),
+            worldView?.render(r) ?: text("connecting...")
+        )
+    }.named("mainView")
 
 
     override fun worldDisconnected() {
-        worldView?.let {
+        worldView()?.let {
             worldUpdateListener.listeners.remove(it)
-            it.dispose()
         }
-        worldView = null
+        worldController = null
+        worldView.value = null
         entities.clear()
-
-        // TODO initiate auto-reconnect somehow (maybe use MemoTransformers?)
-        connection = null
     }
 
     // it's called when connection is successfully established
     override fun injectWorldController(controller: IWorldController) {
         worldController = controller
 
-        worldView?.dispose()
-        worldView = WorldView(notifyUpdate, { entities }, { worldController })
-        worldView?.let {
+        WorldView({ entities }, { worldController }).let {
             worldUpdateListener.listeners.add(it)
+            worldView.value = it
         }
-        notifyUpdate()
     }
 
     override fun addedSystem(
@@ -154,34 +186,30 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         val actives = if (aspectInfo.isEmpty) null else CommonBitVector()
         val systemInfo = SystemInfo(index, name, aspectInfo, actives)
 
-        entities.allSystems.add(index, systemInfo)
-        notifyUpdate()
+        entities.allSystems.update { it.add(index, systemInfo) }
     }
 
     override fun addedManager(name: String) {
-        entities.allManagersNames.add(name)
-        notifyUpdate()
+        entities.allManagersNames.update { it.add(name) }
     }
 
     override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
         entities.setComponentType(index, info)
-        notifyUpdate()
     }
 
     override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-        val system = entities.allSystems[systemIndex]
-        system.entitiesCount = entitiesCount
-        system.maxEntitiesCount = maxEntitiesCount
-        notifyUpdate()
+        entities.allSystems.update {
+            val system = it[systemIndex]
+            system.entitiesCount = entitiesCount
+            system.maxEntitiesCount = maxEntitiesCount
+        }
     }
 
     override fun addedEntity(entityId: Int, components: CommonBitVector) {
         entities.addEntity(entityId, components)
-        notifyUpdate()
     }
 
     override fun deletedEntity(entityId: Int) {
         entities.removeEntity(entityId)
-        notifyUpdate()
     }
 }

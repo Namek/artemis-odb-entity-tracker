@@ -3,24 +3,21 @@ package net.namekdev.entity_tracker.view
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.ui.*
-import net.namekdev.entity_tracker.utils.CommonBitVector
-import net.namekdev.entity_tracker.utils.MemoContainer
-import net.namekdev.entity_tracker.utils.mapToArray
+import net.namekdev.entity_tracker.utils.*
 import net.namekdev.entity_tracker.utils.serialization.DataType
 import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
-import net.namekdev.entity_tracker.utils.transformMultiple
 
 
 class WorldView(
-    val notifyUpdate: () -> Unit,
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
-) : IView, IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = MemoContainer<Int?>(null)
-    val currentComponent = MemoContainer<CurrentComponent?>(null)
+) : IWorldUpdateListener<CommonBitVector> {
+    val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
+    val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
     var currentComponentIsWatched = false
-    var currentlyEditedInput: EditedInputState? = null
+    var currentlyEditedInput = ValueContainer<EditedInputState?>(null)
+
 
     override fun deletedEntity(entityId: Int) {
         if (observedEntityId.value == entityId) {
@@ -29,53 +26,50 @@ class WorldView(
         if (currentComponent.value?.entityId == entityId) {
             currentComponent.value = null
         }
-        notifyUpdate()
     }
 
     /**
      * Received after component value request was sent.
      */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        currentComponent.value?.let {
+        currentComponent()?.let {
             // if current component changes, do not allow
             // re-showing the <input> when we get to previous component (it just looks weird)
             if (it.entityId != entityId || it.componentIndex != componentIndex)
-                currentlyEditedInput = null
+                currentlyEditedInput.value = null
         }
 
-        currentComponent.value?.let {
+        currentComponent()?.let {
             if (it.entityId != entityId || it.componentIndex != componentIndex)
                 worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
         }
 
         // if that's first component ever chosen then watch it automatically.
-        if (currentComponent.value == null) {
+        if (currentComponent() == null) {
             worldController()!!.setComponentStateWatcher(entityId, componentIndex, true)
             currentComponentIsWatched = true
         }
 
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
-        notifyUpdate()
     }
 
-    override fun view() =
+    fun render(r: RenderSession) =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
-            viewEntitiesTable(),
-            viewEntitiesFilters(),
+            viewEntitiesTable(r),
+            viewEntitiesFilters(r),
             row(
                 attrs(widthFill),
-                viewCurrentEntity(),
+                viewCurrentEntity(r),
                 viewSystems())
         )
 
     private fun notifyCurrentlyEditedInputChanged() {
-        viewSelectedComponent.cachedResult = null
-        viewCurrentEntity.cachedResult = null
-        notifyUpdate()
+        viewSelectedComponent.invalidate()
+        viewCurrentEntity.invalidate()
     }
 
-    val viewEntitiesTable = transformMultiple(entities().entityComponents, entities().componentTypes) { entityComponents, componentTypes ->
+    val viewEntitiesTable = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->
         val idCol = thCell(row(attrs(paddingRight(15)), text("id")))
         val componentCols = componentTypes.mapToArray {
             thCell(row(attrs(paddingRight(15)), text(it.name)))
@@ -101,11 +95,10 @@ class WorldView(
         val header = tRow(idCol, *componentCols)
 
         table(attrs(), header, *entitiesDataRows)
-    }
+    }.named("viewEntitiesTable")
 
     fun showComponent(entityId: Int, componentIndex: Int) {
         observedEntityId.value = entityId
-        notifyUpdate()
 
         if (currentComponentIsWatched)
             worldController()?.setComponentStateWatcher(entityId, componentIndex, true)
@@ -113,14 +106,14 @@ class WorldView(
             worldController()?.requestComponentState(entityId, componentIndex)
     }
 
-    fun viewEntitiesFilters() =
+    fun viewEntitiesFilters(r: RenderSession) =
         row(arrayOf(text("TODO filters here?")))
 
     fun viewSystems(): RNode {
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
 
         val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
-        val rows = entities().allSystems
+        val rows = entities().allSystems()
 //            .filter { it.hasAspect }
             .mapToArray {
                 tRow(
@@ -133,7 +126,7 @@ class WorldView(
         return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),
@@ -168,16 +161,16 @@ class WorldView(
                         attrs(borderBottom(1)),
                         text("Components:")
                     ),
-                    viewObservedEntity()),
+                    viewObservedEntity(r)),
                 column(attrs(widthFill, alignTop, spacing(6)),
                     row(attrs(borderBottom(0)),
                         elems(text(componentName?.let {"<$it>:"} ?: "" ))),
-                    column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent()))
+                    column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent(r)))
             )
         }
-    }
+    }.named("viewCurrentEntity")
 
-    val viewObservedEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewObservedEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
         val componentTypes = entities().entityComponents.value[entityId!!]
 
         if (componentTypes == null)
@@ -211,16 +204,16 @@ class WorldView(
                 componentNames.toTypedArray()
             )
         }
-    }
+    }.named("viewObservedEntity")
 
-    val viewSelectedComponent = currentComponent.transform { cmp ->
+    val viewSelectedComponent = renderTo(currentComponent, currentlyEditedInput) { r, cmp, input ->
         if (cmp == null)
             column(arrayOf(text("")))
         else {
             val value = cmp.valueTree
             viewValueTree(value.model!!, value, value, true, listOf(cmp.entityId, cmp.componentIndex), 0, listOf(value))
         }
-    }
+    }.named("viewSelectedComponent")
 
     val treeSpacing = 3
     val treeNodeHeight = 18
@@ -244,7 +237,7 @@ class WorldView(
                     nullCheckbox(value == null,
                         onChange = { isNull ->
                             if (isNull) {
-                                currentlyEditedInput = null
+                                currentlyEditedInput.value = null
                                 // TODO this currently would crash since Array is not a flat type!
 //                                onValueChanged(rootValue, path, model.dataType, null)
                                 notifyCurrentlyEditedInputChanged()
@@ -270,7 +263,7 @@ class WorldView(
                         attrs(paddingLeft(3), spacing(treeSpacing)),
                         vt.asIterable().mapIndexed { index, subValue ->
                             val valueModel =
-                                (subValue as? ValueTree)?.let {v -> v.model}
+                                (subValue as? ValueTree)?.model
                                     ?: model.extractArraySubTypeModel()
 
                             row(
@@ -329,10 +322,10 @@ class WorldView(
                     row(
                         attrs(spacing(treeSpacing)),
                         text("${value?.toString() ?: "<null>"} →"),
-                        textEdit(currentlyEditedInput?.text ?: "", inputType, true,
+                        textEdit(currentlyEditedInput()?.text ?: "", inputType, true,
                             onChange = { _, str ->
-                                if (currentlyEditedInput?.path == path) {
-                                    currentlyEditedInput!!.text = str
+                                if (currentlyEditedInput()?.path == path) {
+                                    currentlyEditedInput.update { it!!.text = str }
                                 }
                             },
                             onEnter = {
@@ -340,18 +333,18 @@ class WorldView(
                                 onValueChanged(rootValue, path, model.dataType, newValue)
                             },
                             onEscape = {
-                                currentlyEditedInput = null
+                                currentlyEditedInput.value = null
                                 notifyCurrentlyEditedInputChanged()
                             }
                         )
                     )
 
                 fun showValueOrEditor() =
-                    if (currentlyEditedInput?.path != path) {
+                    if (currentlyEditedInput()?.path != path) {
                         row(
                             attrs(
                                 onClick {
-                                    currentlyEditedInput = EditedInputState(path, value?.toString() ?: "")
+                                    currentlyEditedInput.value = EditedInputState(path, value?.toString() ?: "")
                                     notifyCurrentlyEditedInputChanged()
                                 }),
                             text(value?.toString() ?: "<null>")
@@ -372,7 +365,7 @@ class WorldView(
                     else {
                         nullCheckbox(value == null,
                             onChange = { isNull ->
-                                currentlyEditedInput =
+                                currentlyEditedInput.value =
                                     if (isNull) null
                                     else EditedInputState(path, value?.toString() ?: "")
 

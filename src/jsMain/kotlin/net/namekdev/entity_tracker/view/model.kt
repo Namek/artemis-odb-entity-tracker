@@ -3,8 +3,7 @@ package net.namekdev.entity_tracker.view
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.model.SystemInfo_Common
-import net.namekdev.entity_tracker.utils.CommonBitVector
-import net.namekdev.entity_tracker.utils.MemoContainer
+import net.namekdev.entity_tracker.utils.*
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 
@@ -13,22 +12,22 @@ typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
 class ECSModel {
-    val entityComponents = MemoContainer(mutableMapOf<Int, CommonBitVector>())
-    val componentTypes = MemoContainer(mutableListOf<ComponentTypeInfo>())
-    val allSystems = mutableListOf<SystemInfo>()
-    val allManagersNames = mutableListOf<String>()
+    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
+    val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
+    val allManagersNames = ValueContainer(mutableListOf<String>()).named("ECSModel.allManagersNames")
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
-        componentTypes().add(index, info)
+        componentTypes.update { it.add(index, info) }
     }
 
     fun addEntity(entityId: Int, components: CommonBitVector) {
-        entityComponents()[entityId] = components
+        entityComponents.update { it[entityId] = components }
     }
 
     fun removeEntity(entityId: Int) {
-        entityComponents().remove(entityId)
+        entityComponents.update { it.remove(entityId) }
     }
 
     fun getEntityComponents(entityId: Int): CommonBitVector =
@@ -39,7 +38,7 @@ class ECSModel {
         componentTypes().get(index)
 
     fun clear() {
-        componentTypes().clear()
-        entityComponents().clear()
+        componentTypes.update { it.clear() }
+        entityComponents.update { it.clear() }
     }
 }
