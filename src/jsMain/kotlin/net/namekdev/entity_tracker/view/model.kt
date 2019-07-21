@@ -12,9 +12,9 @@ typealias SystemInfo = SystemInfo_Common<CommonBitVector>
 typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
-class ECSModel {
-    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>())
-    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>())
+class ECSModel(notifyChanged: () -> Unit) {
+    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>(), notifyChanged)
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>(), notifyChanged)
     val allSystems = mutableListOf<SystemInfo>()
     val allManagersNames = mutableListOf<String>()
 
@@ -24,11 +24,11 @@ class ECSModel {
     }
 
     fun addEntity(entityId: Int, components: CommonBitVector) {
-        entityComponents()[entityId] = components
+        entityComponents.update { it[entityId] = components }
     }
 
     fun removeEntity(entityId: Int) {
-        entityComponents().remove(entityId)
+        entityComponents.update { it.remove(entityId) }
     }
 
     fun getEntityComponents(entityId: Int): CommonBitVector =
@@ -39,7 +39,7 @@ class ECSModel {
         componentTypes().get(index)
 
     fun clear() {
-        componentTypes().clear()
-        entityComponents().clear()
+        componentTypes.update { it.clear() }
+        entityComponents.update { it.clear() }
     }
 }

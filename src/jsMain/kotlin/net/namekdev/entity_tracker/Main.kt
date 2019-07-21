@@ -72,14 +72,14 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
 
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
-    val entities = ECSModel()
-    var worldView = WatchableValueContainer<WorldView?>(null, notifyUpdate)
+    val entities = ECSModel(notifyUpdate)
+    var worldView = ValueContainer<WorldView?>(null, notifyUpdate)
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ValueContainer<Boolean>(false)
+    var connectionStatus = ValueContainer<Boolean>(false, notifyUpdate)
 
     init {
         // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
@@ -102,12 +102,10 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
             it.listeners.add(object: RawConnectionCommunicator {
                 override fun connected(identifier: String, output: RawConnectionOutputListener) {
                     connectionStatus.value = true
-                    notifyUpdate()
                 }
 
                 override fun disconnected() {
                     connectionStatus.value = false
-                    notifyUpdate()
 
                     // auto-reconnect
                     window.setTimeout({
@@ -134,7 +132,7 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
 
 //    val view = worldView.transform { worldView -> worldView?.view() ?: text("connecting...") }
 
-    val view = transformMultiple(connectionStatus, worldView) { isConnected, worldView ->
+    val view = mapMultiple(connectionStatus, worldView) { isConnected, worldView ->
         console.log("status changed: $isConnected")
         column(
             attrs(widthFill),
@@ -157,7 +155,7 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
 
 
     override fun worldDisconnected() {
-        worldView.value?.let {
+        worldView()?.let {
             worldUpdateListener.listeners.remove(it)
         }
         worldController = null
@@ -169,11 +167,10 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
     override fun injectWorldController(controller: IWorldController) {
         worldController = controller
 
-        worldView.value = WorldView({ entities }, { worldController })
-        worldView.value?.let {
+        WorldView(notifyUpdate, { entities }, { worldController }).let {
             worldUpdateListener.listeners.add(it)
+            worldView.value = it
         }
-        notifyUpdate()
     }
 
     override fun addedSystem(

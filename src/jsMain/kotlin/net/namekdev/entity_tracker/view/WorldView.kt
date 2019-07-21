@@ -9,21 +9,16 @@ import net.namekdev.entity_tracker.utils.serialization.ObjectModelNode
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 
-data class WorldView(
-//    val notifyChanged: () -> Unit,
+class WorldView(
+    val notifyChanged: () -> Unit,
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
-) : IChangeable(), IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ValueContainer<Int?>(null)
-    val currentComponent = ValueContainer<CurrentComponent?>(null)
+) : IWorldUpdateListener<CommonBitVector> {
+    val observedEntityId = ValueContainer<Int?>(null, notifyChanged)
+    val currentComponent = ValueContainer<CurrentComponent?>(null, notifyChanged)
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
-    override fun hashCode(): Int =
-        observedEntityId.value.hashCode() +
-        currentComponent.value.hashCode() +
-        currentComponentIsWatched.hashCode() +
-        entities().hashCode()
 
     override fun deletedEntity(entityId: Int) {
         if (observedEntityId.value == entityId) {
@@ -39,20 +34,20 @@ data class WorldView(
      * Received after component value request was sent.
      */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        currentComponent.value?.let {
+        currentComponent()?.let {
             // if current component changes, do not allow
             // re-showing the <input> when we get to previous component (it just looks weird)
             if (it.entityId != entityId || it.componentIndex != componentIndex)
                 currentlyEditedInput = null
         }
 
-        currentComponent.value?.let {
+        currentComponent()?.let {
             if (it.entityId != entityId || it.componentIndex != componentIndex)
                 worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
         }
 
         // if that's first component ever chosen then watch it automatically.
-        if (currentComponent.value == null) {
+        if (currentComponent() == null) {
             worldController()!!.setComponentStateWatcher(entityId, componentIndex, true)
             currentComponentIsWatched = true
         }
@@ -78,7 +73,7 @@ data class WorldView(
         notifyChanged()
     }
 
-    val viewEntitiesTable = transformMultiple(entities().entityComponents, entities().componentTypes) { entityComponents, componentTypes ->
+    val viewEntitiesTable = mapMultiple(entities().entityComponents, entities().componentTypes) { entityComponents, componentTypes ->
         val idCol = thCell(row(attrs(paddingRight(15)), text("id")))
         val componentCols = componentTypes.mapToArray {
             thCell(row(attrs(paddingRight(15)), text(it.name)))
@@ -108,7 +103,6 @@ data class WorldView(
 
     fun showComponent(entityId: Int, componentIndex: Int) {
         observedEntityId.value = entityId
-        notifyChanged()
 
         if (currentComponentIsWatched)
             worldController()?.setComponentStateWatcher(entityId, componentIndex, true)
@@ -136,7 +130,8 @@ data class WorldView(
         return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = mapMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+        console.log(entityId, currentComponent)
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),
@@ -180,7 +175,7 @@ data class WorldView(
         }
     }
 
-    val viewObservedEntity = transformMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewObservedEntity = mapMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
         val componentTypes = entities().entityComponents.value[entityId!!]
 
         if (componentTypes == null)
@@ -216,7 +211,7 @@ data class WorldView(
         }
     }
 
-    val viewSelectedComponent = currentComponent.transform { cmp ->
+    val viewSelectedComponent = currentComponent.map { cmp ->
         if (cmp == null)
             column(arrayOf(text("")))
         else {

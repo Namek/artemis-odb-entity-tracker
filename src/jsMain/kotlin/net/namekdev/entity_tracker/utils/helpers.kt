@@ -3,6 +3,8 @@ package net.namekdev.entity_tracker.utils
 import org.w3c.dom.Element
 import org.w3c.dom.get
 import kotlin.browser.document
+import kotlin.properties.ObservableProperty
+import kotlin.reflect.KProperty
 
 
 inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
@@ -12,186 +14,15 @@ inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
 inline fun <K, V, R> Map<out K, V>.mapToArray(transform: (Map.Entry<K, V>) -> R): Array<R> {
     return map(transform).toTypedArray()
 }
-
-/**
- * Abstract value container that is able to to be transformed/mapped.
- */
-abstract class Transformable<T>(open var lastHashCode: Int = 0) {
-    abstract val value: T
-
-    fun <R> transform(transformer: (T) -> R): ValueTransformer<T, R> {
-        return ValueTransformer(this, transformer)
-    }
-
-    open operator fun invoke(): T =
-        value
-}
-
-fun <T1, T2, R> transformMultiple(memo1: ValueContainer<T1>, memo2: ValueContainer<T2>, transformer: (T1, T2) -> R): ValueTransformer2<T1, T2, R> {
-    return ValueTransformer2(memo1, memo2, transformer)
-}
-
-fun <T1, T2, T3, R> transformMultiple(memo1: Transformable<T1>, memo2: Transformable<T2>, memo3: Transformable<T3>, transformer: (T1, T2, T3) -> R): ValueTransformer<Triple<T1, T2, T3>, R> {
-    fun getValues(): Triple<T1, T2, T3> {
-        return Triple(memo1.value, memo2.value, memo3.value)
-    }
-
-    fun t(triple: Triple<T1, T2, T3>): R {
-        val (v1, v2, v3) = triple
-        return transformer(v1, v2, v3)
-    }
-
-    return ValueTransformer(ExternalMemoizer(::getValues), ::t)
-}
-
-
-/**
- * This structure does not hold transformation result, only the last hash code is kept.
- */
-class ExternalMemoizer<T>(val itemToCheck: () -> T) : Transformable<T>(itemToCheck().hashCode()) {
-    override inline val value: T
-        get() = itemToCheck()
-}
-
-open class ValueContainer<T>(protected var _value: T) : Transformable<T>() {
-    override var value: T
-        get() = _value
-        set(newValue) {
-            _value = newValue
-            lastHashCode = 0
-        }
-
-    init {
-        lastHashCode = _value.hashCode()
-    }
-}
-
-abstract class IChangeable {
-    internal var notificationReceivers: MutableList<() -> Unit> = mutableListOf()
-
-    fun notifyChanged() {
-        for (r in notificationReceivers)
-            r()
-    }
-}
-class WatchableValueContainer<T : IChangeable?>(
-    value: T,
-    val onChangeDetected: () -> Unit = { }
-) : ValueContainer<T>(value) {
-    private var isDirty = true
-
-    private val itChangedState = {
-        isDirty = true
-        lastHashCode = 0
-
-        // this call is usually needed because otherwise the invoke() below wouldn't be called
-        onChangeDetected()
-    }
-
-    override var value: T
-        get() = _value
-        set(newValue) {
-            _value?.notificationReceivers?.remove(itChangedState)
-            _value = newValue
-            lastHashCode = 0
-            _value?.notificationReceivers?.let { receivers ->
-                if (!receivers.contains(itChangedState))
-                    receivers.add(itChangedState)
-            }
-        }
-
-    init {
-        _value?.notificationReceivers?.let { receivers ->
-            if (!receivers.contains(itChangedState))
-                receivers.add(itChangedState)
-        }
-        lastHashCode = _value.hashCode()
-    }
-
-//    override operator fun invoke(): T {
-//        if (isDirty) {
-//            lastHashCode = 0
-//            isDirty = false
 //
-//            onChangeDetected() // TODO seems like a duplicate call in some cases!
-//        }
+//abstract class IChangeable {
+//    internal var notificationReceivers: MutableList<() -> Unit> = mutableListOf()
 //
-//        return value
+//    fun notifyChanged() {
+//        for (r in notificationReceivers)
+//            r()
 //    }
-}
-
-
-/**
- * Maps a value to another value. Caches the transformation result.
- * Input value is invalidated when object's hash code changes,
- * so then a next invocation will transform again and cache it.
- * Invoke it to obtain the result value. Use {@see Transformable.transform(t)} for transformation.
- */
-class ValueTransformer<T, R>(
-    val valueContainer: Transformable<T>,
-    val transformer: (T) -> R
-) {
-    var cachedResult: R? = null
-    var lastHashCode = 0
-
-    operator fun invoke(): R {
-        val value = valueContainer.value
-        val hashCode = value.hashCode()
-
-        // lazy call
-        val previousResult = cachedResult ?: transformer(value)
-
-        if (hashCode != lastHashCode) {
-            lastHashCode = hashCode
-            cachedResult = transformer(value)
-        }
-        else if (cachedResult == null) {
-            cachedResult = previousResult
-        }
-
-        return cachedResult!!
-    }
-
-    var name: String = ""
-    fun named(name: String): ValueTransformer<T, R> {
-        this.name = name
-        return this
-    }
-}
-
-class ValueTransformer2<T1, T2, R>(
-    val valueContainer1: ValueContainer<T1>,
-    val valueContainer2: ValueContainer<T2>,
-    val transformer: (T1, T2) -> R
-) {
-    var cachedResult: R? = null
-    private var lastHashCode1 = 0
-    private var lastHashCode2 = 0
-
-    operator fun invoke(): R {
-        val value1 = valueContainer1()
-        val value2 = valueContainer2()
-        val hashCode1 = value1.hashCode()
-        val hashCode2 = value2.hashCode()
-
-        var needsTransforming = cachedResult == null
-
-        if (hashCode1 != lastHashCode1) {
-            lastHashCode1 = hashCode1
-            needsTransforming = true
-        }
-        if (hashCode2 != lastHashCode2) {
-            lastHashCode2 = hashCode2
-            needsTransforming = true
-        }
-
-        if (needsTransforming) {
-            cachedResult = transformer(value1, value2)
-        }
-
-        return cachedResult!!
-    }
-}
+//}
 
 fun createStyleElement(content: String): Element {
     val styleEl = document.createElement("style")
@@ -199,4 +30,141 @@ fun createStyleElement(content: String): Element {
     styleEl.innerHTML = content
     document.getElementsByTagName("head")[0]!!.appendChild(styleEl)
     return styleEl
+}
+
+
+class ValueContainer<T>(initialValue: T, var notifyChanged: (() -> Unit)? = null) {
+    private var _value: T = initialValue
+    internal var lastDataId = 0
+
+    var value: T
+        get() = _value
+        set(newValue) {
+            _value = newValue
+            lastDataId += 1
+            notifyChanged?.invoke()
+        }
+
+    /**
+     * Update value of existing object.
+     * Notify about the change.
+     */
+    fun update(updateFun: (T) -> Unit) {
+        updateFun(value)
+        lastDataId += 1
+        notifyChanged?.invoke()
+    }
+
+    operator fun invoke() = value
+
+    /**
+     * Creates a transformation with cached result.
+     */
+    fun <R> map(fn: (T) -> R): ValueMapper<T, R> =
+        ValueMapper(this, fn)
+
+    fun <T2, R> mapWith(valueContainer2: ValueContainer<T2>, fn: (T, T2) -> R): ValueMapper2<T, T2, R> =
+        ValueMapper2(this, valueContainer2, fn)
+}
+
+class ValueMapper<T, R>(
+    private val valueContainer: ValueContainer<T>,
+    val mapFn: (T) -> R
+) {
+    private var lastDataId: Int = 1000
+    var cachedResult: R? = null
+
+    operator fun invoke(): R {
+        val dataId = valueContainer.lastDataId
+        if (lastDataId != dataId) {
+            lastDataId = dataId
+            cachedResult = mapFn(valueContainer.value)
+        }
+
+        return cachedResult!!
+    }
+}
+
+class ValueMapper2<T1, T2, R>(
+    private val valueContainer1: ValueContainer<T1>,
+    private val valueContainer2: ValueContainer<T2>,
+    val mapFn: (T1, T2) -> R
+) {
+    private var lastDataId1: Int = 1000
+    private var lastDataId2: Int = 1000
+    var cachedResult: R? = null
+
+    operator fun invoke(): R {
+        val dataId1 = valueContainer1.lastDataId
+        val dataId2 = valueContainer2.lastDataId
+        val needsRemap = lastDataId1 != dataId1 || lastDataId2 != dataId2
+
+        lastDataId1 = dataId1
+        lastDataId2 = dataId2
+
+        if (needsRemap)
+            cachedResult = mapFn(valueContainer1.value, valueContainer2.value)
+
+        return cachedResult!!
+    }
+}
+
+fun <T1, T2, R> mapMultiple(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (T1, T2) -> R): ValueMapper2<T1, T2, R> =
+    ValueMapper2(value1, value2, mapFn)
+
+
+// Example
+typealias RenderData = String
+
+class DataStore {
+    val dataList = ValueContainer<MutableList<String>>(mutableListOf("a", "b", "c"))
+}
+
+class Omg {
+    val subOmg = ValueContainer<SubOmg?>(null, ::requestRedraw)
+    val dataStore = DataStore()
+
+
+    init {
+        onConnectedToServer()
+    }
+
+    fun onConnectedToServer() {
+        subOmg.value = SubOmg(dataStore, ::requestRedraw)
+    }
+
+    fun onAction123() {
+        subOmg.update { it!!.counter += 1 }
+    }
+
+    fun requestRedraw() {
+        // TODO call render() only when need to
+        render()
+    }
+
+    fun render(): String = subOmg.map {
+        it?.render() ?: ""
+    }()
+}
+
+class SubOmg(val dataStore: DataStore, val notifyChanged: () -> Unit) {
+    var counter = 0
+    val subSubOmg = SubOmg(dataStore, notifyChanged)
+
+    fun render(): String = dataStore.dataList.map { dataList ->
+        dataList.joinToString() + counter.toString() + " -> " + subSubOmg.render()
+    }()
+}
+
+class SubSubOmg(val dataStore: DataStore, val notifyChanged: () -> Unit) {
+    var subCounter = ValueContainer(100, notifyChanged)
+
+    fun render(): RenderData = mapMultiple(dataStore.dataList, subCounter) { dataList, subCounter ->
+        dataList.size.toString() + " / $subCounter"
+    }()
+
+    fun onSomeClickAction() {
+        subCounter.update { it + 10 }
+        notifyChanged()
+    }
 }
