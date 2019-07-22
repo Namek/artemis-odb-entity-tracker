@@ -117,7 +117,7 @@ class WorldView(
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
 
         val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
-        val rows = entities().allSystems
+        val rows = entities().allSystems()
 //            .filter { it.hasAspect }
             .mapToArray {
                 tRow(

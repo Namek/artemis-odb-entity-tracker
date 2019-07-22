@@ -14,14 +14,14 @@ typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
 class ECSModel(notifyChanged: () -> Unit) {
-    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("entityComponents")
-    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("componentTypes")
-    val allSystems = mutableListOf<SystemInfo>()
-    val allManagersNames = mutableListOf<String>()
+    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
+    val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
+    val allManagersNames = ValueContainer(mutableListOf<String>()).named("ECSModel.allManagersNames")
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
-        componentTypes().add(index, info)
+        componentTypes.update { it.add(index, info) }
     }
 
     fun addEntity(entityId: Int, components: CommonBitVector) {

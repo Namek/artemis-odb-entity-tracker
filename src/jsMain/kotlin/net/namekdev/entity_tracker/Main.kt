@@ -73,13 +73,13 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
     val entities = ECSModel(notifyUpdate)
-    var worldView = ValueContainer<WorldView?>(null).named("World.worldView")
+    var worldView = ValueContainer<WorldView?>(null, notifyUpdate).named("World.worldView")
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
+    var connectionStatus = ValueContainer<Boolean>(false, notifyUpdate).named("World.connectionStatus")
 
     init {
         // due to JS compilation - render() can't be called before fields are initialized, so delay it's first execution
@@ -117,10 +117,10 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
         }
     }
 
-    override fun invalidate() {
-        super.invalidate()
-        notifyUpdate()
-    }
+//    override fun invalidate() {
+//        super.invalidate()
+//        notifyUpdate()
+//    }
 
     val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
 
@@ -189,34 +189,30 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
         val actives = if (aspectInfo.isEmpty) null else CommonBitVector()
         val systemInfo = SystemInfo(index, name, aspectInfo, actives)
 
-        entities.allSystems.add(index, systemInfo)
-        notifyUpdate()
+        entities.allSystems.update { it.add(index, systemInfo) }
     }
 
     override fun addedManager(name: String) {
-        entities.allManagersNames.add(name)
-        notifyUpdate()
+        entities.allManagersNames.update { it.add(name) }
     }
 
     override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
         entities.setComponentType(index, info)
-        notifyUpdate()
     }
 
     override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-        val system = entities.allSystems[systemIndex]
-        system.entitiesCount = entitiesCount
-        system.maxEntitiesCount = maxEntitiesCount
-        notifyUpdate()
+        entities.allSystems.update {
+            val system = it[systemIndex]
+            system.entitiesCount = entitiesCount
+            system.maxEntitiesCount = maxEntitiesCount
+        }
     }
 
     override fun addedEntity(entityId: Int, components: CommonBitVector) {
         entities.addEntity(entityId, components)
-        notifyUpdate()
     }
 
     override fun deletedEntity(entityId: Int) {
         entities.removeEntity(entityId)
-        notifyUpdate()
     }
 }
