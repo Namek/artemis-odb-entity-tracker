@@ -162,7 +162,7 @@ class RenderSession(rootVersionable: Versionable) {
 
 
 // Example
-typealias RenderData = String
+data class RenderNode(val name: String, val nodes: List<RenderNode> = listOf())
 
 class DataStore {
     val dataList = ValueContainer<MutableList<String>>(mutableListOf("a", "b", "c"))
@@ -172,17 +172,18 @@ class RootView : Versionable("RootView") {
     val subView = ValueContainer<SubView?>(null, ::requestRedraw)
     val dataStore = DataStore()
 
-
     fun onConnectedToServer() {
         subView.value = SubView(dataStore)
     }
     fun onAction123() {
         subView.update { it!!.counter += 1 }
     }
-    fun requestRedraw() {
+    fun requestRedraw(): RenderNode {
         // TODO call render() only when need to
         val rendering = RenderSession(this)
-        val tree: String = render(rendering)
+        val tree: RenderNode = render(rendering)
+
+        return tree
     }
 
     override fun invalidate() {
@@ -191,11 +192,16 @@ class RootView : Versionable("RootView") {
     }
 
     fun render(r: RenderSession) = subView.renderTo { r, subView ->
-        (subView?.render?.invoke(r) ?: "") + renderNearStuff(r)
+        RenderNode("RootView.render", listOf(
+            subView?.render?.invoke(r) ?: RenderNode("subView not existing"),
+            renderNearStuff(r)
+        ))
     }(r)
 
     val renderNearStuff = dataStore.dataList.renderTo { r, dataList ->
-        dataList.joinToString()
+        RenderNode("RootView.renderNearStuff", listOf(
+            RenderNode(dataList.joinToString())
+        ))
     }
 }
 
@@ -204,15 +210,20 @@ class SubView(val dataStore: DataStore) : Versionable() {
     val subSubOmg = SubSubView(dataStore)
 
     val render = dataStore.dataList.renderTo { r, dataList ->
-        dataList.joinToString() + counter.toString() + " -> " + subSubOmg.render(r)
+        RenderNode("SubView.render", listOf(
+            RenderNode(dataList.joinToString() + " -> " + counter.toString()),
+            subSubOmg.render(r)
+        ))
     }
 }
 
 class SubSubView(val dataStore: DataStore) : Versionable() {
     var subCounter = ValueContainer(100, ::invalidate)
 
-    fun render(rendering: RenderSession): RenderData = renderTo(dataStore.dataList, subCounter) { r, dataList, subCounter ->
-        dataList.size.toString() + " / $subCounter"
+    fun render(rendering: RenderSession): RenderNode = renderTo(dataStore.dataList, subCounter) { r, dataList, subCounter ->
+        RenderNode("SubSubView.render", listOf(
+            RenderNode(dataList.size.toString() + " / $subCounter")
+        ))
     }(rendering)
 
     fun onSomeClickAction() {
