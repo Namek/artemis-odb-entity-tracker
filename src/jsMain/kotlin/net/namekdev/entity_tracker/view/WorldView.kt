@@ -14,8 +14,8 @@ class WorldView(
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ValueContainer<Int?>(null, notifyChanged)
-    val currentComponent = ValueContainer<CurrentComponent?>(null, notifyChanged)
+    val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
+    val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
@@ -56,14 +56,14 @@ class WorldView(
         notifyChanged()
     }
 
-    fun view() =
+    fun render(r: RenderSession) =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
-            viewEntitiesTable(),
-            viewEntitiesFilters(),
+            viewEntitiesTable(r),
+            viewEntitiesFilters(r),
             row(
                 attrs(widthFill),
-                viewCurrentEntity(),
+                viewCurrentEntity(r),
                 viewSystems())
         )
 
@@ -73,7 +73,7 @@ class WorldView(
         notifyChanged()
     }
 
-    val viewEntitiesTable = mapMultiple(entities().entityComponents, entities().componentTypes) { entityComponents, componentTypes ->
+    val viewEntitiesTable = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->
         val idCol = thCell(row(attrs(paddingRight(15)), text("id")))
         val componentCols = componentTypes.mapToArray {
             thCell(row(attrs(paddingRight(15)), text(it.name)))
@@ -99,7 +99,7 @@ class WorldView(
         val header = tRow(idCol, *componentCols)
 
         table(attrs(), header, *entitiesDataRows)
-    }
+    }.named("viewEntitiesTable")
 
     fun showComponent(entityId: Int, componentIndex: Int) {
         observedEntityId.value = entityId
@@ -110,7 +110,7 @@ class WorldView(
             worldController()?.requestComponentState(entityId, componentIndex)
     }
 
-    fun viewEntitiesFilters() =
+    fun viewEntitiesFilters(r: RenderSession) =
         row(arrayOf(text("TODO filters here?")))
 
     fun viewSystems(): RNode {
@@ -130,7 +130,7 @@ class WorldView(
         return table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = mapMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewCurrentEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
         console.log(entityId, currentComponent)
         if (entityId == null) {
             row(
@@ -166,16 +166,16 @@ class WorldView(
                         attrs(borderBottom(1)),
                         text("Components:")
                     ),
-                    viewObservedEntity()),
+                    viewObservedEntity(r)),
                 column(attrs(widthFill, alignTop, spacing(6)),
                     row(attrs(borderBottom(0)),
                         elems(text(componentName?.let {"<$it>:"} ?: "" ))),
-                    column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent()))
+                    column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent(r)))
             )
         }
-    }
+    }.named("viewCurrentEntity")
 
-    val viewObservedEntity = mapMultiple(observedEntityId, currentComponent) { entityId, currentComponent ->
+    val viewObservedEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
         val componentTypes = entities().entityComponents.value[entityId!!]
 
         if (componentTypes == null)
@@ -209,16 +209,16 @@ class WorldView(
                 componentNames.toTypedArray()
             )
         }
-    }
+    }.named("viewObservedEntity")
 
-    val viewSelectedComponent = currentComponent.map { cmp ->
+    val viewSelectedComponent = currentComponent.renderTo { r, cmp ->
         if (cmp == null)
             column(arrayOf(text("")))
         else {
             val value = cmp.valueTree
             viewValueTree(value.model!!, value, value, true, listOf(cmp.entityId, cmp.componentIndex), 0, listOf(value))
         }
-    }
+    }.named("viewSelectedComponent")
 
     val treeSpacing = 3
     val treeNodeHeight = 18

@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
 }
 
 
-class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
+class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonBitVector> {
     val patch = Snabbdom.init(
         arrayOf(
             ClassModule(),
@@ -73,22 +73,22 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
     val entities = ECSModel(notifyUpdate)
-    var worldView = ValueContainer<WorldView?>(null, notifyUpdate)
+    var worldView = ValueContainer<WorldView?>(null).named("World.worldView")
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ValueContainer<Boolean>(false, notifyUpdate)
+    var connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
 
     init {
-        // due to JS compilation - view() can't be called before fields are initialized, so delay it's first execution
+        // due to JS compilation - render() can't be called before fields are initialized, so delay it's first execution
         window.setTimeout({
             lastVnode = patch(container, h("div"))
         }, 0)
 
         fun update() {
-//            lastVnode = patch(lastVnode, view())
+//            lastVnode = patch(lastVnode, render())
 //            window.setTimeout({
 //                update()
 //            }, 50)
@@ -117,11 +117,16 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         }
     }
 
+    override fun invalidate() {
+        super.invalidate()
+        notifyUpdate()
+    }
 
     val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
 
     fun renderView() {
-        val ctx: RNode = view()
+        val rendering = RenderSession(this)
+        val ctx: RNode = view(rendering)
         ctx.stylesheet?.let {
             dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
         }
@@ -130,9 +135,9 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
         console.log("update")
     }
 
-//    val view = worldView.transform { worldView -> worldView?.view() ?: text("connecting...") }
+//    val render = worldView.transform { worldView -> worldView?.render() ?: text("connecting...") }
 
-    val view = mapMultiple(connectionStatus, worldView) { isConnected, worldView ->
+    val view = renderTo(connectionStatus, worldView) { r, isConnected, worldView ->
         console.log("status changed: $isConnected")
         column(
             attrs(widthFill),
@@ -149,7 +154,7 @@ class Main(container: HTMLElement) : IWorldUpdateListener<CommonBitVector> {
                     // TODO add inputs: hostname, port; and connect/disconnect button; and connection state
                     text("port: ")
                 )),
-            worldView?.view() ?: text("connecting...")
+            worldView?.render(r) ?: text("connecting...")
         )
     }//.named("mainView")
 

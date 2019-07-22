@@ -5,6 +5,7 @@ import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.model.SystemInfo_Common
 import net.namekdev.entity_tracker.utils.CommonBitVector
 import net.namekdev.entity_tracker.utils.ValueContainer
+import net.namekdev.entity_tracker.utils.named
 import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 
@@ -13,8 +14,8 @@ typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
 class ECSModel(notifyChanged: () -> Unit) {
-    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>(), notifyChanged)
-    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>(), notifyChanged)
+    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("entityComponents")
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>(), notifyChanged).named("componentTypes")
     val allSystems = mutableListOf<SystemInfo>()
     val allManagersNames = mutableListOf<String>()
 
