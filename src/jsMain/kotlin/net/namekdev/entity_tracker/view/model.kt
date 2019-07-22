@@ -15,7 +15,7 @@ data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valu
 
 class ECSModel(notifyChanged: () -> Unit) {
     val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("entityComponents")
-    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>(), notifyChanged).named("componentTypes")
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("componentTypes")
     val allSystems = mutableListOf<SystemInfo>()
     val allManagersNames = mutableListOf<String>()
 

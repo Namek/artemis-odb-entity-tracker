@@ -1,6 +1,28 @@
 package net.namekdev.entity_tracker.utils
 
 
+
+fun <T, R> ValueContainer<T>.cachedMap(fn: (T) -> R): ValueMapper<T, R> =
+    ValueMapper(this, fn)
+
+fun <T, R> cachedMap(value: ValueContainer<T>, fn: (T) -> R): ValueMapper<T, R> =
+    ValueMapper(value, fn)
+
+fun <T1, T2, R> cachedMap(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (T1, T2) -> R): ValueMapper2<T1, T2, R> =
+    ValueMapper2(value1, value2, mapFn)
+
+
+fun <T, R> ValueContainer<T>.renderTo(fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
+    RenderableValueMapper(this, fn)
+
+fun <T, R> renderTo(value: ValueContainer<T>, fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
+    RenderableValueMapper(value, fn)
+
+fun <T1, T2, R> renderTo(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (RenderSession, T1, T2) -> R): RenderableValueMapper2<T1, T2, R> =
+    RenderableValueMapper2(value1, value2, mapFn)
+
+
+
 abstract class Nameable(var name: String = "")
 fun <T : Nameable> T.named(name: String): T {
     this.name = name
@@ -8,10 +30,10 @@ fun <T : Nameable> T.named(name: String): T {
 }
 
 abstract class Versionable(name: String = "") : Nameable(name) {
-    internal var lastDataId = 0
+    internal var lastVersion = 0
 
     open fun invalidate() {
-        lastDataId += 1
+        lastVersion += 1
     }
 }
 
@@ -39,25 +61,31 @@ class ValueContainer<T>(initialValue: T, var notifyChanged: (() -> Unit)? = null
     }
 
     operator fun invoke() = value
+}
 
-    /**
-     * Creates a transformation with cached result.
-     */
-    fun <R> cachedMap(fn: (T) -> R): ValueMapper<T, R> =
-        ValueMapper(this, fn)
+abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable() {
+    private val lastVersion: Array<Int> = Array(argCount) { 1000 }
+    var cachedResult: R? = null
+
+    fun needsRemap(vararg versions: Int): Boolean {
+        var needsRemap = false
+        for (i in 0 until argCount) {
+            val v = versions[i]
+            if (v != lastVersion[i]) {
+                lastVersion[i] = v
+                needsRemap = true
+            }
+        }
+        return needsRemap
+    }
 }
 
 class ValueMapper<T, R>(
     private val valueContainer: ValueContainer<T>,
     val mapFn: (T) -> R
-) {
-    private var lastDataId: Int = 1000
-    var cachedResult: R? = null
-
+) : BaseValueMapper<R>(1) {
     operator fun invoke(): R {
-        val dataId = valueContainer.lastDataId
-        if (lastDataId != dataId) {
-            lastDataId = dataId
+        if (needsRemap(valueContainer.lastVersion)) {
             cachedResult = mapFn(valueContainer.value)
         }
 
@@ -69,20 +97,9 @@ class ValueMapper2<T1, T2, R>(
     private val valueContainer1: ValueContainer<T1>,
     private val valueContainer2: ValueContainer<T2>,
     val mapFn: (T1, T2) -> R
-) {
-    private var lastDataId1: Int = 1000
-    private var lastDataId2: Int = 1000
-    var cachedResult: R? = null
-
+) : BaseValueMapper<R>(2) {
     operator fun invoke(): R {
-        val dataId1 = valueContainer1.lastDataId
-        val dataId2 = valueContainer2.lastDataId
-        val needsRemap = lastDataId1 != dataId1 || lastDataId2 != dataId2
-
-        lastDataId1 = dataId1
-        lastDataId2 = dataId2
-
-        if (needsRemap)
+        if (needsRemap(valueContainer1.lastVersion, valueContainer2.lastVersion))
             cachedResult = mapFn(valueContainer1.value, valueContainer2.value)
 
         return cachedResult!!
@@ -93,17 +110,10 @@ class ValueMapper2<T1, T2, R>(
 class RenderableValueMapper<T, R>(
     private val valueContainer: ValueContainer<T>,
     val renderMapFn: (RenderSession, T) -> R
-) : Nameable() {
-    private var lastDataId: Int = 1000
-    var cachedResult: R? = null
-
+) : BaseValueMapper<R>(1) {
     operator fun invoke(rendering: RenderSession): R {
-        val dataId = valueContainer.lastDataId
-
-        if (lastDataId != dataId) {
+        if (needsRemap(valueContainer.lastVersion)) {
             rendering.invalidate()
-
-            lastDataId = dataId
             rendering.push(valueContainer)
             cachedResult = renderMapFn(rendering, valueContainer.value)
             rendering.pop()
@@ -117,20 +127,10 @@ class RenderableValueMapper2<T1, T2, R>(
     private val valueContainer1: ValueContainer<T1>,
     private val valueContainer2: ValueContainer<T2>,
     val renderMapFn: (RenderSession, T1, T2) -> R
-) : Nameable() {
-    private var lastDataId1: Int = 1000
-    private var lastDataId2: Int = 1000
-    var cachedResult: R? = null
-
+) : BaseValueMapper<R>(2) {
     operator fun invoke(rendering: RenderSession): R {
-        val dataId1 = valueContainer1.lastDataId
-        val dataId2 = valueContainer2.lastDataId
-
-        if (lastDataId1 != dataId1 || lastDataId2 != dataId2) {
+        if (needsRemap(valueContainer1.lastVersion, valueContainer2.lastVersion)) {
             rendering.invalidate()
-
-            lastDataId1 = dataId1
-            lastDataId2 = dataId2
             rendering.push(valueContainer1, valueContainer2)
             cachedResult = renderMapFn(rendering, valueContainer1.value, valueContainer2.value)
             rendering.pop()
@@ -140,26 +140,12 @@ class RenderableValueMapper2<T1, T2, R>(
     }
 }
 
-fun <T1, T2, R> cachedMapMultiple(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (T1, T2) -> R): ValueMapper2<T1, T2, R> =
-    ValueMapper2(value1, value2, mapFn)
-
-
-fun <T, R> ValueContainer<T>.renderTo(fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
-    RenderableValueMapper(this, fn)
-
-fun <T, R> renderTo(value: ValueContainer<T>, fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
-    RenderableValueMapper(value, fn)
-
-fun <T1, T2, R> renderTo(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (RenderSession, T1, T2) -> R): RenderableValueMapper2<T1, T2, R> =
-    RenderableValueMapper2(value1, value2, mapFn)
-
-
 
 class RenderSession(rootVersionable: Versionable) {
-    private val levels = mutableListOf<List<Versionable>>(listOf(rootVersionable))
+    private val levels = mutableListOf<Array<out Versionable>>()
 
     fun push(vararg v: Versionable) {
-        levels.add(v.toList())
+        levels.add(v)
     }
 
     fun pop() {

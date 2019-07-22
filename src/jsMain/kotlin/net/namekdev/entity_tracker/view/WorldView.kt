@@ -14,8 +14,8 @@ class WorldView(
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
-    val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
+    val observedEntityId = ValueContainer<Int?>(null, notifyChanged).named("observedEntityId")
+    val currentComponent = ValueContainer<CurrentComponent?>(null, notifyChanged).named("currentComponent")
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
