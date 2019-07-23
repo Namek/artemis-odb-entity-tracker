@@ -16,7 +16,7 @@ class WorldView(
     val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
     val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
     var currentComponentIsWatched = false
-    var currentlyEditedInput: EditedInputState? = null
+    var currentlyEditedInput = ValueContainer<EditedInputState?>(null)
 
 
     override fun deletedEntity(entityId: Int) {
@@ -37,7 +37,7 @@ class WorldView(
             // if current component changes, do not allow
             // re-showing the <input> when we get to previous component (it just looks weird)
             if (it.entityId != entityId || it.componentIndex != componentIndex)
-                currentlyEditedInput = null
+                currentlyEditedInput.value = null
         }
 
         currentComponent()?.let {
@@ -209,7 +209,7 @@ class WorldView(
         }
     }.named("viewObservedEntity")
 
-    val viewSelectedComponent = currentComponent.renderTo { r, cmp ->
+    val viewSelectedComponent = renderTo(currentComponent, currentlyEditedInput) { r, cmp, input ->
         if (cmp == null)
             column(arrayOf(text("")))
         else {
@@ -240,7 +240,7 @@ class WorldView(
                     nullCheckbox(value == null,
                         onChange = { isNull ->
                             if (isNull) {
-                                currentlyEditedInput = null
+                                currentlyEditedInput.value = null
                                 // TODO this currently would crash since Array is not a flat type!
 //                                onValueChanged(rootValue, path, model.dataType, null)
                                 notifyCurrentlyEditedInputChanged()
@@ -266,7 +266,7 @@ class WorldView(
                         attrs(paddingLeft(3), spacing(treeSpacing)),
                         vt.asIterable().mapIndexed { index, subValue ->
                             val valueModel =
-                                (subValue as? ValueTree)?.let {v -> v.model}
+                                (subValue as? ValueTree)?.model
                                     ?: model.extractArraySubTypeModel()
 
                             row(
@@ -325,10 +325,10 @@ class WorldView(
                     row(
                         attrs(spacing(treeSpacing)),
                         text("${value?.toString() ?: "<null>"} →"),
-                        textEdit(currentlyEditedInput?.text ?: "", inputType, true,
+                        textEdit(currentlyEditedInput()?.text ?: "", inputType, true,
                             onChange = { _, str ->
-                                if (currentlyEditedInput?.path == path) {
-                                    currentlyEditedInput!!.text = str
+                                if (currentlyEditedInput()?.path == path) {
+                                    currentlyEditedInput.update { it!!.text = str }
                                 }
                             },
                             onEnter = {
@@ -336,18 +336,18 @@ class WorldView(
                                 onValueChanged(rootValue, path, model.dataType, newValue)
                             },
                             onEscape = {
-                                currentlyEditedInput = null
+                                currentlyEditedInput.value = null
                                 notifyCurrentlyEditedInputChanged()
                             }
                         )
                     )
 
                 fun showValueOrEditor() =
-                    if (currentlyEditedInput?.path != path) {
+                    if (currentlyEditedInput()?.path != path) {
                         row(
                             attrs(
                                 onClick {
-                                    currentlyEditedInput = EditedInputState(path, value?.toString() ?: "")
+                                    currentlyEditedInput.value = EditedInputState(path, value?.toString() ?: "")
                                     notifyCurrentlyEditedInputChanged()
                                 }),
                             text(value?.toString() ?: "<null>")
@@ -368,7 +368,7 @@ class WorldView(
                     else {
                         nullCheckbox(value == null,
                             onChange = { isNull ->
-                                currentlyEditedInput =
+                                currentlyEditedInput.value =
                                     if (isNull) null
                                     else EditedInputState(path, value?.toString() ?: "")
 
