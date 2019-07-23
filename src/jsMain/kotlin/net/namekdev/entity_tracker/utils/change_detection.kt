@@ -70,14 +70,15 @@ open class ValueContainer<T>(initialValue: T) : Nameable() {
 }
 
 
-abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable(), Invalidable {
+abstract class BaseValueMapper<R>(private vararg val mappedValues: ValueContainer<*>) : Nameable(), Invalidable {
+    private val argCount = mappedValues.size
     private val lastVersion: Array<Int> = Array(argCount) { 1000 }
     protected var cachedResult: R? = null
 
-    protected fun needsRemap(vararg versions: Int): Boolean {
+    protected fun needsRemap(): Boolean {
         var needsRemap = false
         for (i in 0 until argCount) {
-            val v = versions[i]
+            val v = mappedValues[i].lastVersion
             if (v != lastVersion[i]) {
                 lastVersion[i] = v
                 needsRemap = true
@@ -94,7 +95,7 @@ abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable(), Inval
     }
 }
 
-abstract class BaseRenderableValueMapper<R>(vararg mappedValues: ValueContainer<*>) : BaseValueMapper<R>(mappedValues.size) {
+abstract class BaseRenderableValueMapper<R>(vararg mappedValues: ValueContainer<*>) : BaseValueMapper<R>(*mappedValues) {
     protected var latestAscendants: List<Invalidable> = listOf()
 
     init {
@@ -113,9 +114,9 @@ abstract class BaseRenderableValueMapper<R>(vararg mappedValues: ValueContainer<
 class ValueMapper<T, R>(
     private val valueContainer: ValueContainer<T>,
     val mapFn: (T) -> R
-) : BaseValueMapper<R>(1) {
+) : BaseValueMapper<R>(valueContainer) {
     operator fun invoke(): R {
-        if (needsRemap(valueContainer.lastVersion)) {
+        if (needsRemap()) {
             cachedResult = mapFn(valueContainer.value)
         }
 
@@ -127,9 +128,9 @@ class ValueMapper2<T1, T2, R>(
     private val valueContainer1: ValueContainer<T1>,
     private val valueContainer2: ValueContainer<T2>,
     val mapFn: (T1, T2) -> R
-) : BaseValueMapper<R>(2) {
+) : BaseValueMapper<R>(valueContainer1, valueContainer2) {
     operator fun invoke(): R {
-        if (needsRemap(valueContainer1.lastVersion, valueContainer2.lastVersion))
+        if (needsRemap())
             cachedResult = mapFn(valueContainer1.value, valueContainer2.value)
 
         return cachedResult!!
@@ -144,7 +145,7 @@ class RenderableValueMapper<T, R>(
     operator fun invoke(rendering: RenderSession): R {
         latestAscendants = rendering.mapLevels.toList()
 
-        if (needsRemap(valueContainer.lastVersion)) {
+        if (needsRemap()) {
             rendering.push(this)
             cachedResult = renderMapFn(rendering, valueContainer.value)
             rendering.pop()
@@ -162,7 +163,7 @@ class RenderableValueMapper2<T1, T2, R>(
     operator fun invoke(rendering: RenderSession): R {
         latestAscendants = rendering.mapLevels.toList()
 
-        if (needsRemap(valueContainer1.lastVersion, valueContainer2.lastVersion)) {
+        if (needsRemap()) {
             rendering.push(this)
             cachedResult = renderMapFn(rendering, valueContainer1.value, valueContainer2.value)
             rendering.pop()
