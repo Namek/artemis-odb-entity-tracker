@@ -11,11 +11,11 @@ typealias SystemInfo = SystemInfo_Common<CommonBitVector>
 typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
 
-class ECSModel(latestRenderSessionGetter: () -> RenderSession) {
-    val entityComponents = ListenableValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
-    val componentTypes = ListenableValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
-    val allSystems = ListenableValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
-    val allManagersNames = ListenableValueContainer(mutableListOf<String>()).named("ECSModel.allManagersNames")
+class ECSModel {
+    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
+    val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
+    val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
+    val allManagersNames = ValueContainer(mutableListOf<String>()).named("ECSModel.allManagersNames")
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {

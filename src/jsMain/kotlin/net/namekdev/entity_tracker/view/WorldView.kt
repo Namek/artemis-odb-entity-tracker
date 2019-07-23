@@ -13,8 +13,8 @@ class WorldView(
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ListenableValueContainer<Int?>(null).named("observedEntityId")
-    val currentComponent = ListenableValueContainer<CurrentComponent?>(null).named("currentComponent")
+    val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
+    val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
@@ -130,7 +130,6 @@ class WorldView(
     }
 
     val viewCurrentEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
-        console.log(entityId, currentComponent)
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),

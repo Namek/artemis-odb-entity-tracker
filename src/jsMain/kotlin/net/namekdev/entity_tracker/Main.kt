@@ -50,8 +50,6 @@ abstract class RenderRoot : Invalidable {
                 // timeout is because of JS compilation - we have lateinit vars!
                 window.setTimeout({
                     alreadyRequested = false
-
-                    latestRenderSession = RenderSession(this)
                     renderView()
                 }, 0)
             }
@@ -59,11 +57,6 @@ abstract class RenderRoot : Invalidable {
     }()
 
     override fun invalidate() = notifyUpdate()
-
-    var latestRenderSession = RenderSession(this)
-    val latestRenderSessionGetter: () -> RenderSession = {
-        latestRenderSession
-    }
 
     abstract fun renderView()
 }
@@ -84,14 +77,14 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
 
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
-    val entities = ECSModel(latestRenderSessionGetter)
-    var worldView = ListenableValueContainer<WorldView?>(null).named("World.worldView")
+    val entities = ECSModel()
+    var worldView = ValueContainer<WorldView?>(null).named("World.worldView")
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ListenableValueContainer<Boolean>(false).named("World.connectionStatus")
+    var connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
 
     init {
         // due to JS compilation - render() can't be called before fields are initialized, so delay it's first execution
@@ -136,7 +129,6 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     override fun renderView() {
         val rendering = RenderSession(this)
         val ctx: RNode = view(rendering)
-        latestRenderSession = rendering
         ctx.stylesheet?.let {
             dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
         }
@@ -145,10 +137,7 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
         console.log("update")
     }
 
-//    val render = worldView.transform { worldView -> worldView?.render() ?: text("connecting...") }
-
     val view = renderTo(connectionStatus, worldView) { r, isConnected, worldView ->
-        console.log("status changed: $isConnected")
         column(
             attrs(widthFill),
             (if (isConnected)
