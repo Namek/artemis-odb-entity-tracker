@@ -31,10 +31,11 @@ class WebSocketClient(val listeners: MutableList<RawConnectionCommunicator> = mu
                 for (l in listeners) l.connected(url, outputListener)
             }
             it.onclose = {
+                val wasConnected = isConnected
                 isConnected = false
                 socket = null
 
-                if (!alreadyNotifiedDisconnection) {
+                if (wasConnected && !alreadyNotifiedDisconnection) {
                     for (l in listeners) l.disconnected()
                 }
             }

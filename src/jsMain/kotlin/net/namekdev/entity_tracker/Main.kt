@@ -38,8 +38,37 @@ fun main(args: Array<String>) {
     }
 }
 
+abstract class RenderRoot : Invalidable {
+    val notifyUpdate = {
+        // a very simple debouncer using the fact that JavaScript is single-threaded
+        var alreadyRequested = false
 
-class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonBitVector> {
+        {
+            if (!alreadyRequested) {
+                alreadyRequested = true
+
+                // timeout is because of JS compilation - we have lateinit vars!
+                window.setTimeout({
+                    alreadyRequested = false
+
+                    latestRenderSession = RenderSession(this)
+                    renderView()
+                }, 0)
+            }
+        }
+    }()
+
+    override fun invalidate() = notifyUpdate()
+
+    var latestRenderSession = RenderSession(this)
+    val latestRenderSessionGetter: () -> RenderSession = {
+        latestRenderSession
+    }
+
+    abstract fun renderView()
+}
+
+class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBitVector> {
     val patch = Snabbdom.init(
         arrayOf(
             ClassModule(),
@@ -53,33 +82,16 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
     lateinit var lastVnode: VNode
     private var dynamicStyles: Element = createStyleElement("")
 
-    val notifyUpdate = {
-        // a very simple debouncer using the fact that JavaScript is single-threaded
-        var alreadyRequested = false
-
-        {
-            if (!alreadyRequested) {
-                alreadyRequested = true
-
-                // timeout is because of JS compilation - we have lateinit vars!
-                window.setTimeout({
-                    alreadyRequested = false
-                    renderView()
-                }, 0)
-            }
-        }
-    }()
-
     private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
-    val entities = ECSModel(notifyUpdate)
-    var worldView = ValueContainer<WorldView?>(null, notifyUpdate).named("World.worldView")
+    val entities = ECSModel(latestRenderSessionGetter)
+    var worldView = ListenableValueContainer<WorldView?>(null).named("World.worldView")
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ValueContainer<Boolean>(false, notifyUpdate).named("World.connectionStatus")
+    var connectionStatus = ListenableValueContainer<Boolean>(false).named("World.connectionStatus")
 
     init {
         // due to JS compilation - render() can't be called before fields are initialized, so delay it's first execution
@@ -115,18 +127,16 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
             })
             it.connect(connectionString())
         }
-    }
 
-//    override fun invalidate() {
-//        super.invalidate()
-//        notifyUpdate()
-//    }
+        invalidate()
+    }
 
     val opts = OptionRecord(HoverSetting.AllowHover, FocusStyle())
 
-    fun renderView() {
+    override fun renderView() {
         val rendering = RenderSession(this)
         val ctx: RNode = view(rendering)
+        latestRenderSession = rendering
         ctx.stylesheet?.let {
             dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
         }
@@ -156,7 +166,7 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
                 )),
             worldView?.render(r) ?: text("connecting...")
         )
-    }//.named("mainView")
+    }.named("mainView")
 
 
     override fun worldDisconnected() {
@@ -172,7 +182,7 @@ class Main(container: HTMLElement) : Versionable(), IWorldUpdateListener<CommonB
     override fun injectWorldController(controller: IWorldController) {
         worldController = controller
 
-        WorldView(notifyUpdate, { entities }, { worldController }).let {
+        WorldView({ entities }, { worldController }).let {
             worldUpdateListener.listeners.add(it)
             worldView.value = it
         }

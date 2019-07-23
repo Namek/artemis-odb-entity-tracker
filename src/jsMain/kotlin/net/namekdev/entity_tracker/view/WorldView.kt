@@ -10,12 +10,11 @@ import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 
 class WorldView(
-    val notifyChanged: () -> Unit,
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ValueContainer<Int?>(null, notifyChanged).named("observedEntityId")
-    val currentComponent = ValueContainer<CurrentComponent?>(null, notifyChanged).named("currentComponent")
+    val observedEntityId = ListenableValueContainer<Int?>(null).named("observedEntityId")
+    val currentComponent = ListenableValueContainer<CurrentComponent?>(null).named("currentComponent")
     var currentComponentIsWatched = false
     var currentlyEditedInput: EditedInputState? = null
 
@@ -27,7 +26,7 @@ class WorldView(
         if (currentComponent.value?.entityId == entityId) {
             currentComponent.value = null
         }
-        notifyChanged()
+//        notifyChanged()
     }
 
     /**
@@ -53,7 +52,7 @@ class WorldView(
         }
 
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
-        notifyChanged()
+//        notifyChanged()
     }
 
     fun render(r: RenderSession) =
@@ -68,9 +67,9 @@ class WorldView(
         )
 
     private fun notifyCurrentlyEditedInputChanged() {
-        viewSelectedComponent.cachedResult = null
-        viewCurrentEntity.cachedResult = null
-        notifyChanged()
+        viewSelectedComponent.invalidate()
+        viewCurrentEntity.invalidate()
+//        notifyChanged()
     }
 
     val viewEntitiesTable = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->

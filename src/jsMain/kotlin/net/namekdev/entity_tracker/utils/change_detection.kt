@@ -12,13 +12,13 @@ fun <T1, T2, R> cachedMap(value1: ValueContainer<T1>, value2: ValueContainer<T2>
     ValueMapper2(value1, value2, mapFn)
 
 
-fun <T, R> ValueContainer<T>.renderTo(fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
+fun <T, R> ListenableValueContainer<T>.renderTo(fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
     RenderableValueMapper(this, fn)
 
-fun <T, R> renderTo(value: ValueContainer<T>, fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
+fun <T, R> renderTo(value: ListenableValueContainer<T>, fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
     RenderableValueMapper(value, fn)
 
-fun <T1, T2, R> renderTo(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (RenderSession, T1, T2) -> R): RenderableValueMapper2<T1, T2, R> =
+fun <T1, T2, R> renderTo(value1: ListenableValueContainer<T1>, value2: ListenableValueContainer<T2>, mapFn: (RenderSession, T1, T2) -> R): RenderableValueMapper2<T1, T2, R> =
     RenderableValueMapper2(value1, value2, mapFn)
 
 
@@ -37,7 +37,7 @@ abstract class Versionable(name: String = "") : Nameable(name) {
     }
 }
 
-class ValueContainer<T>(initialValue: T, var notifyChanged: (() -> Unit)? = null) : Versionable() {
+open class ValueContainer<T>(initialValue: T, var notifyChanged: (() -> Unit)? = null) : Versionable() {
     private var _value: T = initialValue
 
     var value: T
@@ -63,11 +63,27 @@ class ValueContainer<T>(initialValue: T, var notifyChanged: (() -> Unit)? = null
     operator fun invoke() = value
 }
 
-abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable() {
+class ListenableValueContainer<T>(initialValue: T) : ValueContainer<T>(initialValue) {
+    val updateListeners: MutableList<() -> Unit> = mutableListOf()
+
+    init {
+        notifyChanged = {
+            for (l in updateListeners)
+                l.invoke()
+        }
+    }
+}
+
+
+interface Invalidable {
+    fun invalidate()
+}
+
+abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable(), Invalidable {
     private val lastVersion: Array<Int> = Array(argCount) { 1000 }
     var cachedResult: R? = null
 
-    fun needsRemap(vararg versions: Int): Boolean {
+    protected fun needsRemap(vararg versions: Int): Boolean {
         var needsRemap = false
         for (i in 0 until argCount) {
             val v = versions[i]
@@ -78,6 +94,36 @@ abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable() {
         }
         return needsRemap
     }
+
+    override fun invalidate() {
+        for (i in 0 until argCount) {
+            // note: feels like a hack since the ValueContainers were not changed but only this mapper needs to be refreshed
+            lastVersion[i] += 1
+        }
+    }
+}
+
+abstract class BaseRenderableValueMapper<R>(argCount: Int) : BaseValueMapper<R>(argCount) {
+//    protected var latestRenderSession: RenderSession? = null
+    protected var latestMapperAscendants: List<Invalidable> = listOf()
+
+    protected fun registerTo(valueContainer: ListenableValueContainer<*>) {
+        valueContainer.updateListeners.add {
+//            latestRenderSession?.invalidateMapperWithAscendants(this)
+
+//            latestRenderSession?.let {
+//                for (l in it.mapLevels)
+//                    l.invalidate()
+//            }
+
+            for (l in latestMapperAscendants)
+                l.invalidate()
+        }
+    }
+//
+//    override fun invalidate() {
+//        super.invalidate()
+//    }
 }
 
 class ValueMapper<T, R>(
@@ -108,13 +154,18 @@ class ValueMapper2<T1, T2, R>(
 
 
 class RenderableValueMapper<T, R>(
-    private val valueContainer: ValueContainer<T>,
+    private val valueContainer: ListenableValueContainer<T>,
     val renderMapFn: (RenderSession, T) -> R
-) : BaseValueMapper<R>(1) {
+) : BaseRenderableValueMapper<R>(1) {
+    init {
+        registerTo(valueContainer)
+    }
+
     operator fun invoke(rendering: RenderSession): R {
+//        latestRenderSession = rendering
+        latestMapperAscendants = rendering.mapLevels.toList()
         if (needsRemap(valueContainer.lastVersion)) {
-            rendering.invalidate()
-            rendering.push(valueContainer)
+            rendering.push(this, valueContainer)
             cachedResult = renderMapFn(rendering, valueContainer.value)
             rendering.pop()
         }
@@ -124,14 +175,27 @@ class RenderableValueMapper<T, R>(
 }
 
 class RenderableValueMapper2<T1, T2, R>(
-    private val valueContainer1: ValueContainer<T1>,
-    private val valueContainer2: ValueContainer<T2>,
+    private val valueContainer1: ListenableValueContainer<T1>,
+    private val valueContainer2: ListenableValueContainer<T2>,
     val renderMapFn: (RenderSession, T1, T2) -> R
-) : BaseValueMapper<R>(2) {
+) : BaseRenderableValueMapper<R>(2) {
+    init {
+        // TODO well, it registers to it, so the values will definitely tell partial views about invalidation.
+        //      However, RootView will not know about this :(
+        // To fix this, we shouldn't store parents in RenderSession but here in the mapper.
+        // Or, for a shortcut we could store the last RenderSession. Anyway, that's the only way
+        // to call parent partials.
+
+        // ^ Done that below but it's not enough. Eghh
+        registerTo(valueContainer1)
+        registerTo(valueContainer2)
+    }
+
     operator fun invoke(rendering: RenderSession): R {
+//        latestRenderSession = rendering
+        latestMapperAscendants = rendering.mapLevels.toList()
         if (needsRemap(valueContainer1.lastVersion, valueContainer2.lastVersion)) {
-            rendering.invalidate()
-            rendering.push(valueContainer1, valueContainer2)
+            rendering.push(this, valueContainer1, valueContainer2)
             cachedResult = renderMapFn(rendering, valueContainer1.value, valueContainer2.value)
             rendering.pop()
         }
@@ -141,21 +205,57 @@ class RenderableValueMapper2<T1, T2, R>(
 }
 
 
-class RenderSession(rootVersionable: Versionable) {
-    private val levels = mutableListOf<Array<out Versionable>>()
+class RenderSession(rootView: Invalidable) {
+    val mapLevels = mutableListOf<Invalidable>(rootView)
+    val couplings = mutableListOf<Coupling>()
 
-    fun push(vararg v: Versionable) {
-        levels.add(v)
+    class Coupling(
+        val mapper: Invalidable,
+        val dependsOn: Array<out Versionable>,
+        val levelAbove: Invalidable?
+    )
+
+    fun push(mapper: BaseValueMapper<*>, vararg v: Versionable) {
+        couplings.add(Coupling(mapper, v, mapLevels.lastOrNull()))
+        mapLevels.add(mapper)
     }
 
     fun pop() {
-        levels.removeAt(levels.size - 1)
+        mapLevels.removeAt(mapLevels.size - 1)
     }
 
-    fun invalidate() {
-        for (l in levels)
-            for (v in l) v.invalidate()
+    fun invalidateMapperWithAscendants(mapper: Invalidable) {
+        mapper.invalidate()
+
+        // invalidate ascendant mappers!
+        var currentMapper: Invalidable? = mapper
+
+        while (currentMapper != null) {
+            var newMapper: Invalidable? = null
+
+            for (coupling in couplings) {
+                if (coupling.mapper === newMapper) {
+                    coupling.levelAbove?.let {
+                        it.invalidate()
+                        newMapper = it
+                    }
+                }
+            }
+            currentMapper = newMapper
+
+//            if (currentMapper == previousMapper)
+//                currentMapper = null
+        }
     }
+
+//    fun <T> invalidateDependantsOfValueContainer(valueContainer: ListenableValueContainer<T>) {
+//        for (coupling in couplings) {
+//            if (coupling.dependsOn.contains(valueContainer)) {
+//                val mapper = coupling.mapper
+//                invalidateMapperWithAscendants(mapper)
+//            }
+//        }
+//    }
 }
 
 
@@ -164,12 +264,17 @@ class RenderSession(rootVersionable: Versionable) {
 // Example
 data class RenderNode(val name: String, val nodes: List<RenderNode> = listOf())
 
-class DataStore {
-    val dataList = ValueContainer<MutableList<String>>(mutableListOf("a", "b", "c"))
+class DataStore() {
+    val dataList = ListenableValueContainer<MutableList<String>>(mutableListOf("a", "b", "c"))
 }
 
-class RootView : Versionable("RootView") {
-    val subView = ValueContainer<SubView?>(null, ::requestRedraw)
+class RootView : Invalidable {
+    lateinit var latestRenderSession: RenderSession
+    val latestRenderSessionGetter: () -> RenderSession = {
+        latestRenderSession
+    }
+
+    val subView = ListenableValueContainer<SubView?>(null)
     val dataStore = DataStore()
 
     fun onConnectedToServer() {
@@ -180,14 +285,13 @@ class RootView : Versionable("RootView") {
     }
     fun requestRedraw(): RenderNode {
         // TODO call render() only when need to
-        val rendering = RenderSession(this)
-        val tree: RenderNode = render(rendering)
+        latestRenderSession = RenderSession(this)
+        val tree: RenderNode = render(latestRenderSession)
 
         return tree
     }
 
     override fun invalidate() {
-        super.invalidate()
         requestRedraw()
     }
 
@@ -218,7 +322,7 @@ class SubView(val dataStore: DataStore) : Versionable() {
 }
 
 class SubSubView(val dataStore: DataStore) : Versionable() {
-    var subCounter = ValueContainer(100, ::invalidate)
+    val subCounter = ListenableValueContainer(100)
 
     fun render(rendering: RenderSession): RenderNode = renderTo(dataStore.dataList, subCounter) { r, dataList, subCounter ->
         RenderNode("SubSubView.render", listOf(
