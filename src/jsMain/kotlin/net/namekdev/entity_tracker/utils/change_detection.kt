@@ -34,7 +34,7 @@ interface Invalidable {
 }
 
 
-open class ValueContainer<T>(initialValue: T) : Nameable() {
+class ValueContainer<T>(initialValue: T) : Nameable() {
     val updateListeners: MutableList<() -> Unit> = mutableListOf()
     
     private var _value: T = initialValue
@@ -143,7 +143,7 @@ class RenderableValueMapper<T, R>(
     val renderMapFn: (RenderSession, T) -> R
 ) : BaseRenderableValueMapper<R>(valueContainer) {
     operator fun invoke(rendering: RenderSession): R {
-        latestAscendants = rendering.mapLevels.toList()
+        latestAscendants = rendering.mapperPath.toList()
 
         if (needsRemap()) {
             rendering.push(this)
@@ -161,7 +161,7 @@ class RenderableValueMapper2<T1, T2, R>(
     val renderMapFn: (RenderSession, T1, T2) -> R
 ) : BaseRenderableValueMapper<R>(valueContainer1, valueContainer2) {
     operator fun invoke(rendering: RenderSession): R {
-        latestAscendants = rendering.mapLevels.toList()
+        latestAscendants = rendering.mapperPath.toList()
 
         if (needsRemap()) {
             rendering.push(this)
@@ -175,14 +175,14 @@ class RenderableValueMapper2<T1, T2, R>(
 
 
 class RenderSession(rootView: Invalidable) {
-    val mapLevels = mutableListOf<Invalidable>(rootView)
+    val mapperPath = mutableListOf<Invalidable>(rootView)
 
     fun push(mapper: BaseValueMapper<*>) {
-        mapLevels.add(mapper)
+        mapperPath.add(mapper)
     }
 
     fun pop() {
-        mapLevels.removeAt(mapLevels.size - 1)
+        mapperPath.removeAt(mapperPath.size - 1)
     }
 }
 
@@ -192,7 +192,7 @@ class RenderSession(rootView: Invalidable) {
 // Example
 data class RenderNode(val name: String, val nodes: List<RenderNode> = listOf())
 
-class DataStore() {
+class DataStore {
     val dataList = ValueContainer<MutableList<String>>(mutableListOf("a", "b", "c"))
 }
 
@@ -247,11 +247,11 @@ class SubView(val dataStore: DataStore) {
 class SubSubView(val dataStore: DataStore) {
     val subCounter = ValueContainer(100)
 
-    fun render(rendering: RenderSession): RenderNode = renderTo(dataStore.dataList, subCounter) { r, dataList, subCounter ->
+    val render = renderTo(dataStore.dataList, subCounter) { r, dataList, subCounter ->
         RenderNode("SubSubView.render", listOf(
             RenderNode(dataList.size.toString() + " / $subCounter")
         ))
-    }(rendering)
+    }
 
     fun onSomeClickAction() {
         subCounter.update { it + 10 }
