@@ -94,10 +94,15 @@ abstract class BaseValueMapper<R>(private val argCount: Int) : Nameable(), Inval
     }
 }
 
-abstract class BaseRenderableValueMapper<R>(argCount: Int) : BaseValueMapper<R>(argCount) {
+abstract class BaseRenderableValueMapper<R>(vararg mappedValues: ValueContainer<*>) : BaseValueMapper<R>(mappedValues.size) {
     protected var latestAscendants: List<Invalidable> = listOf()
 
-    protected fun registerTo(valueContainer: ValueContainer<*>) {
+    init {
+        for (v in mappedValues)
+            registerTo(v)
+    }
+
+    private inline fun registerTo(valueContainer: ValueContainer<*>) {
         valueContainer.updateListeners.add {
             for (l in latestAscendants)
                 l.invalidate()
@@ -135,11 +140,7 @@ class ValueMapper2<T1, T2, R>(
 class RenderableValueMapper<T, R>(
     private val valueContainer: ValueContainer<T>,
     val renderMapFn: (RenderSession, T) -> R
-) : BaseRenderableValueMapper<R>(1) {
-    init {
-        registerTo(valueContainer)
-    }
-
+) : BaseRenderableValueMapper<R>(valueContainer) {
     operator fun invoke(rendering: RenderSession): R {
         latestAscendants = rendering.mapLevels.toList()
 
@@ -157,12 +158,7 @@ class RenderableValueMapper2<T1, T2, R>(
     private val valueContainer1: ValueContainer<T1>,
     private val valueContainer2: ValueContainer<T2>,
     val renderMapFn: (RenderSession, T1, T2) -> R
-) : BaseRenderableValueMapper<R>(2) {
-    init {
-        registerTo(valueContainer1)
-        registerTo(valueContainer2)
-    }
-
+) : BaseRenderableValueMapper<R>(valueContainer1, valueContainer2) {
     operator fun invoke(rendering: RenderSession): R {
         latestAscendants = rendering.mapLevels.toList()
 
