@@ -329,7 +329,7 @@ class WorldView(
                                 }
                             },
                             onEnter = {
-                                val newValue = extractInputValue(it, model.dataType)
+                                val newValue = it?.extractInputValue(model.dataType)
                                 onValueChanged(rootValue, path, model.dataType, newValue)
                             },
                             onEscape = {

@@ -12,7 +12,12 @@ import kotlin.js.Json
 fun button(label: String, clickHandler: () -> Unit): RNode =
     el("button", attrs(onClick {
         clickHandler()
-    }), elems(text("×")))
+    }), elems(text(label)))
+
+fun button(attrs: Array<Attribute>, label: String, clickHandler: () -> Unit): RNode =
+    el("button", attrs + attrs(onClick {
+        clickHandler()
+    }), elems(text(label)))
 
 fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, onChange: (Int?) -> Unit): RNode {
     val modifier = if (allowNull) 1 else 0
@@ -130,9 +135,10 @@ fun nullCheckbox(isNull: Boolean, onChange: (Boolean) -> Unit, view: ((Boolean) 
 
 fun textEdit(
     text: String, inputType: InputType, autoFocus: Boolean,
-    onChange: (InputValue?, String) -> Unit,
-    onEnter: (InputValue?) -> Unit,
-    onEscape: () -> Unit) : RNode
+    onChange: ((InputValue?, String) -> Unit)? = null,
+    onEnter: ((InputValue?) -> Unit)? = null,
+    onEscape: (() -> Unit)? = null
+) : RNode
 {
     val nativeInputType = when (inputType) {
         InputType.Text -> "text"
@@ -150,20 +156,21 @@ fun textEdit(
         "change" to { evt: dynamic ->
             val text = evt.target.value?.toString() ?: ""
             val output = inputTypeToInputValue(inputType, text)
-            onChange(output, text)
+            onChange?.invoke(output, text)
         },
         "keydown" to { evt: dynamic ->
             if (evt.keyCode == 13 /*ENTER*/) {
                 val text = evt.target.value?.toString() ?: ""
                 val output = inputTypeToInputValue(inputType, text)
                 evt.preventDefault()
-                onEnter(output)
+                onEnter?.invoke(output)
             }
             else if (evt.keyCode == 27 /*ESCAPE*/) {
                 evt.target.value = text
                 evt.preventDefault()
-                onEscape()
+                onEscape?.invoke()
             }
+            else Unit
         }
     )
 

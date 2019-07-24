@@ -84,7 +84,8 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     var connectionHostname = "localhost"
     var connectionPort = 8025
     fun connectionString() = "ws://$connectionHostname:$connectionPort/actions"
-    var connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
+    val connectionStatus = ValueContainer<Boolean>(false).named("World.connectionStatus")
+    val allowConnection = ValueContainer<Boolean>(true)
 
     init {
         // due to JS compilation - render() can't be called before fields are initialized, so delay its first execution
@@ -110,15 +111,27 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
                 }
 
                 override fun disconnected() {
-                    connectionStatus.value = false
+                    if (connectionStatus.value)
+                        connectionStatus.value = false
 
                     // auto-reconnect
+                    if (allowConnection())
                     window.setTimeout({
-                        it.connect(connectionString())
+                        if (allowConnection())
+                            it.connect(connectionString())
                     }, 500)
                 }
             })
             it.connect(connectionString())
+        }
+
+        allowConnection.updateListeners.add {
+            if (!allowConnection()) {
+                connection!!.stop()
+                connectionStatus.value = false
+            }
+            else
+                connection!!.connect(connectionString())
         }
 
         invalidate()
@@ -135,26 +148,44 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
         lastVnode = patch(lastVnode, ctx.vnode)
     }
 
-    val render = renderTo(connectionStatus, worldView) { r, isConnected, worldView ->
+    val render = renderTo(allowConnection, connectionStatus, worldView) { r, allowConnection, isConnected, worldView ->
         column(
             attrs(widthFill),
             (if (isConnected)
                 row(
-                    attrs(spacing(5)),
-                    // TODO disconnect button; hostname, port info as read-only text
-                    text("title: <TODO_title>")
+                    attrs(spacing(5), height(px(20))),
+                    renderConnectionButton(r),
+                    text("host: $connectionHostname:$connectionPort")
                 )
             else
                 row(
-                    attrs(spacing(5)),
+                    attrs(spacing(5), height(px(20))),
+                    renderConnectionButton(r),
                     text("hostname: "),
-                    // TODO add inputs: hostname, port; and connect/disconnect button; and connection state
-                    text("port: ")
+                    textEdit(connectionHostname, InputType.Text, false,
+                        onChange = { value, valueStr ->
+                            connectionHostname = valueStr
+                        }
+                    ),
+                    text("port: "),
+                    textEdit(connectionPort.toString(), InputType.Integer, false,
+                        onChange = { value, _ ->
+                            val newPort = (value as? InputValueInteger)?.number?.toInt()
+                            if (newPort != null)
+                                connectionPort = newPort
+                        }
+                    )
                 )),
-            worldView?.render(r) ?: text("connecting...")
+            worldView?.render(r) ?: (if (allowConnection) text("connecting...") else dummyEl)
         )
     }.named("mainView")
 
+    val renderConnectionButton = renderTo(allowConnection) { r, allowConnection ->
+        val icon = if (allowConnection) "📍" else "📌"
+        button(attrs(width(px(20)), style("align-items", "center")), icon, clickHandler = {
+            this.allowConnection.value = !allowConnection
+        })
+    }
 
     override fun worldDisconnected() {
         worldView()?.let {

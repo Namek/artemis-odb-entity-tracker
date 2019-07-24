@@ -40,5 +40,7 @@ class ECSModel {
     fun clear() {
         componentTypes.update { it.clear() }
         entityComponents.update { it.clear() }
+        allSystems.update { it.clear() }
+        allManagersNames.update { it.clear() }
     }
 }

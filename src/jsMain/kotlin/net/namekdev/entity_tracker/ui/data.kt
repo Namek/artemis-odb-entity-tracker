@@ -32,24 +32,23 @@ fun dataTypeToIcon(dt: DataType, isPrimitive: Boolean): RNode {
     return column(attrs(width(px(28))), text("($text) "))
 }
 
-fun extractInputValue(value: InputValue?, dataType: DataType): Any? =
-    when (value) {
-        null -> null
-        is InputValueText -> value.text
+fun InputValue.extractInputValue(dataType: DataType): Any? =
+    when (this) {
+        is InputValueText -> text
         is InputValueFloatingPoint -> {
             when (dataType) {
-                DataType.Float -> value.number.toFloat()
-                DataType.Double -> value.number.toDouble()
+                DataType.Float -> number.toFloat()
+                DataType.Double -> number.toDouble()
                 else ->
                     throw RuntimeException("textEdit() floating point should be only Float/Double and it is: ${dataType}")
             }
         }
         is InputValueInteger -> {
             when (dataType) {
-                DataType.Byte -> value.number.toByte()
-                DataType.Short -> value.number.toShort()
-                DataType.Int -> value.number.toInt()
-                DataType.Long -> value.number.toLong()
+                DataType.Byte -> number.toByte()
+                DataType.Short -> number.toShort()
+                DataType.Int -> number.toInt()
+                DataType.Long -> number.toLong()
                 else ->
                     throw RuntimeException("integer was supposed to be Byte/Short/Int/Long and it is: ${dataType}")
             }

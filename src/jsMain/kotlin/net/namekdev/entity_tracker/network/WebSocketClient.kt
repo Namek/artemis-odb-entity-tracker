@@ -60,9 +60,14 @@ class WebSocketClient(val listeners: MutableList<RawConnectionCommunicator> = mu
     }
 
     fun stop() {
+        val wasConnected = isConnected
         isConnected = false
         socket?.close()
         socket = null
+
+        if (wasConnected && !alreadyNotifiedDisconnection) {
+            for (l in listeners) l.disconnected()
+        }
     }
 
     fun send(buffer: ByteArray, offset: Int, length: Int) =

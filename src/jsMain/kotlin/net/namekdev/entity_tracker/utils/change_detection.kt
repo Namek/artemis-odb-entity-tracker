@@ -21,6 +21,9 @@ fun <T, R> renderTo(value: ValueContainer<T>, fn: (RenderSession, T) -> R): Rend
 fun <T1, T2, R> renderTo(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (RenderSession, T1, T2) -> R): RenderableValueMapper2<T1, T2, R> =
     RenderableValueMapper2(value1, value2, mapFn)
 
+fun <T1, T2, T3, R> renderTo(value1: ValueContainer<T1>, value2: ValueContainer<T2>, value3: ValueContainer<T3>, mapFn: (RenderSession, T1, T2, T3) -> R): RenderableValueMapper3<T1, T2, T3, R> =
+    RenderableValueMapper3(value1, value2, value3, mapFn)
+
 
 
 abstract class Nameable(var name: String = "")
@@ -166,6 +169,25 @@ class RenderableValueMapper2<T1, T2, R>(
         if (needsRemap()) {
             rendering.push(this)
             cachedResult = renderMapFn(rendering, valueContainer1.value, valueContainer2.value)
+            rendering.pop()
+        }
+
+        return cachedResult!!
+    }
+}
+
+class RenderableValueMapper3<T1, T2, T3, R>(
+    private val valueContainer1: ValueContainer<T1>,
+    private val valueContainer2: ValueContainer<T2>,
+    private val valueContainer3: ValueContainer<T3>,
+    val renderMapFn: (RenderSession, T1, T2, T3) -> R
+) : BaseRenderableValueMapper<R>(valueContainer1, valueContainer2, valueContainer3) {
+    operator fun invoke(rendering: RenderSession): R {
+        latestAscendants = rendering.mapperPath.toList()
+
+        if (needsRemap()) {
+            rendering.push(this)
+            cachedResult = renderMapFn(rendering, valueContainer1.value, valueContainer2.value, valueContainer3.value)
             rendering.pop()
         }
 
