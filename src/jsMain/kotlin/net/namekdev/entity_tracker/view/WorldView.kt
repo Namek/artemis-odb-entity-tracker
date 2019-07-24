@@ -53,6 +53,16 @@ class WorldView(
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
     }
 
+    override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
+        currentComponent()?.let {
+            if (it.entityId in entityIds && it.componentIndex == componentIndex) {
+                currentComponent.value = null
+                currentlyEditedInput.value = null
+                worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
+            }
+        }
+    }
+
     fun render(r: RenderSession) =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
@@ -147,16 +157,18 @@ class WorldView(
                             worldController()!!.deleteEntity(entityId)
                         }
                     ),
-                    if (currentComponent == null)
-                        dummyEl
-                    else {
-                        val componentIndex = currentComponent.componentIndex
+                    row(attrs(height(px(20))),
+                        if (currentComponent == null)
+                            text("no component is selected")
+                        else {
+                            val componentIndex = currentComponent.componentIndex
 
-                        labelledCheckbox("Watch E$entityId:C$componentIndex", currentComponentIsWatched) { enabled ->
-                            worldController()!!.setComponentStateWatcher(entityId, componentIndex, enabled)
-                            currentComponentIsWatched = enabled
+                            labelledCheckbox("Watch E$entityId:C$componentIndex", currentComponentIsWatched) { enabled ->
+                                worldController()!!.setComponentStateWatcher(entityId, componentIndex, enabled)
+                                currentComponentIsWatched = enabled
+                            }
                         }
-                    },
+                    ),
                     row(
                         attrs(borderBottom(1)),
                         text("Components:")

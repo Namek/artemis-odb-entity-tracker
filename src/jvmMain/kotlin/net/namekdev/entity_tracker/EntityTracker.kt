@@ -270,8 +270,12 @@ class EntityTracker @JvmOverloads constructor(
     override fun requestComponentState(entityId: Int, componentIndex: Int) {
         //val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
-        val component = mapper.get(entityId)
-        updateListener.updatedComponentState(entityId, componentIndex, component)
+        val component = mapper.getSafe(entityId, null)
+
+        if (component != null)
+            updateListener.updatedComponentState(entityId, componentIndex, component)
+        else
+            updateListener.removedComponentTypeFromEntities(componentIndex, IntArray(entityId))
     }
 
     override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValueDataType: DataType, newValue: Any?) {
