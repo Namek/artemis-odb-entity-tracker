@@ -102,6 +102,34 @@ class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : 
         _entities.remove(entityId)
     }
 
+    override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
+        for (eid in entityIds) {
+            var bits = _entities[eid]
+            if (bits == null) {
+                bits = BitVector()
+                bits.set(componentIndex)
+                _entities[eid] = bits
+            }
+
+            bits.set(componentIndex, true)
+        }
+
+        for (l in _listeners) {
+            l.addedComponentTypeToEntities(componentIndex, entityIds)
+        }
+    }
+
+    override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
+        for (eid in entityIds) {
+            val bits = _entities[eid]
+            bits?.set(componentIndex, false)
+        }
+
+        for (l in _listeners) {
+            l.removedComponentTypeFromEntities(componentIndex, entityIds)
+        }
+    }
+
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
         // `valueTree` is going to be serialized in next layer
         assert(valueTree is Component)

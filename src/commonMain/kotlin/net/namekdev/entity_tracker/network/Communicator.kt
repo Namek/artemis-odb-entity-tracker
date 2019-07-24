@@ -24,6 +24,8 @@ abstract class Communicator : RawConnectionCommunicator {
         const val TYPE_UPDATED_ENTITY_SYSTEM: Byte = 64
         const val TYPE_ADDED_ENTITY: Byte = 68
         const val TYPE_DELETED_ENTITY: Byte = 73
+        const val TYPE_ADDED_COMPONENT_TYPE_TO_ENTITIES: Byte = 80
+        const val TYPE_REMOVED_COMPONENT_TYPE_FROM_ENTITIES: Byte = 81
         const val TYPE_UPDATED_COMPONENT_STATE: Byte = 104
 
         // UI requests

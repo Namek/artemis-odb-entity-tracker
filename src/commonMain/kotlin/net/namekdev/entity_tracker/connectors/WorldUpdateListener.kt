@@ -16,6 +16,8 @@ interface IWorldUpdateListener<BitVectorType> {
 	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int) { }
 	fun addedEntity(entityId: Int, components: BitVectorType) { }
 	fun deletedEntity(entityId: Int) { }
+	fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) { }
+	fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) { }
 	fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) { }
 }
 
@@ -65,4 +67,11 @@ class WorldUpdateMultiplexer<BitVectorType>(val listeners: MutableList<IWorldUpd
 		for (l in listeners) l.updatedComponentState(entityId, componentIndex, valueTree)
 	}
 
+	override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
+		for (l in listeners) l.addedComponentTypeToEntities(componentIndex, entityIds)
+	}
+
+	override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
+		for (l in listeners) l.removedComponentTypeFromEntities(componentIndex, entityIds)
+	}
 }

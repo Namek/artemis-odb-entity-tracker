@@ -243,4 +243,12 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     override fun deletedEntity(entityId: Int) {
         entities.removeEntity(entityId)
     }
+
+    override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
+        entities.setComponentTypeOnEntities(componentIndex, entityIds, true)
+    }
+
+    override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
+        entities.setComponentTypeOnEntities(componentIndex, entityIds, false)
+    }
 }

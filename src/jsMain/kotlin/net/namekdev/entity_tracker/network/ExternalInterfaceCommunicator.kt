@@ -77,6 +77,16 @@ class ExternalInterfaceCommunicator(
                 val entityId = _deserializer.readInt()
                 _listener.deletedEntity(entityId)
             }
+            Communicator.TYPE_ADDED_COMPONENT_TYPE_TO_ENTITIES -> {
+                val componentIndex = _deserializer.readInt()
+                val entityIds = _deserializer.readPrimitiveIntArray()
+                _listener.addedComponentTypeToEntities(componentIndex, entityIds)
+            }
+            Communicator.TYPE_REMOVED_COMPONENT_TYPE_FROM_ENTITIES -> {
+                val componentIndex = _deserializer.readInt()
+                val entityIds = _deserializer.readPrimitiveIntArray()
+                _listener.removedComponentTypeFromEntities(componentIndex, entityIds)
+            }
             Communicator.TYPE_UPDATED_COMPONENT_STATE -> {
                 val entityId = _deserializer.readInt()
                 val index = _deserializer.readInt()

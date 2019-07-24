@@ -30,6 +30,14 @@ class ECSModel {
         entityComponents.update { it.remove(entityId) }
     }
 
+    fun setComponentTypeOnEntities(componentIndex: Int, entityIds: IntArray, isSet: Boolean) {
+        entityComponents.update {
+            for (eid in entityIds) {
+                it[eid]?.set(componentIndex, isSet)
+            }
+        }
+    }
+
     fun getEntityComponents(entityId: Int): CommonBitVector =
         entityComponents()[entityId]!!
 

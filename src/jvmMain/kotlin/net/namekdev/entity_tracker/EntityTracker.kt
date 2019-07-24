@@ -230,6 +230,19 @@ class EntityTracker @JvmOverloads constructor(
 
             updateListener!!.addedComponentType(i, info)
             ++_notifiedComponentTypesCount
+
+            world.aspectSubscriptionManager.get(Aspect.all(type))
+                .addSubscriptionListener(object: SubscriptionListener {
+                    override fun inserted(entities: IntBag) {
+                        val entityIds = entities.data.sliceArray(IntRange(0, entities.size() - 1))
+                        updateListener.addedComponentTypeToEntities(i, entityIds)
+                    }
+
+                    override fun removed(entities: IntBag) {
+                        val entityIds = entities.data.sliceArray(IntRange(0, entities.size() - 1))
+                        updateListener.removedComponentTypeFromEntities(i, entityIds)
+                    }
+                })
         }
     }
 

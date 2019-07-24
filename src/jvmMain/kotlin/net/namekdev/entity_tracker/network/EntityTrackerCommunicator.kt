@@ -147,6 +147,22 @@ open class EntityTrackerCommunicator(inspector: ObjectTypeInspector)
         )
     }
 
+    override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
+        send(
+            beginPacket(Communicator.TYPE_ADDED_COMPONENT_TYPE_TO_ENTITIES)
+                .addInt(componentIndex)
+                .addArray(entityIds)
+        )
+    }
+
+    override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
+        send(
+            beginPacket(Communicator.TYPE_REMOVED_COMPONENT_TYPE_FROM_ENTITIES)
+                .addInt(componentIndex)
+                .addArray(entityIds)
+        )
+    }
+
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
         val p = beginPacket(Communicator.TYPE_UPDATED_COMPONENT_STATE)
             .addInt(entityId)
