@@ -29,6 +29,7 @@ fun main(args: Array<String>) {
             .setSystem(RenderSystem())
             .setSystem(MotionBlurSystem())
             .setSystem(CollisionSystem())
+            .setSystem(MotionBlurSwitchingSystem())
             .setSystem(ConstantlyChangingValuesSystem())
     )
 
@@ -43,6 +44,7 @@ fun main(args: Array<String>) {
 
         if (i == 0 || i == 5 || i == 6) {
             e.add(MotionBlur())
+            e.add(Progress())
         }
         if (i % 3 == 0) {
             e.add(Speed(i * 10f))
@@ -101,6 +103,11 @@ class Renderable(
 class MotionBlur(
     var on: Boolean? = true,
     var power: Double = 0.0
+) : Component()
+
+class Progress(
+    var percent: Float = 0f,
+    var changeSpeedFactor: Float = 0.5f
 ) : Component()
 
 class Collider(
@@ -165,6 +172,23 @@ class CollisionSystem : EntityProcessingSystem(
     Aspect.all(Collider::class.java, Pos::class.java)
 ) {
     override fun process(e: Entity) {}
+}
+
+class MotionBlurSwitchingSystem : EntityProcessingSystem(
+    Aspect.all(Progress::class.java)
+) {
+    lateinit var mProgress: ComponentMapper<Progress>
+    lateinit var mMotionBlur: ComponentMapper<MotionBlur>
+
+    override fun process(e: Entity) {
+        val progress = mProgress[e]
+        progress.percent += world.delta * progress.changeSpeedFactor
+        while (progress.percent > 1f) {
+            progress.percent -= 1f
+
+            mMotionBlur.set(e, !mMotionBlur.has(e))
+        }
+    }
 }
 
 class ConstantlyChangingValuesSystem : EntityProcessingSystem(
