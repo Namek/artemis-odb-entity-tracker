@@ -71,7 +71,7 @@ class WorldView(
             row(
                 attrs(widthFill),
                 viewCurrentEntity(r),
-                viewSystems())
+                viewSystems(r))
         )
 
     private fun notifyCurrentlyEditedInputChanged() {
@@ -119,11 +119,11 @@ class WorldView(
     fun viewEntitiesFilters(r: RenderSession) =
         row(arrayOf(text("TODO filters here?")))
 
-    fun viewSystems(): RNode {
+    val viewSystems = renderTo(entities().allSystems) { r, allSystems ->
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
 
         val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
-        val rows = entities().allSystems()
+        val rows = allSystems
 //            .filter { it.hasAspect }
             .mapToArray {
                 tRow(
@@ -133,7 +133,8 @@ class WorldView(
                     tCell(it.maxEntitiesCount.toString())
                 )
             }
-        return table(attrs(width(fill), alignTop), header, *rows)
+
+        table(attrs(width(fill), alignTop), header, *rows)
     }
 
     val viewCurrentEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
