@@ -105,7 +105,7 @@ class EntityTracker @JvmOverloads constructor(
                     listenForEntitySetChanges(info)
                 }
 
-                updateListener!!.addedSystem(index++, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes)
+                updateListener.addedSystem(index++, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes)
                 ++i
             }
         }
@@ -127,7 +127,7 @@ class EntityTracker @JvmOverloads constructor(
             managersInfo.add(info)
             managersInfoByName.put(managerName, info)
 
-            updateListener!!.addedManager(managerName)
+            updateListener.addedManager(managerName)
             ++i
         }
     }
@@ -146,7 +146,7 @@ class EntityTracker @JvmOverloads constructor(
                     info.maxEntitiesCount = info.entitiesCount
                 }
 
-                updateListener?.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
+                updateListener.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
             }
         })
     }
@@ -191,7 +191,7 @@ class EntityTracker @JvmOverloads constructor(
                 inspectNewComponentTypesAndNotify()
             }
 
-            updateListener?.addedEntity(entityId, componentBitVector)
+            updateListener.addedEntity(entityId, componentBitVector)
 
             ++i
         }
@@ -208,7 +208,7 @@ class EntityTracker @JvmOverloads constructor(
                 it.clientId == 0 && it.entityId == entityId
             }
 
-            updateListener?.deletedEntity(entityId)
+            updateListener.deletedEntity(entityId)
 
             ++i
         }
@@ -228,7 +228,7 @@ class EntityTracker @JvmOverloads constructor(
             allComponentTypesInfo.set(i, info)
             allComponentMappers.set(i, ComponentMapper.getFor(type, world))
 
-            updateListener!!.addedComponentType(i, info)
+            updateListener.addedComponentType(i, info)
             ++_notifiedComponentTypesCount
 
             world.aspectSubscriptionManager.get(Aspect.all(type))
@@ -271,7 +271,7 @@ class EntityTracker @JvmOverloads constructor(
         //val info = allComponentTypesInfo.get(componentIndex)
         val mapper = allComponentMappers.get(componentIndex)
         val component = mapper.get(entityId)
-        updateListener!!.updatedComponentState(entityId, componentIndex, component)
+        updateListener.updatedComponentState(entityId, componentIndex, component)
     }
 
     override fun setComponentFieldValue(entityId: Int, componentIndex: Int, treePath: IntArray, newValueDataType: DataType, newValue: Any?) {
