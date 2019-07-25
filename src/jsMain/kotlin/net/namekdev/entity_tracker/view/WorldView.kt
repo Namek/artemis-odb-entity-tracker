@@ -53,13 +53,32 @@ class WorldView(
         currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
     }
 
+    override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
+        currentComponent()?.let {
+            if (it.entityId in entityIds) {
+                currentComponent.update { }
+            }
+        }
+        observedEntityId()?.let {
+            if (it in entityIds)
+                observedEntityId.update { }
+        }
+    }
+
     override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
         currentComponent()?.let {
-            if (it.entityId in entityIds && it.componentIndex == componentIndex) {
-                currentComponent.value = null
-                currentlyEditedInput.value = null
-                worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
+            if (it.entityId in entityIds) {
+                if (it.componentIndex == componentIndex) {
+                    currentComponent.value = null
+                    currentlyEditedInput.value = null
+                    worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
+                }
+                else currentComponent.update { }
             }
+        }
+        observedEntityId()?.let {
+            if (it in entityIds)
+                observedEntityId.update { }
         }
     }
 
