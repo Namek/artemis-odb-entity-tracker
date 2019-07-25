@@ -166,8 +166,10 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun processSystem() {
-        for (wc in watchedComponents) {
-            requestComponentState(wc.entityId, wc.componentIndex)
+        synchronized(watchedComponents) {
+            for (wc in watchedComponents) {
+                requestComponentState(wc.entityId, wc.componentIndex)
+            }
         }
     }
 
@@ -204,8 +206,10 @@ class EntityTracker @JvmOverloads constructor(
         while (size > i) {
             val entityId = ids[i]
 
-            watchedComponents.removeAll {
-                it.clientId == 0 && it.entityId == entityId
+            synchronized(watchedComponents) {
+                watchedComponents.removeAll {
+                    it.clientId == 0 && it.entityId == entityId
+                }
             }
 
             updateListener.deletedEntity(entityId)
@@ -291,15 +295,19 @@ class EntityTracker @JvmOverloads constructor(
     }
 
     override fun setComponentStateWatcher(entityId: Int, componentIndex: Int, enabled: Boolean) {
-        val wcIndex = watchedComponents.indexOfFirst { wc ->
-            wc.clientId == 0 && wc.entityId == entityId && wc.componentIndex == componentIndex
+        synchronized(watchedComponents) {
+            val wcIndex = watchedComponents.indexOfFirst { wc ->
+                wc.clientId == 0 && wc.entityId == entityId && wc.componentIndex == componentIndex
+            }
+            if (enabled && wcIndex < 0) {
+                // what's interesting, we don't check if such entity even exists... and what if it doesn't?
+                watchedComponents.add(WatchedComponent(0, entityId, componentIndex))
+            }
+            else if (!enabled && wcIndex >= 0)
+                watchedComponents.removeAt(wcIndex)
+
+            Unit
         }
-        if (enabled && wcIndex < 0) {
-            // what's interesting, we don't check if such entity even exists... and what if it doesn't?
-            watchedComponents.add(WatchedComponent(0, entityId, componentIndex))
-        }
-        else if (!enabled && wcIndex >= 0)
-            watchedComponents.removeAt(wcIndex)
     }
 
     override fun deleteEntity(entityId: Int) {
