@@ -13,18 +13,13 @@ class WorldView(
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
-    val observedEntityId = ValueContainer<Int?>(null).named("observedEntityId")
-    val currentComponent = ValueContainer<CurrentComponent?>(null).named("currentComponent")
-    var currentComponentIsWatched = false
+    val watchedEntity = ValueContainer<WatchedEntity>(WatchedEntity(null, 0, null)).named("watchedEntity")
     var currentlyEditedInput = ValueContainer<EditedInputState?>(null)
 
 
     override fun deletedEntity(entityId: Int) {
-        if (observedEntityId.value == entityId) {
-            observedEntityId.value = null
-        }
-        if (currentComponent.value?.entityId == entityId) {
-            currentComponent.value = null
+        if (watchedEntity.value.entityId == entityId) {
+            watchedEntity.update { it.entityId = null }
         }
     }
 
@@ -32,53 +27,56 @@ class WorldView(
      * Received after component value request was sent.
      */
     override fun updatedComponentState(entityId: Int, componentIndex: Int, valueTree: Any) {
-        currentComponent()?.let {
-            // if current component changes, do not allow
-            // re-showing the <input> when we get to previous component (it just looks weird)
-            if (it.entityId != entityId || it.componentIndex != componentIndex)
+        watchedEntity().let {
+            if (it.entityId != entityId || it.componentIndex != componentIndex) {
+                // if current component changes, do not allow
+                // re-showing the <input> when we get to previous component (it just looks weird)
                 currentlyEditedInput.value = null
+            }
         }
 
-        currentComponent()?.let {
-            if (it.entityId != entityId || it.componentIndex != componentIndex)
-                worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
-        }
+        watchedEntity.update {
+            // if that's first component ever chosen then watch it automatically.
+            if (it.entityId == null) {
+                it.watchEnabled = true
+                worldController()!!.setComponentStateWatcher(entityId, componentIndex, true)
+            }
 
-        // if that's first component ever chosen then watch it automatically.
-        if (currentComponent() == null) {
-            worldController()!!.setComponentStateWatcher(entityId, componentIndex, true)
-            currentComponentIsWatched = true
+            it.entityId = entityId
+            it.componentIndex = componentIndex
+            it.valueTree = valueTree as ValueTree
         }
-
-        currentComponent.value = CurrentComponent(entityId, componentIndex, valueTree as ValueTree)
     }
 
     override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
-        currentComponent()?.let {
-            if (it.entityId in entityIds) {
-                currentComponent.update { }
+        watchedEntity().let { watchedEntity ->
+            val entityId = watchedEntity().entityId
+            if (entityId != null && entityId in entityIds) {
+                if (watchedEntity.componentIndex == componentIndex && watchedEntity.watchEnabled) {
+                    showComponent(entityId, componentIndex)
+                }
+
+                // trigger view update: component list of the entity
+                this.watchedEntity.update { }
             }
-        }
-        observedEntityId()?.let {
-            if (it in entityIds)
-                observedEntityId.update { }
         }
     }
 
     override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
-        currentComponent()?.let {
-            if (it.entityId in entityIds) {
-                if (it.componentIndex == componentIndex) {
-                    currentComponent.value = null
+        watchedEntity().let { watchedEntity ->
+            val entityId = watchedEntity.entityId
+            if (entityId != null && entityId in entityIds) {
+                if (watchedEntity.componentIndex == componentIndex) {
                     currentlyEditedInput.value = null
-                    worldController()!!.setComponentStateWatcher(it.entityId, it.componentIndex, false)
+                    this.watchedEntity.update {
+                        it.valueTree = null
+                    }
+                    worldController()!!.setComponentStateWatcher(entityId, watchedEntity.componentIndex, false)
                 }
-                else currentComponent.update { }
+
+                // trigger view update: component list of the entity
+                this.watchedEntity.update { }
             }
-        }
-        observedEntityId()?.let {
-            if (it in entityIds)
-                observedEntityId.update { }
         }
     }
 
@@ -127,9 +125,19 @@ class WorldView(
     }.named("viewEntitiesTable")
 
     fun showComponent(entityId: Int, componentIndex: Int) {
-        observedEntityId.value = entityId
+        val previousEntityId = watchedEntity().entityId
+        val previousComponentIndex = watchedEntity().componentIndex
 
-        if (currentComponentIsWatched)
+        if (previousEntityId != null) {
+            worldController()?.setComponentStateWatcher(previousEntityId, previousComponentIndex, false)
+        }
+
+        watchedEntity.update {
+            it.entityId = entityId
+            it.componentIndex = componentIndex
+        }
+
+        if (watchedEntity().watchEnabled)
             worldController()?.setComponentStateWatcher(entityId, componentIndex, true)
         else
             worldController()?.requestComponentState(entityId, componentIndex)
@@ -156,7 +164,10 @@ class WorldView(
         table(attrs(width(fill), alignTop), header, *rows)
     }
 
-    val viewCurrentEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
+    val viewCurrentEntity = renderTo(watchedEntity) { r, watchedEntity ->
+        val entityId = watchedEntity.entityId
+        val componentIndex = watchedEntity.componentIndex
+
         if (entityId == null) {
             row(
                 attrs(width(fillPortion(2)), heightFill),
@@ -164,7 +175,7 @@ class WorldView(
             )
         }
         else {
-            val componentName = currentComponent?.componentIndex?.let {
+            val componentName = componentIndex.let {
                 entities().componentTypes.value[it].name
             }
             row(
@@ -178,15 +189,9 @@ class WorldView(
                         }
                     ),
                     row(attrs(height(px(20))),
-                        if (currentComponent == null)
-                            text("no component is selected")
-                        else {
-                            val componentIndex = currentComponent.componentIndex
-
-                            labelledCheckbox("Watch E$entityId:C$componentIndex", currentComponentIsWatched) { enabled ->
-                                worldController()!!.setComponentStateWatcher(entityId, componentIndex, enabled)
-                                currentComponentIsWatched = enabled
-                            }
+                        labelledCheckbox("Watch E$entityId:C$componentIndex", watchedEntity.watchEnabled) { enabled ->
+                            worldController()!!.setComponentStateWatcher(entityId, componentIndex, enabled)
+                            this.watchedEntity.update { it.watchEnabled = enabled }
                         }
                     ),
                     row(
@@ -196,14 +201,18 @@ class WorldView(
                     viewObservedEntity(r)),
                 column(attrs(widthFill, alignTop, spacing(6)),
                     row(attrs(borderBottom(0)),
-                        elems(text(componentName?.let {"<$it>:"} ?: "" ))),
+                        elems(
+                           watchedEntity.valueTree?.let { text("<$componentName>:" ) }
+                               ?: dummyEl
+                        )),
                     column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent(r)))
             )
         }
     }.named("viewCurrentEntity")
 
-    val viewObservedEntity = renderTo(observedEntityId, currentComponent) { r, entityId, currentComponent ->
-        val componentTypes = entities().entityComponents.value[entityId!!]
+    val viewObservedEntity = renderTo(watchedEntity) { r, watchedEntity ->
+        val entityId = watchedEntity.entityId!!
+        val componentTypes = entities().entityComponents.value[entityId]
 
         if (componentTypes == null)
             column(
@@ -216,7 +225,7 @@ class WorldView(
             var i: Int = componentTypes.nextSetBit(0)
             while (i >= 0) {
                 val cmpType = entities().componentTypes.value[i]
-                val isSelected = cmpType.index == currentComponent?.componentIndex
+                val isSelected = cmpType.index == watchedEntity.componentIndex && watchedEntity.valueTree != null
 
                 componentNames.add(
                     row(
@@ -238,12 +247,14 @@ class WorldView(
         }
     }.named("viewObservedEntity")
 
-    val viewSelectedComponent = renderTo(currentComponent, currentlyEditedInput) { r, cmp, input ->
-        if (cmp == null)
+    val viewSelectedComponent = renderTo(watchedEntity, currentlyEditedInput) { r, watchedEntity, input ->
+        val value = watchedEntity.valueTree
+        val entityId = watchedEntity.entityId
+
+        if (value == null || entityId == null)
             column(arrayOf(text("")))
         else {
-            val value = cmp.valueTree
-            viewValueTree(value.model!!, value, value, true, listOf(cmp.entityId, cmp.componentIndex), 0, listOf(value))
+            viewValueTree(value.model!!, value, value, true, listOf(entityId, watchedEntity.componentIndex), 0, listOf(value))
         }
     }.named("viewSelectedComponent")
 

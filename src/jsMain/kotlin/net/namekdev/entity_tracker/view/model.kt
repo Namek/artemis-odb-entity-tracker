@@ -9,7 +9,8 @@ import net.namekdev.entity_tracker.utils.serialization.ValueTree
 
 typealias SystemInfo = SystemInfo_Common<CommonBitVector>
 typealias AspectInfo = AspectInfo_Common<CommonBitVector>
-data class CurrentComponent(val entityId: Int, val componentIndex: Int, val valueTree: ValueTree)
+
+class WatchedEntity(var entityId: Int?, var componentIndex: Int, var valueTree: ValueTree?, var watchEnabled: Boolean = true)
 
 class ECSModel {
     val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
