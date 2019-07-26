@@ -154,10 +154,16 @@ class WorldView(
 //            .filter { it.hasAspect }
             .mapToArray {
                 tRow(
-                    tCell(""),
+                    tCell(
+                        checkbox(it.isEnabled) { enabled ->
+                            it.isEnabled = enabled
+                            entities().allSystems.update { }
+                            worldController()?.setSystemState(it.name, enabled)
+                        }
+                    ),
                     tCell(it.name),
-                    tCell(it.entitiesCount.toString()),
-                    tCell(it.maxEntitiesCount.toString())
+                    if (it.hasAspect) tCell(it.entitiesCount.toString()) else dummyEl,
+                    if (it.hasAspect) tCell(it.maxEntitiesCount.toString()) else dummyEl
                 )
             }
 

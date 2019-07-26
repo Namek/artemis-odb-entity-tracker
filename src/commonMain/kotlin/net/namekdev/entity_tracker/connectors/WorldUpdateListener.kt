@@ -10,10 +10,16 @@ interface IWorldUpdateListener<BitVectorType> {
 	fun injectWorldController(controller: IWorldController) { }
     fun worldDisconnected() { }
 
-    fun addedSystem(index: Int, name: String, allTypes: BitVectorType?, oneTypes: BitVectorType?, notTypes: BitVectorType?) { }
-	fun addedManager(name: String) { }
+    fun addedSystem(
+		index: Int,
+		name: String,
+		allTypes: BitVectorType?,
+		oneTypes: BitVectorType?,
+		notTypes: BitVectorType?,
+		isEnabled: Boolean
+	) { }
 	fun addedComponentType(index: Int, info: ComponentTypeInfo) { }
-	fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int) { }
+	fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) { }
 	fun addedEntity(entityId: Int, components: BitVectorType) { }
 	fun deletedEntity(entityId: Int) { }
 	fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) { }
@@ -38,21 +44,18 @@ class WorldUpdateMultiplexer<BitVectorType>(val listeners: MutableList<IWorldUpd
 		name: String,
 		allTypes: BitVectorType?,
 		oneTypes: BitVectorType?,
-		notTypes: BitVectorType?
+		notTypes: BitVectorType?,
+		isEnabled: Boolean
 	) {
-		for (l in listeners) l.addedSystem(index, name, allTypes, oneTypes, notTypes)
-	}
-
-	override fun addedManager(name: String) {
-		for (l in listeners) l.addedManager(name)
+		for (l in listeners) l.addedSystem(index, name, allTypes, oneTypes, notTypes, isEnabled)
 	}
 
 	override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
 		for (l in listeners) l.addedComponentType(index, info)
 	}
 
-	override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-		for (l in listeners) l.updatedEntitySystem(systemIndex, entitiesCount, maxEntitiesCount)
+	override fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) {
+		for (l in listeners) l.updatedSystem(index, entitiesCount, maxEntitiesCount, isEnabled)
 	}
 
 	override fun addedEntity(entityId: Int, components: BitVectorType) {

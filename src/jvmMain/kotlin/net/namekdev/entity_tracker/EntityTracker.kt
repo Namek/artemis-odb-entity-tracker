@@ -33,8 +33,6 @@ class EntityTracker @JvmOverloads constructor(
     val systemsInfo = Bag<SystemInfo>()
     val systemsInfoByName: MutableMap<String, SystemInfo> = HashMap()
 
-    val managersInfo = Bag<ManagerInfo>()
-    val managersInfoByName: MutableMap<String, ManagerInfo> = HashMap()
     val allComponentTypesInfoByClass: MutableMap<Class<Component>, ComponentTypeInfo_Server> = HashMap()
     val allComponentTypesInfo = Bag<ComponentTypeInfo_Server>()
     val allComponentMappers = Bag<BaseComponentMapper<Component>>()
@@ -46,6 +44,9 @@ class EntityTracker @JvmOverloads constructor(
     protected lateinit var entity_getComponentBits: Method
     protected lateinit var typeFactory: ComponentTypeFactory
     protected lateinit var allComponentTypes: Bag<ComponentType>
+    protected lateinit var world_invocationStrategy_disabled: BitVector
+    protected val world_invocationStrategy_disabled_previously = BitVector()
+    private val tmpBitVector = BitVector()
 
 
     private var _notifiedComponentTypesCount = 0
@@ -67,68 +68,39 @@ class EntityTracker @JvmOverloads constructor(
         typeFactory = ReflectionUtils.getHiddenFieldValue(ComponentManager::class.java, "typeFactory", world.componentManager) as ComponentTypeFactory
         allComponentTypes = ReflectionUtils.getHiddenFieldValue(ComponentTypeFactory::class.java, "types", typeFactory) as Bag<ComponentType>
 
-        find42UnicornManagers()
+        val world_invocationStrategy = ReflectionUtils.getHiddenFieldValue(World::class.java, "invocationStrategy", world) as SystemInvocationStrategy
+        world_invocationStrategy_disabled = ReflectionUtils.getHiddenFieldValue(SystemInvocationStrategy::class.java, "disabled", world_invocationStrategy) as BitVector
+        world_invocationStrategy_disabled_previously.or(world_invocationStrategy_disabled)
+
+        discoverSystems()
     }
 
-    private fun find42UnicornManagers() {
+    private fun discoverSystems() {
         val systems = world.systems
-        var index = 0
-        run {
-            var i = 0
-            val n = systems.size()
-            while (i < n) {
-                val system = systems.get(i)
-
-                if (system is Manager) {
-                    ++i
-                    continue
-                }
-
-                val systemType = system.javaClass
-                val systemName = systemType.simpleName
-                var aspect: Aspect? = null
-                var actives: BitVector? = null
-                var subscription: EntitySubscription? = null
-
-                if (system is BaseEntitySystem) {
-                    subscription = system.subscription
-                    aspect = subscription!!.aspect
-                    actives = subscription.activeEntityIds
-                }
-
-                val aspectInfo = AspectInfo(aspect?.allSet, aspect?.oneSet, aspect?.exclusionSet)
-                val info = SystemInfo(index, systemName, system, aspect, aspectInfo, actives, subscription)
-                systemsInfo.add(info)
-                systemsInfoByName.put(systemName, info)
-
-                if (subscription != null) {
-                    listenForEntitySetChanges(info)
-                }
-
-                updateListener.addedSystem(index++, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes)
-                ++i
-            }
-        }
-
-        var i = 0
-        val n = systems.size()
-        while (i < n) {
+        for ((index, i) in (0 until systems.size()).withIndex()) {
             val system = systems.get(i)
+            val systemType = system.javaClass
+            val systemName = systemType.simpleName
+            var aspect: Aspect? = null
+            var actives: BitVector? = null
+            var subscription: EntitySubscription? = null
 
-            if (system !is Manager) {
-                ++i
-                continue
+            if (system is BaseEntitySystem) {
+                subscription = system.subscription
+                aspect = subscription!!.aspect
+                actives = subscription.activeEntityIds
             }
 
-            val managerType = system.javaClass
-            val managerName = managerType.simpleName
+            val aspectInfo = AspectInfo(aspect?.allSet, aspect?.oneSet, aspect?.exclusionSet)
+            val info = SystemInfo(index, systemName, system, aspect, aspectInfo, actives, subscription, system.isEnabled)
+            systemsInfo.add(info)
+            systemsInfoByName.put(systemName, info)
 
-            val info = ManagerInfo(managerName, system)
-            managersInfo.add(info)
-            managersInfoByName.put(managerName, info)
+            if (subscription != null) {
+                listenForEntitySetChanges(info)
+            }
 
-            updateListener.addedManager(managerName)
-            ++i
+            updateListener.addedSystem(index, systemName, aspectInfo.allTypes, aspectInfo.oneTypes, aspectInfo.exclusionTypes, isEnabled)
         }
     }
 
@@ -136,7 +108,7 @@ class EntityTracker @JvmOverloads constructor(
         info.subscription!!.addSubscriptionListener(object : SubscriptionListener {
             override fun removed(entities: IntBag) {
                 info.entitiesCount -= entities.size()
-                updateListener?.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
+                updateListener.updatedSystem(info.index, info.entitiesCount, info.maxEntitiesCount, info.isEnabled)
             }
 
             override fun inserted(entities: IntBag) {
@@ -146,12 +118,28 @@ class EntityTracker @JvmOverloads constructor(
                     info.maxEntitiesCount = info.entitiesCount
                 }
 
-                updateListener.updatedEntitySystem(info.index, info.entitiesCount, info.maxEntitiesCount)
+                updateListener.updatedSystem(info.index, info.entitiesCount, info.maxEntitiesCount, info.isEnabled)
             }
         })
     }
 
     override fun checkProcessing(): Boolean {
+        tmpBitVector.clear()
+        tmpBitVector.or(world_invocationStrategy_disabled_previously)
+        tmpBitVector.xor(world_invocationStrategy_disabled)
+
+        var i = tmpBitVector.nextSetBit(0)
+        val n = tmpBitVector.length()
+        while (i in 0 until n) {
+            val s = systemsInfo[i]
+            updateListener.updatedSystem(s.index, s.entitiesCount, s.maxEntitiesCount, s.system.isEnabled)
+
+            i = tmpBitVector.nextSetBit(i + 1)
+        }
+
+        world_invocationStrategy_disabled_previously.clear()
+        world_invocationStrategy_disabled_previously.or(world_invocationStrategy_disabled)
+
         if (watchedComponents.isEmpty())
             return false
 
@@ -264,11 +252,6 @@ class EntityTracker @JvmOverloads constructor(
     override fun setSystemState(name: String, isOn: Boolean) {
         val info = systemsInfoByName[name]!!
         info.system.isEnabled = isOn
-    }
-
-    override fun setManagerState(name: String, isOn: Boolean) {
-        val info = managersInfoByName[name]!!
-        info.manager.isEnabled = isOn
     }
 
     override fun requestComponentState(entityId: Int, componentIndex: Int) {

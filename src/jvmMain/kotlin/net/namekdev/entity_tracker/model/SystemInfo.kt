@@ -12,10 +12,12 @@ class SystemInfo(
     val aspect: Aspect?,
     aspectInfo: AspectInfo_Common<BitVector>,
     actives: BitVector?,
-    val subscription: EntitySubscription?
+    val subscription: EntitySubscription?,
+    isEnabled: Boolean
 ) : SystemInfo_Common<BitVector>(
     systemIndex,
     systemName,
     aspectInfo,
-    actives
+    actives,
+    isEnabled
 )

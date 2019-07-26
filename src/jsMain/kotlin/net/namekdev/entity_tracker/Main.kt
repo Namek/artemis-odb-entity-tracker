@@ -11,10 +11,7 @@ import net.namekdev.entity_tracker.network.WebSocketClient
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.ui.Classes
 import net.namekdev.entity_tracker.utils.*
-import net.namekdev.entity_tracker.view.AspectInfo
-import net.namekdev.entity_tracker.view.ECSModel
-import net.namekdev.entity_tracker.view.SystemInfo
-import net.namekdev.entity_tracker.view.WorldView
+import net.namekdev.entity_tracker.view.*
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import snabbdom.modules.*
@@ -211,28 +208,26 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
         name: String,
         allTypes: CommonBitVector?,
         oneTypes: CommonBitVector?,
-        notTypes: CommonBitVector?
+        notTypes: CommonBitVector?,
+        isEnabled: Boolean
     ) {
         val aspectInfo = AspectInfo(allTypes, oneTypes, notTypes)
         val actives = if (aspectInfo.isEmpty) null else CommonBitVector()
-        val systemInfo = SystemInfo(index, name, aspectInfo, actives)
+        val systemInfo = SystemInfo(index, name, aspectInfo, actives, isEnabled)
 
         entities.allSystems.update { it.add(index, systemInfo) }
-    }
-
-    override fun addedManager(name: String) {
-        entities.allManagersNames.update { it.add(name) }
     }
 
     override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
         entities.setComponentType(index, info)
     }
 
-    override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
+    override fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) {
         entities.allSystems.update {
-            val system = it[systemIndex]
+            val system = it[index]
             system.entitiesCount = entitiesCount
             system.maxEntitiesCount = maxEntitiesCount
+            system.isEnabled = isEnabled
         }
     }
 

@@ -39,11 +39,6 @@ open class EntityTrackerCommunicator(inspector: ObjectTypeInspector)
                 val isSystemOn = _deserializer.readBoolean()
                 _worldController.setSystemState(systemName, isSystemOn)
             }
-            Communicator.TYPE_SET_MANAGER_STATE -> {
-                val managerName = _deserializer.readString()!!
-                val isManagerOn = _deserializer.readBoolean()
-                _worldController.setManagerState(managerName, isManagerOn)
-            }
             Communicator.TYPE_DELETE_ENTITY -> {
                 val entityId = _deserializer.readInt()
                 _worldController.deleteEntity(entityId)
@@ -94,21 +89,15 @@ open class EntityTrackerCommunicator(inspector: ObjectTypeInspector)
             .addRawByte(packetType)
     }
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?, isEnabled: Boolean) {
         send(
-            beginPacket(Communicator.TYPE_ADDED_ENTITY_SYSTEM)
+            beginPacket(Communicator.TYPE_ADDED_SYSTEM)
                 .addInt(index)
                 .addString(name)
                 .addBitVectorOrNull(allTypes)
                 .addBitVectorOrNull(oneTypes)
                 .addBitVectorOrNull(notTypes)
-        )
-    }
-
-    override fun addedManager(name: String) {
-        send(
-            beginPacket(Communicator.TYPE_ADDED_MANAGER)
-                .addString(name)
+                .addBoolean(isEnabled)
         )
     }
 
@@ -123,12 +112,13 @@ open class EntityTrackerCommunicator(inspector: ObjectTypeInspector)
         send(p)
     }
 
-    override fun updatedEntitySystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int) {
+    override fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) {
         send(
-            beginPacket(Communicator.TYPE_UPDATED_ENTITY_SYSTEM)
+            beginPacket(Communicator.TYPE_UPDATED_SYSTEM)
                 .addInt(index)
                 .addInt(entitiesCount)
                 .addInt(maxEntitiesCount)
+                .addBoolean(isEnabled)
         )
     }
 

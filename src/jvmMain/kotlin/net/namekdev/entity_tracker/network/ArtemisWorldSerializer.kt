@@ -10,7 +10,6 @@ import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.model.AspectInfo_Common
 import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.utils.serialization.ObjectTypeInspector
-import net.namekdev.entity_tracker.utils.tuple.Tuple3
 
 
 /**
@@ -20,41 +19,34 @@ import net.namekdev.entity_tracker.utils.tuple.Tuple3
  * @author Namek
  */
 class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : IWorldUpdateListener<BitVector> {
+    class SystemData(
+        val worldIndex: Int,
+        val name: String,
+        val aspect: AspectInfo_Common<BitVector>,
+        var isEnabled: Boolean,
+        var entitiesCount: Int,
+        var maxEntitiesCount: Int
+    )
+
+    class ManagerData(val name: String, var isEnabled: Boolean)
+
     private lateinit var _worldController: IWorldController
     private val _listeners = Bag<EntityTrackerCommunicator>()
 
-    private val _managers = Bag<String>()
-    private val _systems = Bag<Tuple3<Int, String, AspectInfo_Common<BitVector>>>()
+    private val _systems = Bag<SystemData>()
     private val _componentTypes = Bag<ComponentTypeInfo>()
     private val _entities = HashMap<Int, BitVector>()
-    private val _entitySystemsEntitiesCount = Bag<Int>()
-    private val _entitySystemsMaxEntitiesCount = Bag<Int>()
 
 
     override fun injectWorldController(controller: IWorldController) {
         _worldController = controller
     }
 
-    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?) {
-        var i = 0
-        val n = _listeners.size()
-        while (i < n) {
-            val communicator = _listeners.get(i)
-            communicator.addedSystem(index, name, allTypes, oneTypes, notTypes)
-            ++i
+    override fun addedSystem(index: Int, name: String, allTypes: BitVector?, oneTypes: BitVector?, notTypes: BitVector?, isEnabled: Boolean) {
+        for (l in _listeners) {
+            l.addedSystem(index, name, allTypes, oneTypes, notTypes, isEnabled)
         }
-        _systems.add(Tuple3.create(index, name, AspectInfo_Common(allTypes, oneTypes, notTypes)))
-    }
-
-    override fun addedManager(name: String) {
-        var i = 0
-        val n = _listeners.size()
-        while (i < n) {
-            val communicator = _listeners.get(i)
-            communicator.addedManager(name)
-            ++i
-        }
-        _managers.add(name)
+        _systems.set(index, SystemData(index, name, AspectInfo_Common(allTypes, oneTypes, notTypes), isEnabled, 0, 0))
     }
 
     override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
@@ -68,16 +60,15 @@ class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : 
         _componentTypes.set(index, info)
     }
 
-    override fun updatedEntitySystem(systemIndex: Int, entitiesCount: Int, maxEntitiesCount: Int) {
-        var i = 0
-        val n = _listeners.size()
-        while (i < n) {
-            val communicator = _listeners.get(i)
-            communicator.updatedEntitySystem(systemIndex, entitiesCount, maxEntitiesCount)
-            ++i
+    override fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) {
+        for (l in _listeners) {
+            l.updatedSystem(index, entitiesCount, maxEntitiesCount, isEnabled)
         }
-        _entitySystemsEntitiesCount.set(systemIndex, entitiesCount)
-        _entitySystemsMaxEntitiesCount.set(systemIndex, maxEntitiesCount)
+        _systems[index]?.let {
+            it.entitiesCount = entitiesCount
+            it.maxEntitiesCount = maxEntitiesCount
+            it.isEnabled = isEnabled
+        }
     }
 
     override fun addedEntity(entityId: Int, components: BitVector) {
@@ -154,43 +145,27 @@ class ArtemisWorldSerializer(server: IServer, inspector: ObjectTypeInspector) : 
 
 
                     run {
-                        var i = 0
                         val n = _systems.size()
-                        while (i < n) {
-                            val system = _systems.get(i)
-                            val aspects = system.item3
-                            addedSystem(system.item1, system.item2, aspects.allTypes, aspects.oneTypes, aspects.exclusionTypes)
-                            ++i
+                        for (i in 0 until n) {
+                            val system = _systems[i]
+                            val aspects = system.aspect
+                            addedSystem(i, system.name, aspects.allTypes, aspects.oneTypes, aspects.exclusionTypes, system.isEnabled)
                         }
                     }
 
                     run {
-                        var i = 0
-                        val n = _managers.size()
-                        while (i < n) {
-                            addedManager(_managers.get(i))
-                            ++i
-                        }
-                    }
-
-                    run {
-                        var i = 0
                         val n = _componentTypes.size()
-                        while (i < n) {
+                        for (i in 0 until n) {
                             addedComponentType(i, _componentTypes.get(i))
-                            ++i
                         }
                     }
 
-                    var i = 0
                     val n = _systems.size()
-                    while (i < n) {
-                        if (_entitySystemsEntitiesCount.get(i) != null) {
-                            val entitiesCount = _entitySystemsEntitiesCount.get(i)
-                            val maxEntitiesCount = _entitySystemsMaxEntitiesCount.get(i)
-                            updatedEntitySystem(i, entitiesCount, maxEntitiesCount)
+                    for (i in 0 until n) {
+                        val system = _systems[i]
+                        if (system != null) {
+                            updatedSystem(i, system.entitiesCount, system.maxEntitiesCount, system.isEnabled)
                         }
-                        ++i
                     }
 
                     for ((key, value) in _entities) {

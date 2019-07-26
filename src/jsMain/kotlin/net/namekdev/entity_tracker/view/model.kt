@@ -16,7 +16,6 @@ class ECSModel {
     val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
     val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
     val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
-    val allManagersNames = ValueContainer(mutableListOf<String>()).named("ECSModel.allManagersNames")
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
@@ -50,6 +49,5 @@ class ECSModel {
         componentTypes.update { it.clear() }
         entityComponents.update { it.clear() }
         allSystems.update { it.clear() }
-        allManagersNames.update { it.clear() }
     }
 }

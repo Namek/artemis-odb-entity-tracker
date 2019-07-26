@@ -39,17 +39,14 @@ class ExternalInterfaceCommunicator(
         val packetType = _deserializer.readRawByte()
 
         when (packetType) {
-            Communicator.TYPE_ADDED_ENTITY_SYSTEM -> {
+            Communicator.TYPE_ADDED_SYSTEM -> {
                 val index = _deserializer.readInt()
                 val name = _deserializer.readString()!!
                 val allTypes = _deserializer.readBitVector()
                 val oneTypes = _deserializer.readBitVector()
                 val notTypes = _deserializer.readBitVector()
-                _listener.addedSystem(index, name, allTypes, oneTypes, notTypes)
-            }
-            Communicator.TYPE_ADDED_MANAGER -> {
-                val name = _deserializer.readString()!!
-                _listener.addedManager(name)
+                val isEnabled = _deserializer.readBoolean()
+                _listener.addedSystem(index, name, allTypes, oneTypes, notTypes, isEnabled)
             }
             Communicator.TYPE_ADDED_COMPONENT_TYPE -> {
                 val index = _deserializer.readInt()
@@ -62,11 +59,12 @@ class ExternalInterfaceCommunicator(
 
                 _listener.addedComponentType(index, info)
             }
-            Communicator.TYPE_UPDATED_ENTITY_SYSTEM -> {
+            Communicator.TYPE_UPDATED_SYSTEM -> {
                 val index = _deserializer.readInt()
                 val entitiesCount = _deserializer.readInt()
                 val maxEntitiesCount = _deserializer.readInt()
-                _listener.updatedEntitySystem(index, entitiesCount, maxEntitiesCount)
+                val isEnabled = _deserializer.readBoolean()
+                _listener.updatedSystem(index, entitiesCount, maxEntitiesCount, isEnabled)
             }
             Communicator.TYPE_ADDED_ENTITY -> {
                 val entityId = _deserializer.readInt()
@@ -114,14 +112,6 @@ class ExternalInterfaceCommunicator(
     override fun setSystemState(name: String, isOn: Boolean) {
         send(
             beginPacket(Communicator.TYPE_SET_SYSTEM_STATE)
-                .addString(name)
-                .addBoolean(isOn)
-        )
-    }
-
-    override fun setManagerState(name: String, isOn: Boolean) {
-        send(
-            beginPacket(Communicator.TYPE_SET_MANAGER_STATE)
                 .addString(name)
                 .addBoolean(isOn)
         )

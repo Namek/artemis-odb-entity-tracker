@@ -4,7 +4,8 @@ open class SystemInfo_Common<TBitVector>(
     val index: Int,
     val name: String,
     val aspectInfo: AspectInfo_Common<TBitVector>,
-    val actives: TBitVector?
+    val actives: TBitVector?,
+    var isEnabled: Boolean
 ) {
     var entitiesCount = 0
     var maxEntitiesCount = 0
