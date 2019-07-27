@@ -19,7 +19,7 @@ data class RNode(
 
 val dummyEl: RNode = RNode(emptyNode)
 
-fun row(nodes: Array<RNode>): RNode =
+fun row(vararg nodes: RNode): RNode =
     row(arrayOf(), *nodes)
 
 fun row(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
@@ -52,7 +52,7 @@ fun column(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     )
 
 
-fun el(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
+fun el(tag: String, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     element(AsEl, ANodeName(tag), attrs, *nodes)
 
 fun el(tag: String, vararg nodes: RNode): RNode =
@@ -71,20 +71,35 @@ internal inline fun textElement(text: String): VNode =
     h("div.${Classes.any}.${Classes.text}.${Classes.widthContent}.${Classes.heightContent}", text)
 
 inline fun table(attrs: Array<Attribute>, header: RNode, vararg rows: RNode) =
-    el("table", attrs = attrs, nodes = arrayOf(header, *rows))
+    el("table", attrs, header, *rows)
+
+inline fun table(attrs: Array<Attribute>, header: RNode, body: RNode) =
+    el("table", attrs, header, body)
+
+inline fun tHead(attrs: Array<Attribute>, row: RNode) =
+    el("thead", attrs, row)
+
+inline fun tHead(row: RNode) =
+    el("thead", attrs(), row)
+
+inline fun tBody(attrs: Array<Attribute>, vararg rows: RNode) =
+    el("tbody", attrs, *rows)
 
 inline fun tRow(vararg columns: RNode) =
-    el("tr", nodes = *columns)
+    el("tr", *columns)
+
+inline fun tRow(attrs: Array<Attribute>, vararg columns: RNode) =
+    el("tr", attrs, *columns)
 
 fun tCell(vararg cellContents: RNode): RNode =
-    el("td", attrs(), arrayOf(
+    el("td", attrs(),
         element(LayoutContext.AsRow, Generic, null, *cellContents)
-    ))
+    )
 
 fun thCell(vararg cellContents: RNode): RNode =
-    el("th", attrs(widthShrink), arrayOf(
+    el("th", attrs(widthShrink),
         element(LayoutContext.AsRow, Generic, null, *cellContents)
-    ))
+    )
 
 fun tCell(text: String) =
     tCell(RNode(textElement(text)))

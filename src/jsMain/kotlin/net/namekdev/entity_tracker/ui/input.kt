@@ -12,12 +12,12 @@ import kotlin.js.Json
 fun button(label: String, clickHandler: () -> Unit): RNode =
     el("button", attrs(onClick {
         clickHandler()
-    }), elems(text(label)))
+    }), text(label))
 
 fun button(attrs: Array<Attribute>, label: String, clickHandler: () -> Unit): RNode =
     el("button", attrs + attrs(onClick {
         clickHandler()
-    }), elems(text(label)))
+    }), text(label))
 
 fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, onChange: (Int?) -> Unit): RNode {
     val modifier = if (allowNull) 1 else 0
@@ -100,9 +100,7 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
         }
 
         theValue = row(
-            elems(
-                RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
-            )
+            RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
         )
     }
     else {

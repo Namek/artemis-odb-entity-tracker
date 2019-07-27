@@ -3,7 +3,6 @@ package net.namekdev.entity_tracker
 import net.namekdev.entity_tracker.connectors.IWorldController
 import net.namekdev.entity_tracker.connectors.IWorldUpdateListener
 import net.namekdev.entity_tracker.connectors.WorldUpdateMultiplexer
-import net.namekdev.entity_tracker.model.ComponentTypeInfo
 import net.namekdev.entity_tracker.network.ExternalInterfaceCommunicator
 import net.namekdev.entity_tracker.network.RawConnectionCommunicator
 import net.namekdev.entity_tracker.network.RawConnectionOutputListener
@@ -139,9 +138,12 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     override fun renderView() {
         val rendering = RenderSession(this)
         val ctx: RNode = render(rendering)
-        ctx.stylesheet?.let {
-            dynamicStyles.innerHTML = toStyleSheetString(opts, it.values)
-        }
+
+        val finalStylesheet = (ctx.stylesheet?.let {
+            toStyleSheetString(opts, it.values)
+        } ?: "") + " " + WorldView.additionalStyleSheet
+
+        dynamicStyles.innerHTML = finalStylesheet
         lastVnode = patch(lastVnode, ctx.vnode)
     }
 

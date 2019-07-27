@@ -13,9 +13,14 @@ class WorldView(
     val entities: () -> ECSModel,
     val worldController: () -> IWorldController?
 ) : IWorldUpdateListener<CommonBitVector> {
+    val entityTable = EntityTable(entities, ::showComponent)
     val watchedEntity = ValueContainer<WatchedEntity>(WatchedEntity(null, 0, null)).named("watchedEntity")
     var currentlyEditedInput = ValueContainer<EditedInputState?>(null)
 
+    companion object {
+        // stylesheet that was hard to write using global stylesheet merging mechanism
+        val additionalStyleSheet = EntityTable.additionalStyleSheet
+    }
 
     override fun deletedEntity(entityId: Int) {
         if (watchedEntity.value.entityId == entityId) {
@@ -83,7 +88,7 @@ class WorldView(
     fun render(r: RenderSession) =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
-            viewEntitiesTable(r),
+            entityTable.render(r),
             viewEntitiesFilters(r),
             row(
                 attrs(widthFill),
@@ -95,34 +100,6 @@ class WorldView(
         viewSelectedComponent.invalidate()
         viewCurrentEntity.invalidate()
     }
-
-    val viewEntitiesTable = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->
-        val idCol = thCell(row(attrs(paddingRight(15)), text("id")))
-        val componentCols = componentTypes.mapToArray {
-            thCell(row(attrs(paddingRight(15)), text(it.name)))
-        }
-        val entitiesDataRows = entityComponents.mapToArray { (entityId, components) ->
-            val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
-                if (components[cmpIndex])
-                    tCell(
-                        row(
-                            attrs(
-                                widthFill,
-                                onClick { showComponent(entityId, cmpIndex) }
-                            ),
-                            text("x")
-                        )
-                    )
-                else tCell("")
-            }
-
-            tRow(tCell(entityId.toString()), *entityComponents)
-        }
-
-        val header = tRow(idCol, *componentCols)
-
-        table(attrs(), header, *entitiesDataRows)
-    }.named("viewEntitiesTable")
 
     fun showComponent(entityId: Int, componentIndex: Int) {
         val previousEntityId = watchedEntity().entityId
@@ -144,7 +121,7 @@ class WorldView(
     }
 
     fun viewEntitiesFilters(r: RenderSession) =
-        row(arrayOf(text("TODO filters here?")))
+        row(text("TODO filters here?"))
 
     val viewSystems = renderTo(entities().allSystems) { r, allSystems ->
         // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)

@@ -91,8 +91,9 @@ inline fun borderLeft(left: Int) = border(0, 0, 0, left)
 
 val pointer = Attribute.Class(Flag.cursor, Classes.cursorPointer)
 
+fun backgroundColor_style(color: Color) = Colored("bg-color-${color.formatWithDashes()}", "background-color", color)
 fun backgroundColor(color: Color) =
-    Attribute.StyleClass(Flag.bgColor, Colored("bg-color-${color.formatWithDashes()}", "background-color", color))
+    Attribute.StyleClass(Flag.bgColor, backgroundColor_style(color))
 
 fun fontColor(color: Color) =
     Attribute.StyleClass(Flag.fontColor, Colored("font-color-${color.formatWithDashes()}", "color", color))
