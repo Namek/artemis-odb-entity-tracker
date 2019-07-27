@@ -72,10 +72,10 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     lateinit var lastVnode: VNode
     private var dynamicStyles: Element = createStyleElement("")
 
-    private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(this))
     var worldController: IWorldController? = null
     val entities = ECSModel()
     var worldView = ValueContainer<WorldView?>(null).named("World.worldView")
+    private val worldUpdateListener = WorldUpdateMultiplexer<CommonBitVector>(mutableListOf(entities, this))
 
     var connection: WebSocketClient? = null
     var connectionHostname = "localhost"
@@ -190,7 +190,6 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
         }
         worldController = null
         worldView.value = null
-        entities.clear()
     }
 
     // it's called when connection is successfully established
@@ -201,49 +200,5 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
             worldUpdateListener.listeners.add(it)
             worldView.value = it
         }
-    }
-
-    override fun addedSystem(
-        index: Int,
-        name: String,
-        allTypes: CommonBitVector?,
-        oneTypes: CommonBitVector?,
-        notTypes: CommonBitVector?,
-        isEnabled: Boolean
-    ) {
-        val aspectInfo = AspectInfo(allTypes, oneTypes, notTypes)
-        val actives = if (aspectInfo.isEmpty) null else CommonBitVector()
-        val systemInfo = SystemInfo(index, name, aspectInfo, actives, isEnabled)
-
-        entities.allSystems.update { it.add(index, systemInfo) }
-    }
-
-    override fun addedComponentType(index: Int, info: ComponentTypeInfo) {
-        entities.setComponentType(index, info)
-    }
-
-    override fun updatedSystem(index: Int, entitiesCount: Int, maxEntitiesCount: Int, isEnabled: Boolean) {
-        entities.allSystems.update {
-            val system = it[index]
-            system.entitiesCount = entitiesCount
-            system.maxEntitiesCount = maxEntitiesCount
-            system.isEnabled = isEnabled
-        }
-    }
-
-    override fun addedEntity(entityId: Int, components: CommonBitVector) {
-        entities.addEntity(entityId, components)
-    }
-
-    override fun deletedEntity(entityId: Int) {
-        entities.removeEntity(entityId)
-    }
-
-    override fun addedComponentTypeToEntities(componentIndex: Int, entityIds: IntArray) {
-        entities.setComponentTypeOnEntities(componentIndex, entityIds, true)
-    }
-
-    override fun removedComponentTypeFromEntities(componentIndex: Int, entityIds: IntArray) {
-        entities.setComponentTypeOnEntities(componentIndex, entityIds, false)
     }
 }
