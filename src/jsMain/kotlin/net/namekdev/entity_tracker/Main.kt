@@ -139,12 +139,16 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
         val rendering = RenderSession(this)
         val ctx: RNode = render(rendering)
 
-        val finalStylesheet = (ctx.stylesheet?.let {
-            toStyleSheetString(opts, it.values)
-        } ?: "") + " " + WorldView.additionalStyleSheet
-
+        val newVnode = renderRoot(ctx)
+        val finalStylesheet =
+            when (ctx) {
+                is Styled ->
+                    toStyleSheetString(opts, ctx.styles.values)
+                else -> ""
+            } + " " + WorldView.additionalStyleSheet
         dynamicStyles.innerHTML = finalStylesheet
-        lastVnode = patch(lastVnode, ctx.vnode)
+
+        lastVnode = patch(lastVnode, newVnode)
     }
 
     val render = renderTo(allowConnection, connectionStatus, worldView) { r, allowConnection, isConnected, worldView ->
@@ -175,7 +179,7 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
                         }
                     )
                 )),
-            worldView?.render(r) ?: (if (allowConnection) text("connecting...") else dummyEl)
+            worldView?.render(r) ?: (if (allowConnection) text("connecting...") else none)
         )
     }.named("mainView")
 

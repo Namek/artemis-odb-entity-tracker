@@ -60,7 +60,7 @@ fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, on
 
     val props: Props = j("selectedIndex__" to selectedIdx)
 
-    return RNode(h("select", VNodeData(on = on, hook = hooks, props = props), options))
+    return Unstyled { h("select", VNodeData(on = on, hook = hooks, props = props), options) }
 }
 
 inline fun checkbox(value: Boolean, crossinline onChange: (Boolean) -> Unit): RNode =
@@ -100,7 +100,7 @@ fun nullableCheckbox(value: Boolean?, allowNull: Boolean, onChange: (Boolean?) -
         }
 
         theValue = row(
-            RNode(h("input", VNodeData(attrs = attrs, props = props, on = on)))
+            Unstyled { h("input", VNodeData(attrs = attrs, props = props, on = on)) }
         )
     }
     else {
@@ -126,8 +126,8 @@ fun nullCheckbox(isNull: Boolean, onChange: (Boolean) -> Unit, view: ((Boolean) 
     }
 
     return row(attrs(spacing(3)),
-        RNode(h("input", VNodeData(attrs = attrs, props = props, on = on))),
-        view?.invoke(isNull) ?: dummyEl
+        Unstyled { h("input", VNodeData(attrs = attrs, props = props, on = on)) },
+        view?.invoke(isNull) ?: none
     )
 }
 
@@ -186,7 +186,7 @@ fun textEdit(
     // TODO use <textarea> for Text
 
     val vnodeData = VNodeData(attrs = attrs, on = on, props = props, style = style, hook = hooks)
-    val inputEl = RNode(h("input", vnodeData))
+    val inputEl = Unstyled { h("input", vnodeData) }
 
     return row(attrs(), inputEl)
 }

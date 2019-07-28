@@ -11,9 +11,9 @@ class EntityTable(
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
 ) {
     val render = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->
-        val idCol = column(gridHeaderColumnStyle, text("id"))
+        val idCol = row(gridHeaderColumnStyle_id, text("id"))
         val componentCols = componentTypes.mapToArray {
-            row(gridHeaderColumnStyle, text(it.name))
+            row(gridHeaderColumnStyle_component, text(it.name))
         }
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
         val entitiesDataRows = viewEntitiesDataRows(r)
@@ -30,27 +30,30 @@ class EntityTable(
                             widthFill,
                             onClick { onComponentClicked(entityId, cmpIndex) }
                         ),
-                        text("x")
+                        el("div", attrs(centerX), text("x"))
                     )
 
                 else text("")
             }
 
             row(attrs(gridRowStyle),
-                text(entityId.toString()), *entityComponents)
+//                el(attrs(fontAlignRight), text(entityId.toString())), // TODO should it work? why doesn it?
+                el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())),
+                *entityComponents)
         }
     }.named("viewEntitiesDataRows")
 
 
     private val gridStyle = entities().componentTypes.cachedMap { componentTypes ->
         val columnCount = 1 + componentTypes.size
+
         attrs(
             Attribute.Class(0, tableGridClassName),
-            padding(1),
-            Attribute.StyleClass(0, Single("gr-display", "display", "grid !important")),
-            Attribute.StyleClass(0, Single("gr-cols-$columnCount", "grid-template-columns", "repeat($columnCount, minmax(40px, auto))")),
+            padding(1, 1, 1, 1),
+            style("display", "grid !important"),
+            style("grid-template-columns", "repeat($columnCount, minmax(35px, auto))"),
             Attribute.StyleClass(Flag.height, Single("maxh", "max-height", "50vh")),
-            Attribute.StyleClass(0, Single("ova", "overflow", "auto"))
+            style("overflow", "auto")
         )
     }
 
@@ -58,12 +61,28 @@ class EntityTable(
         private val tableGridClassName = "grid-table"
         private val gridRowClassName = "gr-row"
 
-        private val gridHeaderColumnStyle = attrs(
+        private val gridHeaderColumnStyle_common = attrs(
+            // header should be not scrollable, rather on top of the table content
             backgroundColor(hexToColor(0xFFFFFF)),
-            paddingRight(15),
-            Attribute.StyleClass(0, Single("p-st", "position", "sticky")),
-            Attribute.StyleClass(0, Single("pos-top", "top", "-1px")), // fixes blurry effect of "sticky", Web Chrome engine
-            Attribute.StyleClass(0, Single("zidx", "z-index", "10"))
+            style("position", "sticky"),
+            style("top", "-1px"), // fixes blurry effect of "sticky", Web Chrome engine
+            style("z-index", "10")
+        )
+
+        private val idColRightPadding = 12
+
+        private val gridHeaderColumnStyle_id = gridHeaderColumnStyle_common + attrs(
+            alignBottom,
+            alignRight,
+            padding(0, idColRightPadding, 4, 0)
+        )
+
+        private val gridHeaderColumnStyle_component = gridHeaderColumnStyle_common + attrs(
+            // rotate text 90 degrees to squeeze all columns horizontally
+            style("writing-mode", "vertical-lr"),
+            style("transform", "rotate(-180deg)"),
+            style("font-family", "sans-serif"),
+            paddingTop(6)
         )
 
         private val gridRowStyle = Attribute.StyleClass(0, Single(gridRowClassName, "display", "contents !important"))

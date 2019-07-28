@@ -12,7 +12,9 @@ class Colored(val cls: String, val prop: String, val color: Color) : Style()
 class Transparency(val name: String, val alpha: Float) : Style()
 class BorderWidth(val cls: String, val top: Int, val right: Int, val bottom: Int, val left: Int) : Style()
 class PseudoSelector(val cls: PseudoClass, val styles: Array<Style>) : Style()
-// TODO fontsize, fontfaimly, colored, PseudoSelector, Shadows
+class FontSize(val size: Int) : Style()
+class Transform(val transformation: Transformation) : Style()
+// TODO fontfamily, Shadows
 
 
 // Width -> Px px, Content, Fill portion, Min size (Width), Max size (Width)
@@ -73,3 +75,11 @@ sealed class Length {
     data class Min(val length: Length) : Length()
     data class Max(val length: Length) : Length()
 }
+
+sealed class Transformation
+object Untransformed : Transformation()
+class Moved(val xyz: XYZ) : Transformation()
+class FullTransform(val translate: XYZ, val scale: XYZ, val rotate: XYZ, val angle: Angle) : Transformation()
+
+data class XYZ(val x: Float, val y: Float, val z: Float)
+typealias Angle = Float

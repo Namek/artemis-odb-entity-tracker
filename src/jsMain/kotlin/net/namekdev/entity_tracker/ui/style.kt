@@ -2,6 +2,7 @@ package net.namekdev.entity_tracker.ui
 
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 
 typealias Stylesheet = MutableMap<String, Style>
@@ -11,16 +12,19 @@ data class Rgba(val r: Short, val g: Short, val b: Short, val a: Short) {
     fun formatWithDashes(): String = "$r-$g-$b-$a"
     fun format(): String = "rgba($r,$g,$b,${a / 255f})"
 }
+
 fun hexToColor(rgb: Int, alpha: Short = 255.toShort()): Rgba =
     Rgba(((rgb shr 16) and 0xFF).toShort(), ((rgb shr 8) and 0xFF).toShort(), (rgb and 0xFF).toShort(), alpha)
 
+fun rgb(r: Short, g: Short, b: Short) = Rgba(r, g, b, 255)
+fun rgba(r: Short, g: Short, b: Short, alpha: Short) = Rgba(r, g, b, alpha)
 
 data class OptionRecord(val hover: HoverSetting, val focus: FocusStyle)
 
 enum class HoverSetting { NoHover, AllowHover, ForceHover }
 data class FocusStyle(
     val borderColor: Color? = null,
-    val shadow : Shadow? = null,
+    val shadow: Shadow? = null,
     val backgroundColor: Color? = null
 )
 
@@ -60,7 +64,10 @@ internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Sty
             val opacity = max(0f, min(1f, 1f - rule.alpha))
             renderStyle(".${rule.name}", arrayOf(Pair("opacity", opacity.toString())))
         }
-        // TODO Shadows, FontSize, FontFamily
+        // TODO Shadows, FontFamily
+        is FontSize -> {
+            renderStyle(".font-size-${rule.size}", arrayOf(Pair("font-size", "${rule.size}px")))
+        }
         is Single -> {
             renderStyle(".${rule.klass}", arrayOf(Pair(rule.prop, rule.value)))
         }
@@ -90,20 +97,24 @@ internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Sty
             renderStyle("textarea$cls", arrayOf(Pair("line-height", "calc(1em + ${rule.y}px)")))
             renderStyle("$cls$paragraph > $left", arrayOf(Pair("margin-right", xPx)))
             renderStyle("$cls$paragraph > $right", arrayOf(Pair("margin-left", xPx)))
-            renderStyle("$cls$paragraph::after", arrayOf(
-                Pair("content", "''"),
-                Pair("display", "block"),
-                Pair("height", "0"),
-                Pair("width", "0"),
-                Pair("margin-top", "${-1 * rule.y/2}px")
-            ))
-            renderStyle("$cls$paragraph::before", arrayOf(
-                Pair("content", "''"),
-                Pair("display", "block"),
-                Pair("height", "0"),
-                Pair("width", "0"),
-                Pair("margin-bottom", "${-1 * rule.y/2}px")
-            ))
+            renderStyle(
+                "$cls$paragraph::after", arrayOf(
+                    Pair("content", "''"),
+                    Pair("display", "block"),
+                    Pair("height", "0"),
+                    Pair("width", "0"),
+                    Pair("margin-top", "${-1 * rule.y / 2}px")
+                )
+            )
+            renderStyle(
+                "$cls$paragraph::before", arrayOf(
+                    Pair("content", "''"),
+                    Pair("display", "block"),
+                    Pair("height", "0"),
+                    Pair("width", "0"),
+                    Pair("margin-bottom", "${-1 * rule.y / 2}px")
+                )
+            )
         }
         is PaddingStyle -> {
             val padding = "${rule.top}px ${rule.right}px ${rule.bottom}px ${rule.left}px"
@@ -119,16 +130,28 @@ internal fun renderStyleRule(sb: StringBuilder, options: OptionRecord, rule: Sty
                 renderStyleRule(sb, options, style, ps)
             }
         }
-        // TODO Transform(?)
+        is Transform -> {
+            val value = transformValue(rule.transformation)
+            val klass = transformClass(rule.transformation)
+
+            if (value != null && klass != null)
+                renderStyle(".${klass}", arrayOf(Pair("transform", value)))
+        }
     }
 }
-internal fun renderStyle(sb: StringBuilder, maybePseudo: PseudoClass?, options: OptionRecord, selector: String, props: Array<Pair<String, String>>) {
+
+internal fun renderStyle(
+    sb: StringBuilder,
+    maybePseudo: PseudoClass?,
+    options: OptionRecord,
+    selector: String,
+    props: Array<Pair<String, String>>
+) {
     if (maybePseudo == null) {
         sb.append(selector, "{")
         renderProps(sb, false, props)
         sb.append("\n}")
-    }
-    else {
+    } else {
         when (maybePseudo) {
             PseudoClass.Hover -> {
                 when (options.hover) {
@@ -180,6 +203,39 @@ internal inline fun renderProps(sb: StringBuilder, force: Boolean, props: Array<
     sb.append(if (force) " !important;" else ";")
 }
 
+internal fun transformClass(transformation: Transformation): String? {
+    val t = transformation
+    val fc = ::floatClass
+
+    return when (t) {
+        is Untransformed -> null
+
+        is Moved ->
+            "mv-${fc(t.xyz.x)}-${fc(t.xyz.y)}-${fc(t.xyz.z)}"
+
+        is FullTransform ->
+            "tfrm-${fc(t.translate.x)}-${fc(t.translate.x)}-${fc(t.translate.x)}" +
+                    "-${fc(t.scale.x)}-${fc(t.scale.y)}-${fc(t.scale.z)}" +
+                    "-${fc(t.rotate.x)}-${fc(t.rotate.y)}-${fc(t.rotate.z)}" +
+                    "-${fc(t.angle)}"
+    }
+}
+
+private fun transformValue(transformation: Transformation): String? {
+    val t = transformation
+
+    return when (t) {
+        is Untransformed -> null
+
+        is Moved ->
+            "translate3d(${t.xyz.x}px, ${t.xyz.y}px, ${t.xyz.z}px)"
+
+        is FullTransform ->
+            "translate3d(${t.translate.x}px, ${t.translate.y}px, ${t.translate.z}px) " +
+            "scale3d(${t.scale.x}, ${t.scale.y}, ${t.scale.z}) " +
+            "rotate3d(${t.rotate.x}, ${t.rotate.y}, ${t.rotate.z}, ${t.angle}rad)"
+    }
+}
 
 
 val globalStylesheet =
@@ -583,13 +639,15 @@ fun describeAlignments(parentDescriptor: String, values: ((Alignment) -> Pair<St
     for (alignment in Alignment.values()) {
         val (content, indiv) = values(alignment)
 
-        sb.append("""
-        $parentDescriptor.${contentName(alignment)}
+        sb.append(
+        """${'\n'}
+            $parentDescriptor.${contentName(alignment)}
             $content
-
-        $parentDescriptor > .${Classes.any}.${selfName(alignment)}
+            $parentDescriptor > .${Classes.any}.${selfName(alignment)}
             $indiv
-    """.trimIndent())
+            ${'\n'}
+        """.trimIndent()
+        )
     }
 
     return sb.toString()
@@ -616,3 +674,5 @@ fun contentName(alignment: Alignment): String =
     }
 
 fun spacingName(x: Int, y: Int) = "spacing-$x-$y"
+
+fun floatClass(x: Float) = (x * 255).roundToInt().toString()

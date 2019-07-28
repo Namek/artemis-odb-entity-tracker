@@ -88,6 +88,11 @@ class WorldView(
     fun render(r: RenderSession) =
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
+
+            // TODO this line shows that there are too many divs in output! `fontAlignRight` can't work because of that
+            column(attrs(widthFill), el(attrs(fontAlignRight), text("some test text"))),
+
+
             entityTable.render(r),
             viewEntitiesFilters(r),
             row(
@@ -139,8 +144,8 @@ class WorldView(
                         }
                     ),
                     tCell(it.name),
-                    if (it.hasAspect) tCell(it.entitiesCount.toString()) else dummyEl,
-                    if (it.hasAspect) tCell(it.maxEntitiesCount.toString()) else dummyEl
+                    if (it.hasAspect) tCell(it.entitiesCount.toString()) else none,
+                    if (it.hasAspect) tCell(it.maxEntitiesCount.toString()) else none
                 )
             }
 
@@ -186,7 +191,7 @@ class WorldView(
                     row(attrs(borderBottom(0)),
                         elems(
                            watchedEntity.valueTree?.let { text("<$componentName>:" ) }
-                               ?: dummyEl
+                               ?: none
                         )),
                     column(attrs(paddingLeft(treeIndentation)), viewSelectedComponent(r)))
             )
@@ -199,9 +204,7 @@ class WorldView(
 
         if (componentTypes == null)
             column(
-                elems(
-                    text("error: component types for entity #$entityId were not found")
-                )
+                text("error: component types for entity #$entityId were not found")
             )
         else {
             val componentNames = mutableListOf<RNode>()
@@ -235,7 +238,7 @@ class WorldView(
         val entityId = watchedEntity.entityId
 
         if (value == null || entityId == null)
-            column(arrayOf(text("")))
+            column(text(""))
         else {
             viewValueTree(value.model!!, value, value, true, listOf(entityId, watchedEntity.componentIndex), 0, listOf(value))
         }
@@ -256,7 +259,7 @@ class WorldView(
 
                     if (model.isSubTypePrimitive)
                         dataTypeToIcon(model.dataSubType, model.isSubTypePrimitive)
-                    else dummyEl,
+                    else none,
 
                     text("${model.name ?: ""} = "),
 
@@ -278,7 +281,7 @@ class WorldView(
 //                                notifyCurrentlyEditedInputChanged()
                             }
                             else
-                                dummyEl
+                                none
                         }
                     )
                 ),
@@ -308,7 +311,7 @@ class WorldView(
                             )
                         }.toTypedArray()
                     )
-                } else dummyEl
+                } else none
             )
         }
         else if (model.isLeaf) {
@@ -321,7 +324,7 @@ class WorldView(
                     attrs(height(px(treeNodeHeight))),
                     if (shouldShowLeafDataTypeIcon)
                         dataTypeToIcon(DataType.Enum, false)
-                    else dummyEl,
+                    else none,
                     text("${model.name ?: ""}<$enumTypeName> = "),
                     dropdown(value as Int?, enumValuesNames, true) {
                         onValueChanged(rootValue, path, model.dataType, it)
@@ -333,7 +336,7 @@ class WorldView(
                     attrs(height(px(treeNodeHeight))),
                     if (shouldShowLeafDataTypeIcon)
                         dataTypeToIcon(DataType.Boolean, model.isTypePrimitive)
-                    else dummyEl,
+                    else none,
                     text("${model.name ?: ""} = ⅟"),
                     nullableCheckbox(value as Boolean?, !model.isTypePrimitive) {
                         onValueChanged(rootValue, path, model.dataType, it)
@@ -382,7 +385,7 @@ class WorldView(
                     attrs(height(px(treeNodeHeight))),
                     if (shouldShowLeafDataTypeIcon)
                         dataTypeToIcon(model.dataType, model.isTypePrimitive)
-                    else dummyEl,
+                    else none,
                     text("${model.name ?: ""} = "),
 
                     if (!isNullable) {

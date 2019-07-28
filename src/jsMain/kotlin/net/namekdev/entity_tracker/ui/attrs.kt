@@ -1,5 +1,6 @@
 package net.namekdev.entity_tracker.ui
 
+import net.namekdev.entity_tracker.utils.mapToArray
 import org.w3c.dom.Element
 import snabbdom.j
 import kotlin.math.max
@@ -20,8 +21,20 @@ inline fun attrWhen(predicate: Boolean, attr: Attribute): Attribute =
 /**
  * note that when the internal flag is 0 so it can be easily overwritten by element()
  */
-fun style(prop: String, value: String, customFlag: Int = 0) =
-    Attribute.StyleClass(customFlag, AStyle(prop, arrayOf(prop to value)))
+fun style(prop: String, value: String, customFlag: Int = 0): Attribute {
+    val firstLetters = ("$prop-$value")
+        .filter { it in 'a'..'z' || it in '0'..'9' || it == '-' }
+        .split('-')
+        .filter { it.isNotEmpty() }
+        .mapToArray {
+            if (it.length >= 2) it.substring(0, 2)
+            else if (it.length == 1) it[0]
+            else ""
+        }
+        .joinToString("-") + "-" + (value.filter { it in '0'..'9' })
+    console.log(firstLetters)
+    return Attribute.StyleClass(customFlag, Single(firstLetters, prop, value))
+}
 
 fun px(size: Int) = Length.Px(size)
 val fill = Length.Fill(1)
@@ -38,7 +51,7 @@ val heightShrink = Attribute.Height.Content
 val alignTop = Attribute.AlignY(VAlign.Top)
 val alignBottom = Attribute.AlignY(VAlign.Bottom)
 val alignLeft = Attribute.AlignX(HAlign.Left)
-val alignRight = Attribute.AlignX(HAlign.Left)
+val alignRight = Attribute.AlignX(HAlign.Right)
 val centerX = Attribute.AlignX(HAlign.CenterX)
 val centerY = Attribute.AlignY(VAlign.CenterY)
 
@@ -97,5 +110,10 @@ fun backgroundColor(color: Color) =
 
 fun fontColor(color: Color) =
     Attribute.StyleClass(Flag.fontColor, Colored("font-color-${color.formatWithDashes()}", "color", color))
+fun fontSize(sizePx: Int) = Attribute.StyleClass(Flag.fontSize, FontSize(sizePx))
+val fontAlignLeft = Attribute.Class(Flag.fontAlignment, Classes.textLeft)
+val fontAlignRight = Attribute.Class(Flag.fontAlignment, Classes.textRight)
+val fontCenter = Attribute.Class(Flag.fontAlignment, Classes.textCenter)
+val fontJustify = Attribute.Class(Flag.fontAlignment, Classes.textJustify)
 
 fun onClick(handler: (Element) -> Unit) = Attribute.Events(j("click" to handler))

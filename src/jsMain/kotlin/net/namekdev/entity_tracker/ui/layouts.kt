@@ -12,12 +12,42 @@ import snabbdom.*
  * Instead of injecting styles to each node we generate
  * a big stylesheet by walking through a whole node tree.
  */
-data class RNode(
-    val vnode: VNode,
-    val stylesheet: Stylesheet? = null
-)
+//data class RNode(
+//    val vnode: VNode,
+//    val stylesheet: Stylesheet? = null
+//)
+sealed class RNode
+class Unstyled(val html: (LayoutContext) -> VNode) : RNode()
+class Styled(val html: (LayoutContext) -> VNode, val styles : Stylesheet) : RNode()
+class Text(val text: String) : RNode()
+object Empty : RNode()
 
-val dummyEl: RNode = RNode(emptyNode)
+
+fun renderRoot(child: RNode): VNode =
+    toHtml(element(AsEl, Generic, null, child))
+
+fun renderRoot(attrs: Array<Attribute>, child: RNode): VNode =
+    toHtml(element(AsEl, Generic, attrs, child))
+
+
+private fun toHtml(el: RNode): VNode =
+    when (el) {
+        is Unstyled ->
+            el.html(AsEl)
+
+        is Styled ->
+            // TODO embedMode
+            el.html(AsEl)
+
+        is Text ->
+            textElement(el.text)
+
+        is Empty ->
+            textElement("")
+    }
+
+
+val none = Empty
 
 fun row(vararg nodes: RNode): RNode =
     row(arrayOf(), *nodes)
@@ -36,7 +66,7 @@ fun row(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
 
 // TODO: wrappedRow(), paragraph()
 
-fun column(nodes: Array<RNode>): RNode =
+fun column(vararg nodes: RNode): RNode =
     column(arrayOf(), *nodes)
 
 fun column(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
@@ -51,6 +81,11 @@ fun column(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
         *nodes
     )
 
+inline fun el(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    el("div", attrs, *nodes)
+
+fun el(vararg nodes: RNode): RNode =
+    element(AsEl, ANodeName("div"), null, *nodes)
 
 fun el(tag: String, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     element(AsEl, ANodeName(tag), attrs, *nodes)
@@ -64,11 +99,15 @@ fun elAsRow(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
 fun elAsRow(tag: String, vararg nodes: RNode): RNode =
     element(AsRow, ANodeName(tag), null, *nodes)
 
-fun text(txt: String): RNode =
-    RNode(textElement(txt))
+fun text(text: String): Text =
+    Text(text)
+
 
 internal inline fun textElement(text: String): VNode =
     h("div.${Classes.any}.${Classes.text}.${Classes.widthContent}.${Classes.heightContent}", text)
+
+internal inline fun textElementFill(text: String): VNode =
+    h("div.${Classes.any}.${Classes.text}.${Classes.widthFill}.${Classes.heightFill}", text)
 
 inline fun table(attrs: Array<Attribute>, header: RNode, vararg rows: RNode) =
     el("table", attrs, header, *rows)
@@ -102,10 +141,10 @@ fun thCell(vararg cellContents: RNode): RNode =
     )
 
 fun tCell(text: String) =
-    tCell(RNode(textElement(text)))
+    tCell(text(text))
 
 fun thCell(text: String) =
-    thCell(RNode(textElement(text)))
+    thCell(text(text))
 
 
 private fun element(
@@ -120,11 +159,28 @@ private fun element(
 
     // we won't create a new stylesheet object until we don't have to.
     // There's supposed to be a one global stylesheet passed through whole node tree!
-    val stylesheet = nodes.firstOrNull()?.stylesheet ?: mutableMapOf()
+    val stylesheet = (nodes.firstOrNull { it is Styled } as? Styled)?.styles ?: mutableMapOf()
 
+    val vnodes = mutableListOf<VNode>()
     for (node in nodes) {
-        node.stylesheet?.let {
-            mergeStylesheet(stylesheet, it)
+        when (node) {
+            is Unstyled -> {
+                vnodes.add(node.html(context))
+            }
+            is Styled -> {
+                vnodes.add(node.html(context))
+                mergeStylesheet(stylesheet, node.styles)
+            }
+            is Text -> {
+                vnodes.add(
+                    if (context == AsEl) {
+                        textElementFill(node.text)
+                    }
+                    else
+                        textElement(node.text)
+                )
+            }
+            is Empty -> { }
         }
     }
 
@@ -202,40 +258,49 @@ private fun element(
         Generic -> "div"
         else -> nodeName.nodeName
     }
-    var html = h("$tag$classes", vnodeData, nodes.map { it.vnode }.toTypedArray())
 
-    when(context) {
-        AsColumn -> {
-            html = when {
-                uiFlags and Flag.heightFill != 0 && uiFlags and Flag.heightBetween == 0 ->
-                    html
+    inline fun flagPresent(flag: Int): Boolean = (uiFlags and flag) != 0
 
-                uiFlags and Flag.centerY != 0 ->
-                    h("s.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerCenterY}", html)
+    val getHtml: (LayoutContext) -> VNode = { context ->
+        val html: VNode = h("$tag$classes", vnodeData, vnodes.toTypedArray())
 
-                uiFlags and Flag.alignBottom != 0 ->
-                    h("u.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerBottom}", html)
+        when (context) {
+            AsColumn -> {
+                when {
+                    flagPresent(Flag.heightFill) && !flagPresent(Flag.heightBetween) ->
+                        html
 
-                else -> html
+                    flagPresent(Flag.centerY) ->
+                        h("s.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerCenterY}", html)
+
+                    flagPresent(Flag.alignBottom) ->
+                        h("u.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.alignContainerBottom}", html)
+
+                    else -> html
+                }
             }
-        }
 
-        AsRow -> {
-            html =
-                if (uiFlags and Flag.widthFill != 0 && uiFlags and Flag.widthBetween == 0) {
+            AsRow -> {
+                if (flagPresent(Flag.widthFill) && !flagPresent(Flag.widthBetween)) {
                     html
                 }
-                else if (uiFlags and Flag.alignRight != 0) {
+                else if (flagPresent(Flag.alignRight)) {
                     h("u.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.contentCenterY}.${Classes.alignContainerRight}", arrayOf(html))
                 }
-                else if (uiFlags and Flag.centerX != 0) {
+                else if (flagPresent(Flag.centerX)) {
                     h("s.${Classes.any}.${Classes.single}.${Classes.container}.${Classes.contentCenterY}.${Classes.alignContainerCenterX}", arrayOf(html))
                 }
                 else html
+            }
+
+            else -> html
         }
     }
 
-    return RNode(html, stylesheet)
+    return if (stylesheet.isEmpty())
+        Unstyled(getHtml)
+    else
+        Styled(getHtml, stylesheet)
 }
 
 fun width(length: Length): Attribute.Width =
@@ -345,6 +410,7 @@ private fun getStyleName(style: Style): String =
     when(style) {
         is Transparency -> style.name
         is AStyle -> style.selector
+        is FontSize -> "font-size-${style.size}"
         is Single -> style.klass
         is Colored -> style.cls
         is SpacingStyle -> style.cls
@@ -364,6 +430,8 @@ private fun getStyleName(style: Style): String =
                 }
             }
         }
+        is Transform ->
+            transformClass(style.transformation) ?: ""
     }
 
 internal object Flag {
@@ -392,6 +460,8 @@ internal object Flag {
     const val cursor = 1 shl 21
     const val transparency = 1 shl 22
     const val borderWidth = 1 shl 23
+    const val fontAlignment = 1 shl 24
+    const val fontSize = 1 shl 25
 }
 
 enum class LayoutContext {
