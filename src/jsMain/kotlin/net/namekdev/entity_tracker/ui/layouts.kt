@@ -132,19 +132,15 @@ inline fun tRow(attrs: Array<Attribute>, vararg columns: RNode) =
 
 fun tCell(vararg cellContents: RNode): RNode =
     el("td", attrs(),
-        element(LayoutContext.AsRow, Generic, null, *cellContents)
-    )
+        element(LayoutContext.AsRow, Generic, null, *cellContents))
+
+fun thCell(attrs: Array<Attribute>, vararg cellContents: RNode): RNode =
+    el("th", attrs(widthShrink) + attrs,
+        element(LayoutContext.AsRow, Generic, null, *cellContents))
 
 fun thCell(vararg cellContents: RNode): RNode =
     el("th", attrs(widthShrink),
-        element(LayoutContext.AsRow, Generic, null, *cellContents)
-    )
-
-fun tCell(text: String) =
-    tCell(text(text))
-
-fun thCell(text: String) =
-    thCell(text(text))
+        element(LayoutContext.AsRow, Generic, null, *cellContents))
 
 
 private fun element(
@@ -462,6 +458,9 @@ internal object Flag {
     const val borderWidth = 1 shl 23
     const val fontAlignment = 1 shl 24
     const val fontSize = 1 shl 25
+    const val hover = 1 shl 26
+    const val active = 1 shl 27
+    const val focus = 1 shl 28
 }
 
 enum class LayoutContext {

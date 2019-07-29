@@ -10,14 +10,14 @@ import snabbdom.modules.VNodeStyle
 import kotlin.js.Json
 
 fun button(label: String, clickHandler: () -> Unit): RNode =
-    el("button", attrs(onClick {
+    el("button", attrs(on(click = {
         clickHandler()
-    }), text(label))
+    })), text(label))
 
 fun button(attrs: Array<Attribute>, label: String, clickHandler: () -> Unit): RNode =
-    el("button", attrs + attrs(onClick {
+    el("button", attrs + attrs(on(click = {
         clickHandler()
-    }), text(label))
+    })), text(label))
 
 fun dropdown(valueIndex: Int?, valuesTexts: List<String>, allowNull: Boolean, onChange: (Int?) -> Unit): RNode {
     val modifier = if (allowNull) 1 else 0
@@ -135,14 +135,15 @@ fun textEdit(
     text: String, inputType: InputType, autoFocus: Boolean,
     onChange: ((InputValue?, String) -> Unit)? = null,
     onEnter: ((InputValue?) -> Unit)? = null,
-    onEscape: (() -> Unit)? = null
+    onEscape: (() -> Unit)? = null,
+    width: Int? = null
 ) : RNode
 {
     val nativeInputType = when (inputType) {
         InputType.Text -> "text"
         else -> "number"
     }
-    val width = when (inputType) {
+    val width = width ?: when (inputType) {
         InputType.Text -> 150
         else -> 100
     }

@@ -13,10 +13,16 @@ typealias AspectInfo = AspectInfo_Common<CommonBitVector>
 
 class WatchedEntity(var entityId: Int?, var componentIndex: Int, var valueTree: ValueTree?, var watchEnabled: Boolean = true)
 
+enum class AspectPartType {
+    All, One, Exclude
+}
+
 class ECSModel : IWorldUpdateListener<CommonBitVector> {
     val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
     val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
     val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
+
+    val highlightedComponentTypes = ValueContainer(mutableMapOf<Int, AspectPartType>())
 
 
     fun setComponentType(index: Int, info: ComponentTypeInfo) {
@@ -45,6 +51,22 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
 
     fun getComponentTypeInfo(index: Int): ComponentTypeInfo =
         componentTypes().get(index)
+
+    val tmpInts = mutableListOf<Int>()
+    fun setHighlightedComponentTypes(aspect: AspectInfo_Common<CommonBitVector>, shouldSet: Boolean) {
+        highlightedComponentTypes.update {
+            if (!aspect.isEmpty) {
+                for (types in arrayOf(aspect.allTypes!!, aspect.oneTypes!!, aspect.exclusionTypes!!)) {
+                    for (i in types.toIntBag(tmpInts)) {
+                        if (shouldSet)
+                            it.put(i, AspectPartType.All)
+                        else
+                            it.remove(i)
+                    }
+                }
+            }
+        }
+    }
 
     fun clear() {
         componentTypes.update { it.clear() }

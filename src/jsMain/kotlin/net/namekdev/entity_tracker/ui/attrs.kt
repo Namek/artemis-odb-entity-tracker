@@ -3,6 +3,7 @@ package net.namekdev.entity_tracker.ui
 import net.namekdev.entity_tracker.utils.mapToArray
 import org.w3c.dom.Element
 import snabbdom.j
+import snabbdom.modules.On
 import kotlin.math.max
 import kotlin.math.min
 
@@ -116,4 +117,39 @@ val fontAlignRight = Attribute.Class(Flag.fontAlignment, Classes.textRight)
 val fontCenter = Attribute.Class(Flag.fontAlignment, Classes.textCenter)
 val fontJustify = Attribute.Class(Flag.fontAlignment, Classes.textJustify)
 
-fun onClick(handler: (Element) -> Unit) = Attribute.Events(j("click" to handler))
+fun on(
+    click: ((Element) -> Unit)? = null,
+    mouseEnter: ((Element) -> Unit)? = null,
+    mouseLeave: ((Element) -> Unit)? = null,
+    mouseOut: ((Element) -> Unit)? = null
+): Attribute.Events {
+    val evts = j<On>()
+    if (click != null) evts["click"] = click
+    if (mouseEnter != null) evts["mouseenter"] = mouseEnter
+    if (mouseLeave != null) evts["mouseleave"] = mouseLeave
+    if (mouseOut != null) evts["mouseout"] = mouseOut
+
+    return Attribute.Events(evts)
+}
+
+fun mouseOver(vararg decorations: Attribute): Attribute =
+    Attribute.StyleClass(Flag.hover, PseudoSelector(PseudoClass.Hover, unwrapDecorations(*decorations)))
+
+fun mouseDown(vararg decorations: Attribute): Attribute =
+    Attribute.StyleClass(Flag.active, PseudoSelector(PseudoClass.Active, unwrapDecorations(*decorations)))
+
+fun focused(vararg decorations: Attribute): Attribute =
+    Attribute.StyleClass(Flag.focus, PseudoSelector(PseudoClass.Focus, unwrapDecorations(*decorations)))
+
+private fun unwrapDecorations(vararg decorations: Attribute): Array<Style> {
+    val unwrapped = mutableListOf<Style>()
+
+    for (attr in decorations) {
+        when (attr) {
+            is Attribute.StyleClass ->
+                unwrapped.add(attr.style)
+        }
+    }
+
+    return unwrapped.toTypedArray()
+}

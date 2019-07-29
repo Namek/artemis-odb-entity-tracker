@@ -246,6 +246,8 @@ val globalStylesheet =
     """
     .${Classes.any} > table {
         display: table !important;
+        border-spacing: 0px !important;
+        border-collapse:collapse;
     }
     .${Classes.any} > table tr {
         display: table-row !important;

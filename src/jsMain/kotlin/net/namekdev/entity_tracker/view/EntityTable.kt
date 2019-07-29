@@ -10,10 +10,41 @@ class EntityTable(
     entities: () -> ECSModel,
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
 ) {
-    val render = renderTo(entities().entityComponents, entities().componentTypes) { r, entityComponents, componentTypes ->
-        val idCol = row(gridHeaderColumnStyle_id, text("id"))
+    val render = renderTo(
+        entities().entityComponents,
+        entities().componentTypes,
+        entities().highlightedComponentTypes
+    ) { r, entityComponents, componentTypes, highlightedComponentTypes ->
+        val idCol = column(
+            row(gridHeaderColumnStyle_id, text("id")),
+            el(attrs(centerX, height(px(underHeaderColumnsHeight))),
+                textEdit("", InputType.Integer, false, width = 40,
+                    onChange = { _, _ ->
+                        // TODO apply the id filter
+                    },
+                    onEscape = {
+                        // TODO clear the id filter
+                    }))
+        )
+
         val componentCols = componentTypes.mapToArray {
-            row(gridHeaderColumnStyle_component, text(it.name))
+            val aspectPartTypeIcon =
+                when (highlightedComponentTypes[it.index]) {
+                    null -> " "
+                    AspectPartType.All -> "A"
+                    AspectPartType.One -> "1"
+                    AspectPartType.Exclude -> "!"
+                }
+
+            var columnStyle = gridHeaderColumnStyle_component
+            if (highlightedComponentTypes[it.index] != null)
+                columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
+
+            column(attrs(alignBottom),
+                row(columnStyle, text(it.name)),
+                el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
+                    text(aspectPartTypeIcon))
+            )
         }
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
         val entitiesDataRows = viewEntitiesDataRows(r)
@@ -28,7 +59,7 @@ class EntityTable(
                     column(
                         attrs(
                             widthFill,
-                            onClick { onComponentClicked(entityId, cmpIndex) }
+                            on(click = { onComponentClicked(entityId, cmpIndex) })
                         ),
                         el("div", attrs(centerX), text("x"))
                     )
@@ -37,7 +68,6 @@ class EntityTable(
             }
 
             row(attrs(gridRowStyle),
-//                el(attrs(fontAlignRight), text(entityId.toString())), // TODO should it work? why doesn it?
                 el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())),
                 *entityComponents)
         }
@@ -70,6 +100,7 @@ class EntityTable(
         )
 
         private val idColRightPadding = 12
+        private val underHeaderColumnsHeight = 24
 
         private val gridHeaderColumnStyle_id = gridHeaderColumnStyle_common + attrs(
             alignBottom,
@@ -78,6 +109,8 @@ class EntityTable(
         )
 
         private val gridHeaderColumnStyle_component = gridHeaderColumnStyle_common + attrs(
+            centerX,
+
             // rotate text 90 degrees to squeeze all columns horizontally
             style("writing-mode", "vertical-lr"),
             style("transform", "rotate(-180deg)"),

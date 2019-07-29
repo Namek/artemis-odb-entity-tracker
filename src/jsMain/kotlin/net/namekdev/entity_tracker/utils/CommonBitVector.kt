@@ -379,33 +379,33 @@ class CommonBitVector {
      * @param out decoded ints end up here
      * @return Same as out
      */
-//    fun toIntBag(out: IntBag): IntBag {
-//        if (isEmpty) {
-//            out.setSize(0)
-//            return out
-//        }
-//
-//        val count = prepareBag(out, 1)
-//
-//        val data = out.getData()
-//        var i = 0
-//        var index = 0
-//        while (count > index) {
-//            var bitset = words[i]
-//            val wordBits = i shl 6
-//            while (bitset != 0L) {
-//                val t = bitset and -bitset
-//                data[index] = wordBits + java.lang.Long.bitCount(t - 1)
-//                bitset = bitset xor t
-//
-//                index++
-//            }
-//            i++
-//        }
-//
-//        return out
-//    }
-//
+    fun toIntBag(out: MutableList<Int>): MutableList<Int> {
+        out.clear()
+
+        if (isEmpty) {
+            return out
+        }
+
+        val count = cardinality()
+
+        var i = 0
+        var index = 0
+        while (count > index) {
+            var bitset = words[i]
+            val wordBits = i shl 6
+            while (bitset != 0L) {
+                val t = bitset and -bitset
+                out.add(wordBits + Long.bitCount(t - 1))
+                bitset = bitset xor t
+
+                index++
+            }
+            i++
+        }
+
+        return out
+    }
+
 //    /**
 //     * Decodes the set bits as pairs of `entity id` and
 //     * [compositionId][World.compositionId]. The

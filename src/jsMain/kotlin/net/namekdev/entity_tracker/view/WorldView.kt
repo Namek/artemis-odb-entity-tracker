@@ -89,16 +89,12 @@ class WorldView(
         column(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
 
-            // TODO this line shows that there are too many divs in output! `fontAlignRight` can't work because of that
-            column(attrs(widthFill), el(attrs(fontAlignRight), text("some test text"))),
-
-
             entityTable.render(r),
             viewEntitiesFilters(r),
             row(
-                attrs(widthFill),
-                viewCurrentEntity(r),
-                viewSystems(r))
+                attrs(widthFill, spacing(50)),
+                viewSystems(r),
+                viewCurrentEntity(r))
         )
 
     private fun notifyCurrentlyEditedInputChanged() {
@@ -129,27 +125,53 @@ class WorldView(
         row(text("TODO filters here?"))
 
     val viewSystems = renderTo(entities().allSystems) { r, allSystems ->
-        // TODO checkboxes: entity systems, base systems (empty aspectInfo), managers (actives == null)
+        fun headerCell(txt: String) = thCell(attrs(paddingXY(4, 2)), text(txt))
+        val headerRow = tRow(attrs(paddingXY(4, 2)),
+            headerCell(""), headerCell("system"), headerCell("entities"), headerCell("max"))
 
-        val header = tRow(thCell(""), thCell("system"), thCell("entities"), thCell("max entities"))
         val rows = allSystems
-//            .filter { it.hasAspect }
-            .mapToArray {
+            .mapToArray { system ->
                 tRow(
+                    attrs(
+                        on(
+                            mouseEnter = {
+                                entities().setHighlightedComponentTypes(system.aspectInfo, true)
+                            },
+                            mouseLeave = {
+                                entities().setHighlightedComponentTypes(system.aspectInfo, false)
+                            }
+                        ),
+                        mouseOver(backgroundColor(hexToColor(0xeeeeee))),
+                        mouseDown(backgroundColor(hexToColor(0xdddddd)))
+                    ),
                     tCell(
-                        checkbox(it.isEnabled) { enabled ->
-                            it.isEnabled = enabled
+                        checkbox(system.isEnabled) { enabled ->
+                            system.isEnabled = enabled
                             entities().allSystems.update { }
-                            worldController()?.setSystemState(it.name, enabled)
+                            worldController()?.setSystemState(system.name, enabled)
                         }
                     ),
-                    tCell(it.name),
-                    if (it.hasAspect) tCell(it.entitiesCount.toString()) else none,
-                    if (it.hasAspect) tCell(it.maxEntitiesCount.toString()) else none
+
+                    tCell(text(system.name)),
+
+                    if (system.hasAspect)
+                        tCell(
+                            el(attrs(
+                                on(click = {
+                                    console.log("TODO apply filter to entity table")
+                                }),
+                                mouseOver(backgroundColor(hexToColor(0x4682B4)))
+                            ), text(" 👓 ")),
+                            text(system.entitiesCount.toString()))
+                    else none,
+
+                    if (system.hasAspect)
+                        tCell(text(system.maxEntitiesCount.toString()))
+                    else none
                 )
             }
 
-        table(attrs(width(fill), alignTop), header, *rows)
+        table(attrs(width(fill), alignTop), headerRow, *rows)
     }
 
     val viewCurrentEntity = renderTo(watchedEntity) { r, watchedEntity ->
@@ -217,7 +239,7 @@ class WorldView(
                     row(
                         attrs(
                             attrWhen(isSelected, backgroundColor(hexToColor(0xCFD8DC))),
-                            onClick{ showComponent(entityId, cmpType.index) }
+                            on(click = { showComponent(entityId, cmpType.index) })
                         ),
                         text(cmpType.name)
                     )
@@ -372,10 +394,10 @@ class WorldView(
                     if (currentlyEditedInput()?.path != path) {
                         row(
                             attrs(
-                                onClick {
+                                on(click = {
                                     currentlyEditedInput.value = EditedInputState(path, value?.toString() ?: "")
                                     notifyCurrentlyEditedInputChanged()
-                                }),
+                                })),
                             text(value?.toString() ?: "<null>")
                         )
                     }
