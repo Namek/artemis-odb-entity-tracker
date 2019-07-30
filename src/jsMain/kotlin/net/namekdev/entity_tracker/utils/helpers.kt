@@ -9,8 +9,34 @@ inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
     return map(transform).toTypedArray()
 }
 
+inline fun <T, R> Iterable<T>.filterMapToArray(transform: (T) -> R?): Array<R> {
+    val list = mutableListOf<R>()
+
+    for (item in this) {
+        val transformed = transform(item)
+        if (transformed != null) {
+            list.add(transformed)
+        }
+    }
+
+    return list.toTypedArray()
+}
+
 inline fun <K, V, R> Map<out K, V>.mapToArray(transform: (Map.Entry<K, V>) -> R): Array<R> {
     return map(transform).toTypedArray()
+}
+
+inline fun <K, V, R> Map<out K, V>.filterMapToArray(transform: (Map.Entry<K, V>) -> R?): Array<R> {
+    val list = mutableListOf<R>()
+
+    for (item in this) {
+        val transformed = transform(item)
+        if (transformed != null) {
+            list.add(transformed)
+        }
+    }
+
+    return list.toTypedArray()
 }
 
 fun createStyleElement(content: String): Element {

@@ -1,10 +1,7 @@
 package net.namekdev.entity_tracker.view
 
 import net.namekdev.entity_tracker.ui.*
-import net.namekdev.entity_tracker.utils.cachedMap
-import net.namekdev.entity_tracker.utils.mapToArray
-import net.namekdev.entity_tracker.utils.named
-import net.namekdev.entity_tracker.utils.renderTo
+import net.namekdev.entity_tracker.utils.*
 
 class EntityTable(
     val entities: () -> ECSModel,
@@ -66,9 +63,21 @@ class EntityTable(
         el("div", gridStyle(), header, *entitiesDataRows)
     }.named("EntityTable.render")
 
-    val viewEntitiesDataRows = renderTo(entities().componentTypes, entities().entityComponents) { r, componentTypes, entityComponents ->
-        entityComponents.mapToArray { (entityId, components) ->
-            val entityComponents = componentTypes.indices.mapToArray { cmpIndex ->
+    val viewEntitiesDataRows = renderTo(
+        entities().componentTypes,
+        entities().entityComponents,
+        entities().entityFilterByComponentType
+    ) { r, componentTypes, entityComponents, filters ->
+        entityComponents.filterMapToArray { (entityId, components) ->
+            for ((filteredCmpIndex, filterType) in filters) {
+                val hasComponent = components[filteredCmpIndex]
+
+                if (filterType == ComponentTypeFilter.Include && !hasComponent ||
+                    filterType == ComponentTypeFilter.Exclude && hasComponent)
+                    return@filterMapToArray null
+            }
+
+            val entityComponentRow = componentTypes.indices.mapToArray { cmpIndex ->
                 if (components[cmpIndex])
                     column(
                         attrs(
@@ -83,7 +92,7 @@ class EntityTable(
 
             row(attrs(gridRowStyle),
                 el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())),
-                *entityComponents)
+                *entityComponentRow)
         }
     }.named("viewEntitiesDataRows")
 
