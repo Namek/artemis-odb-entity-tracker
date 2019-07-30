@@ -13,10 +13,10 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        val idCol = column(
+        val idCol = column(gridHeaderColumnStyle_common,
             row(gridHeaderColumnStyle_id, text("id")),
-            el(attrs(centerX, height(px(underHeaderColumnsHeight))),
-                textEdit("", InputType.Integer, false, width = 40,
+            el(attrs(height(px(underHeaderColumnsHeight))),
+                textEdit("", InputType.Integer, false, width = 34,
                     onChange = { _, _ ->
                         // TODO apply the id filter
                     },
@@ -51,10 +51,11 @@ class EntityTable(
             if (highlightedAs != null)
                 columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
 
-            column(attrs(alignBottom),
-                row(columnStyle, text(it.name)),
-                el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
-                    filterOrIconForHighlightedAspectPartType)
+            column(gridHeaderColumnStyle_common,
+                column(attrs(alignBottom, centerX),
+                    row(columnStyle, text(it.name)),
+                    el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
+                        filterOrIconForHighlightedAspectPartType))
             )
         }
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
@@ -126,13 +127,13 @@ class EntityTable(
         private val idColRightPadding = 12
         private val underHeaderColumnsHeight = 24
 
-        private val gridHeaderColumnStyle_id = gridHeaderColumnStyle_common + attrs(
+        private val gridHeaderColumnStyle_id = attrs(
             alignBottom,
             alignRight,
             padding(0, idColRightPadding, 4, 0)
         )
 
-        private val gridHeaderColumnStyle_component = gridHeaderColumnStyle_common + attrs(
+        private val gridHeaderColumnStyle_component = attrs(
             centerX,
 
             // rotate text 90 degrees to squeeze all columns horizontally
