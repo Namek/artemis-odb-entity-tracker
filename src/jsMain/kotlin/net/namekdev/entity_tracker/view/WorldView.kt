@@ -85,16 +85,31 @@ class WorldView(
         }
     }
 
-    fun render(r: RenderSession) =
-        column(
-            attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
+    val render = renderTo(entities().worldViewLayout) { r, chosenLayout ->
+        val layout = when (chosenLayout) {
+            WorldViewLayout.Entities__Systems_Component ->
+                elems(
+                    entityTable.render(r),
+                    row(
+                        attrs(widthFill, spacing(50)),
+                        column(attrs(alignTop), viewSystems(r)),
+                        column(attrs(alignTop), viewCurrentEntity(r))
+                    ))
 
-            entityTable.render(r),
-            row(
-                attrs(widthFill, spacing(50)),
-                viewSystems(r),
-                viewCurrentEntity(r))
+            WorldViewLayout.Entities_Component__Systems ->
+                elems(
+                    row(
+                        attrs(widthFill, spacing(50)),
+                        column(attrs(alignTop, spacing(50)), entityTable.render(r), viewSystems(r)),
+                        column(attrs(alignTop), viewCurrentEntity(r))
+                    ))
+        }
+
+        column(
+            attrs(widthFill, heightFill, paddingXY(10, 10), spacing(40)),
+            layout
         )
+    }
 
     private fun notifyCurrentlyEditedInputChanged() {
         viewSelectedComponent.invalidate()
@@ -168,7 +183,7 @@ class WorldView(
                 )
             }
 
-        table(attrs(width(fill), alignTop), headerRow, *rows)
+        table(attrs(width(shrink), alignTop), headerRow, *rows)
     }
 
     val viewCurrentEntity = renderTo(watchedEntity) { r, watchedEntity ->

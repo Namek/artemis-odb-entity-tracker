@@ -23,6 +23,11 @@ enum class MatchType {
     Match, AntiMatch, NoMatch
 }
 
+enum class WorldViewLayout {
+    Entities__Systems_Component,
+    Entities_Component__Systems
+}
+
 class ECSModel : IWorldUpdateListener<CommonBitVector> {
     val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
     val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
@@ -30,6 +35,7 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
 
     val highlightedComponentTypes = ValueContainer(mutableMapOf<Int, AspectPartType>())
     val entityFilterByComponentType = ValueContainer(mutableMapOf<Int, ComponentTypeFilter>())
+    val worldViewLayout = ValueContainer<WorldViewLayout>(WorldViewLayout.Entities_Component__Systems)
 
 
     fun clear() {

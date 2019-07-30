@@ -60,7 +60,8 @@ class EntityTable(
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
         val entitiesDataRows = viewEntitiesDataRows(r)
 
-        el("div", gridStyle(), header, *entitiesDataRows)
+        column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
+            el("div", gridStyle(), header, *entitiesDataRows))
     }.named("EntityTable.render")
 
     val viewEntitiesDataRows = renderTo(
@@ -102,11 +103,11 @@ class EntityTable(
 
         attrs(
             Attribute.Class(0, tableGridClassName),
-            padding(1, 1, 1, 1),
+            padding(1, 10, 1, 3),
             style("display", "grid !important"),
             style("grid-template-columns", "repeat($columnCount, minmax(35px, auto))"),
-            Attribute.StyleClass(Flag.height, Single("maxh", "max-height", "50vh")),
-            style("overflow", "auto")
+            Attribute.StyleClass(Flag.height, Single("maxh-50vh", "max-height", "50vh")),
+            style("overflow-y", "scroll")
         )
     }
 

@@ -156,9 +156,12 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
             attrs(widthFill),
             (if (isConnected)
                 row(
-                    attrs(spacing(5), height(px(20))),
+                    attrs(widthFill, spacing(5), height(px(20))),
                     renderConnectionButton(r),
-                    text("host: $connectionHostname:$connectionPort")
+                    text("host: $connectionHostname:$connectionPort"),
+                    el(attrs(alignRight), button("🎨") {
+                        entities.worldViewLayout.value = entities.worldViewLayout.value.next()
+                    })
                 )
             else
                 row(
@@ -179,7 +182,7 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
                         }
                     )
                 )),
-            worldView?.render(r) ?: (if (allowConnection) text("connecting...") else none)
+            worldView?.render?.invoke(r) ?: (if (allowConnection) text("connecting...") else none)
         )
     }.named("mainView")
 
