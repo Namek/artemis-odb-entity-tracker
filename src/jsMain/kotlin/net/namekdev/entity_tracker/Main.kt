@@ -186,7 +186,7 @@ class Main(container: HTMLElement) : RenderRoot(), IWorldUpdateListener<CommonBi
     val renderConnectionButton = renderTo(allowConnection) { r, allowConnection ->
         val icon = if (allowConnection) "📍" else "📌"
         button(attrs(width(px(20)), style("align-items", "center")), icon, clickHandler = {
-            this.allowConnection.value = !allowConnection
+            this.allowConnection.value = !this.allowConnection.value
         })
     }
 
