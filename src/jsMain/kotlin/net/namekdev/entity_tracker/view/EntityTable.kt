@@ -7,14 +7,15 @@ import net.namekdev.entity_tracker.utils.named
 import net.namekdev.entity_tracker.utils.renderTo
 
 class EntityTable(
-    entities: () -> ECSModel,
+    val entities: () -> ECSModel,
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
 ) {
     val render = renderTo(
         entities().entityComponents,
         entities().componentTypes,
-        entities().highlightedComponentTypes
-    ) { r, entityComponents, componentTypes, highlightedComponentTypes ->
+        entities().highlightedComponentTypes,
+        entities().entityFilterByComponentType
+    ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
         val idCol = column(
             row(gridHeaderColumnStyle_id, text("id")),
             el(attrs(centerX, height(px(underHeaderColumnsHeight))),
@@ -28,22 +29,35 @@ class EntityTable(
         )
 
         val componentCols = componentTypes.mapToArray {
-            val aspectPartTypeIcon =
-                when (highlightedComponentTypes[it.index]) {
-                    null -> " "
-                    AspectPartType.All -> "A"
-                    AspectPartType.One -> "1"
-                    AspectPartType.Exclude -> "!"
+            val cmpTypeIndex = it.index
+            val highlightedAs = highlightedComponentTypes[cmpTypeIndex]
+            val filter = entityFilterByComponentType[cmpTypeIndex]
+
+            val filterOrIconForHighlightedAspectPartType =
+                when (highlightedAs) {
+                    null -> {
+                        val label = when (filter) {
+                            null -> el(attrs(fontColor(hexToColor(0xeeeeee))), text("_"))
+                            ComponentTypeFilter.Include -> text("+")
+                            ComponentTypeFilter.Exclude -> text("-")
+                        }
+                        button(label) {
+                            entities().toggleComponentTypeFilter(cmpTypeIndex)
+                        }
+                    }
+                    AspectPartType.All -> text("A")
+                    AspectPartType.One -> text("1")
+                    AspectPartType.Exclude -> text("!")
                 }
 
             var columnStyle = gridHeaderColumnStyle_component
-            if (highlightedComponentTypes[it.index] != null)
+            if (highlightedAs != null)
                 columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
 
             column(attrs(alignBottom),
                 row(columnStyle, text(it.name)),
                 el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
-                    text(aspectPartTypeIcon))
+                    filterOrIconForHighlightedAspectPartType)
             )
         }
         val header = row(attrs(gridRowStyle), idCol, *componentCols)

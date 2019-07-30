@@ -90,7 +90,6 @@ class WorldView(
             attrs(widthFill, heightFill, paddingXY(10, 10), spacing(10)),
 
             entityTable.render(r),
-            viewEntitiesFilters(r),
             row(
                 attrs(widthFill, spacing(50)),
                 viewSystems(r),
@@ -120,9 +119,6 @@ class WorldView(
         else
             worldController()?.requestComponentState(entityId, componentIndex)
     }
-
-    fun viewEntitiesFilters(r: RenderSession) =
-        row(text("TODO filters here?"))
 
     val viewSystems = renderTo(entities().allSystems) { r, allSystems ->
         fun headerCell(txt: String) = thCell(attrs(paddingXY(4, 2)), text(txt))
@@ -158,7 +154,8 @@ class WorldView(
                         tCell(
                             el(attrs(
                                 on(click = {
-                                    console.log("TODO apply filter to entity table")
+                                    entities().switchFilterAySpect(system.aspectInfo)
+                                    entities().setHighlightedComponentTypes(system.aspectInfo, false)
                                 }),
                                 mouseOver(backgroundColor(hexToColor(0x4682B4)))
                             ), text(" 👓 ")),

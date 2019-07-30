@@ -9,6 +9,11 @@ import snabbdom.modules.Props
 import snabbdom.modules.VNodeStyle
 import kotlin.js.Json
 
+fun button(content: RNode, clickHandler: () -> Unit): RNode =
+    el("button", attrs(on(click = {
+        clickHandler()
+    })), content)
+
 fun button(label: String, clickHandler: () -> Unit): RNode =
     el("button", attrs(on(click = {
         clickHandler()
