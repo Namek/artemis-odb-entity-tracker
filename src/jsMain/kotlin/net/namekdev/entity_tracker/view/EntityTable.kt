@@ -2,6 +2,10 @@ package net.namekdev.entity_tracker.view
 
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.utils.*
+import snabbdom.Hooks
+import snabbdom.VNodeData
+import snabbdom.h
+import snabbdom.j
 
 class EntityTable(
     val entities: () -> ECSModel,
@@ -58,25 +62,31 @@ class EntityTable(
                         filterOrIconForHighlightedAspectPartType))
             )
         }
+
+        tmpEntityComponentsMapResult.clear()
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
+        tmpEntityComponentsMapResult.add(header)
+
         val entitiesDataRows = viewEntitiesDataRows(r)
 
         column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
-            el("div", gridStyle(), header, *entitiesDataRows))
+            el("div", gridStyle(), /*header,*/ entitiesDataRows))
     }.named("EntityTable.render")
+
+    private val tmpEntityComponentsMapResult = mutableListOf<RNode>()
 
     val viewEntitiesDataRows = renderTo(
         entities().componentTypes,
         entities().entityComponents,
         entities().entityFilterByComponentType
     ) { r, componentTypes, entityComponents, filters ->
-        entityComponents.filterMapToArray { (entityId, components) ->
+        entityComponents.filterMapTo(tmpEntityComponentsMapResult) { (entityId, components) ->
             for ((filteredCmpIndex, filterType) in filters) {
                 val hasComponent = components[filteredCmpIndex]
 
                 if (filterType == ComponentTypeFilter.Include && !hasComponent ||
                     filterType == ComponentTypeFilter.Exclude && hasComponent)
-                    return@filterMapToArray null
+                    return@filterMapTo null
             }
 
             val entityComponentRow = componentTypes.indices.mapToArray { cmpIndex ->
@@ -92,7 +102,7 @@ class EntityTable(
                 else text("")
             }
 
-            row(attrs(gridRowStyle),
+            row(entityId.toString(), attrs(gridRowStyle),
                 el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())),
                 *entityComponentRow)
         }

@@ -9,34 +9,30 @@ inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
     return map(transform).toTypedArray()
 }
 
-inline fun <T, R> Iterable<T>.filterMapToArray(transform: (T) -> R?): Array<R> {
-    val list = mutableListOf<R>()
-
+inline fun <T, R> Iterable<T>.filterMapTo(outCollection: MutableCollection<R>, transform: (T) -> R?): Iterable<R> {
     for (item in this) {
         val transformed = transform(item)
         if (transformed != null) {
-            list.add(transformed)
+            outCollection.add(transformed)
         }
     }
 
-    return list.toTypedArray()
+    return outCollection
 }
 
 inline fun <K, V, R> Map<out K, V>.mapToArray(transform: (Map.Entry<K, V>) -> R): Array<R> {
     return map(transform).toTypedArray()
 }
 
-inline fun <K, V, R> Map<out K, V>.filterMapToArray(transform: (Map.Entry<K, V>) -> R?): Array<R> {
-    val list = mutableListOf<R>()
-
+inline fun <K, V, R> Map<out K, V>.filterMapTo(outCollection: MutableCollection<R>, transform: (Map.Entry<K, V>) -> R?): Iterable<R> {
     for (item in this) {
         val transformed = transform(item)
         if (transformed != null) {
-            list.add(transformed)
+            outCollection.add(transformed)
         }
     }
 
-    return list.toTypedArray()
+    return outCollection
 }
 
 fun createStyleElement(content: String): Element {

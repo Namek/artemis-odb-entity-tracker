@@ -49,55 +49,70 @@ private fun toHtml(el: RNode): VNode =
 
 val none = Empty
 
-fun row(vararg nodes: RNode): RNode =
+inline fun row(vararg nodes: RNode): RNode =
     row(arrayOf(), *nodes)
 
-fun row(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
+inline fun row(key: String, vararg nodes: RNode): RNode =
+    row(key, arrayOf(), *nodes)
+
+inline fun row(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
     row(attrs, *nodes)
 
-fun row(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
-    element(LayoutContext.AsRow, Generic,
+inline fun row(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    row(null, attrs, *nodes)
+
+fun row(key: String?, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    element(key, LayoutContext.AsRow, Generic,
         attrs(
             Attribute.Class(0, "${Classes.contentLeft} ${Classes.contentCenterY}"),
             Attribute.Width.Content, Attribute.Height.Content
         ) + attrs,
-        *nodes
+        nodes.asIterable()
     )
 
 // TODO: wrappedRow(), paragraph()
 
-fun column(vararg nodes: RNode): RNode =
+inline fun column(vararg nodes: RNode): RNode =
     column(arrayOf(), *nodes)
 
-fun column(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
+inline fun column(key: String, vararg nodes: RNode): RNode =
+    column(key, arrayOf(), *nodes)
+
+inline fun column(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
     column(attrs, *nodes)
 
-fun column(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
-    element(LayoutContext.AsColumn, Generic,
+inline fun column(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    column(null, attrs, *nodes)
+
+fun column(key: String?, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    element(key, LayoutContext.AsColumn, Generic,
         arrayOf(
             Attribute.Class(0, "${Classes.contentTop} ${Classes.contentLeft}"),
             Attribute.Width.Content, Attribute.Height.Content
         ) + attrs,
-        *nodes
+        nodes.asIterable()
     )
 
 inline fun el(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     el("div", attrs, *nodes)
 
 fun el(vararg nodes: RNode): RNode =
-    element(AsEl, ANodeName("div"), null, *nodes)
+    element(AsEl, ANodeName("div"), null, nodes.asIterable())
 
 fun el(tag: String, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
-    element(AsEl, ANodeName(tag), attrs, *nodes)
+    element(AsEl, ANodeName(tag), attrs, nodes.asIterable())
+
+fun el(tag: String, attrs: Array<Attribute>, nodes: Iterable<RNode>): RNode =
+    element(AsEl, ANodeName(tag), attrs, nodes)
 
 fun el(tag: String, vararg nodes: RNode): RNode =
-    element(AsEl, ANodeName(tag), null, *nodes)
+    element(AsEl, ANodeName(tag), null, nodes.asIterable())
 
 fun elAsRow(tag: String, attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
-    element(AsRow, ANodeName(tag), attrs, *nodes)
+    element(AsRow, ANodeName(tag), attrs, nodes.asIterable())
 
 fun elAsRow(tag: String, vararg nodes: RNode): RNode =
-    element(AsRow, ANodeName(tag), null, *nodes)
+    element(AsRow, ANodeName(tag), null, nodes.asIterable())
 
 fun text(text: String): Text =
     Text(text)
@@ -132,26 +147,44 @@ inline fun tRow(attrs: Array<Attribute>, vararg columns: RNode) =
 
 fun tCell(vararg cellContents: RNode): RNode =
     el("td", attrs(),
-        element(LayoutContext.AsRow, Generic, null, *cellContents))
+        element(LayoutContext.AsRow, Generic, null, cellContents.asIterable()))
 
 fun thCell(attrs: Array<Attribute>, vararg cellContents: RNode): RNode =
     el("th", attrs(widthShrink) + attrs,
-        element(LayoutContext.AsRow, Generic, null, *cellContents))
+        element(LayoutContext.AsRow, Generic, null, cellContents.asIterable()))
 
 fun thCell(vararg cellContents: RNode): RNode =
     el("th", attrs(widthShrink),
-        element(LayoutContext.AsRow, Generic, null, *cellContents))
+        element(LayoutContext.AsRow, Generic, null, cellContents.asIterable()))
 
-
-private fun element(
+private inline fun element(
     context: LayoutContext,
     nodeName: NodeName,
     attrs: Array<Attribute>? = null,
     vararg nodes: RNode
 ): RNode {
+    return element(null, context, nodeName, attrs, nodes.asIterable())
+}
+
+private inline fun element(
+    context: LayoutContext,
+    nodeName: NodeName,
+    attrs: Array<Attribute>? = null,
+    nodes: Iterable<RNode>
+): RNode {
+    return element(null, context, nodeName, attrs, nodes)
+}
+
+private fun element(
+    key: String?,
+    context: LayoutContext,
+    nodeName: NodeName,
+    attrs: Array<Attribute>? = null,
+    nodes: Iterable<RNode>
+): RNode {
     var classes = '.' + contextClasses(context).split(' ').joinToString(".")
     var uiFlags = 0
-    val vnodeData = VNodeData()
+    val vnodeData = VNodeData(key = key)
 
     // we won't create a new stylesheet object until we don't have to.
     // There's supposed to be a one global stylesheet passed through whole node tree!

@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
             .setSystem(ConstantlyChangingValuesSystem())
     )
 
-    for (i in 0..10) {
+    for (i in 0..1000) {
         val e = world.createEntity().edit()
 
         val pos = Pos(i * 6f, i * 2f)
