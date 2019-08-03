@@ -11,12 +11,18 @@ class EntityTable(
     val entities: () -> ECSModel,
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
 ) {
+    val render_ = renderTo(entities().entityComponents) { r, entityComponents ->
+        val hooks: Hooks = j()
+        h("div", VNodeData(hook = hooks))
+    }
+
     val render = renderTo(
         entities().entityComponents,
         entities().componentTypes,
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
+        console.asDynamic().time("EntityTable")
         val idCol = column(gridHeaderColumnStyle_common,
             row(gridHeaderColumnStyle_id, text("id")),
             el(attrs(height(px(underHeaderColumnsHeight))),
@@ -63,24 +69,32 @@ class EntityTable(
             )
         }
 
-        tmpEntityComponentsMapResult.clear()
+        tmpAllRows.clear()
         val header = row(attrs(gridRowStyle), idCol, *componentCols)
-        tmpEntityComponentsMapResult.add(header)
+        tmpAllRows.add(header)
 
-        val entitiesDataRows = viewEntitiesDataRows(r)
+        val allRows = viewEntitiesDataRows(r)
 
-        column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
-            el("div", gridStyle(), /*header,*/ entitiesDataRows))
+        val result = column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
+            el("div", gridStyle(), allRows))
+
+        console.asDynamic().timeEnd("EntityTable")
+
+        result
     }.named("EntityTable.render")
 
-    private val tmpEntityComponentsMapResult = mutableListOf<RNode>()
+    private val tmpAllRows = arrayListOf<RNode>()
+    private val tmpComponentColsByEntityRow = arrayListOf(arrayListOf<RNode>())
 
     val viewEntitiesDataRows = renderTo(
         entities().componentTypes,
         entities().entityComponents,
         entities().entityFilterByComponentType
     ) { r, componentTypes, entityComponents, filters ->
-        entityComponents.filterMapTo(tmpEntityComponentsMapResult) { (entityId, components) ->
+        var tmpIndex = -1
+        tmpComponentColsByEntityRow.ensureCapacity(entityComponents.size)
+
+        entityComponents.filterMapTo(tmpAllRows) { (entityId, components) ->
             for ((filteredCmpIndex, filterType) in filters) {
                 val hasComponent = components[filteredCmpIndex]
 
@@ -89,7 +103,18 @@ class EntityTable(
                     return@filterMapTo null
             }
 
-            val entityComponentRow = componentTypes.indices.mapToArray { cmpIndex ->
+
+            tmpIndex += 1
+            var tmpCols = tmpComponentColsByEntityRow.getOrNull(tmpIndex)
+            if (tmpCols == null) {
+                tmpCols = ArrayList(componentTypes.size+1)
+                tmpComponentColsByEntityRow.add(tmpCols)
+            }
+            else tmpCols.clear()
+
+            tmpCols.add(el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())))
+
+            val entityComponentRow = componentTypes.indices.mapTo(tmpCols) { cmpIndex ->
                 if (components[cmpIndex])
                     column(
                         attrs(
@@ -103,8 +128,7 @@ class EntityTable(
             }
 
             row(entityId.toString(), attrs(gridRowStyle),
-                el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())),
-                *entityComponentRow)
+                entityComponentRow)
         }
     }.named("viewEntitiesDataRows")
 

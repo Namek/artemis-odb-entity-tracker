@@ -61,13 +61,16 @@ inline fun row(attrs: Array<Attribute>, nodes: Array<RNode>): RNode =
 inline fun row(attrs: Array<Attribute>, vararg nodes: RNode): RNode =
     row(null, attrs, *nodes)
 
-fun row(key: String?, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+inline fun row(key: String?, attrs: Array<Attribute>, vararg nodes: RNode): RNode =
+    row(key, attrs, nodes.asIterable())
+
+fun row(key: String?, attrs: Array<Attribute>, nodes: Iterable<RNode>): RNode =
     element(key, LayoutContext.AsRow, Generic,
         attrs(
             Attribute.Class(0, "${Classes.contentLeft} ${Classes.contentCenterY}"),
             Attribute.Width.Content, Attribute.Height.Content
         ) + attrs,
-        nodes.asIterable()
+        nodes
     )
 
 // TODO: wrappedRow(), paragraph()
