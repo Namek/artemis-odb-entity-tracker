@@ -26,9 +26,9 @@ open class VNodeData(
     var attachData: AttachData? = null,
     var hook: Hooks? = null,
     var key: dynamic = null,
-    var ns: String? = null,
-    var fn: (() -> VNode)? = null,
-    var args: Array<dynamic>? = null
+    var ns: String? = null, // for SVGs
+    var fn: ThunkFn? = null, // for thunks
+    var args: Array<dynamic>? = null // for thunks
 ) : Json {
     override fun get(propertyName: String): Any? = this._get(propertyName)
     override fun set(propertyName: String, value: Any?) = this._set(propertyName, value)
