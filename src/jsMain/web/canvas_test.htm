@@ -1,0 +1,87 @@
+<!doctype html>
+
+<div id="container">
+</div>
+
+<style rel="stylesheet" type="text/css">
+#container {
+	width: 400px;
+	height: 50vh;
+}
+#canvas {
+	outline: 1px solid steelblue;
+}
+</style>
+
+<script>
+var PIXEL_RATIO = (function () {
+    var ctx = document.createElement("canvas").getContext("2d"),
+        dpr = window.devicePixelRatio || 1,
+        bsr = ctx.webkitBackingStorePixelRatio ||
+              ctx.mozBackingStorePixelRatio ||
+              ctx.msBackingStorePixelRatio ||
+              ctx.oBackingStorePixelRatio ||
+              ctx.backingStorePixelRatio || 1;
+
+    return dpr / bsr;
+})();
+
+createHiDPICanvas = function(w, h, ratio) {
+    if (!ratio) { ratio = PIXEL_RATIO; }
+    var can = document.createElement("canvas");
+    can.width = w * ratio;
+    can.height = h * ratio;
+    can.style.width = w + "px";
+    can.style.height = h + "px";
+    can.getContext("2d").setTransform(ratio, 0, 0, ratio, 0, 0);
+    return can;
+}
+
+const container = document.getElementById("container")
+const containerSize = getContainerSize()
+const canvas = createHiDPICanvas(containerSize.width, containerSize.height)
+container.appendChild(canvas)
+const ctx = canvas.getContext("2d")
+
+const columnWidth = 40
+
+function getContainerSize() {
+	const compStyles = window.getComputedStyle(container);
+	return {
+		width: Math.floor(compStyles.width.substr(0, compStyles.width.length - 2)),
+		height: Math.floor(compStyles.height.substr(0, compStyles.height.length - 2))
+	}
+}
+function refreshCanvasSize(canvas) {
+	const size = getContainerSize()
+	canvas.width = size.width * PIXEL_RATIO
+	canvas.height = size.height * PIXEL_RATIO
+	canvas.style.width = size.width + "px"
+	canvas.style.height = size.height + "px"
+	canvas.getContext("2d").setTransform(PIXEL_RATIO, 0, 0, PIXEL_RATIO, 0, 0);
+}
+//refreshCanvasSize(canvas)
+render()
+
+window.addEventListener('resize', () => {
+	refreshCanvasSize(canvas)
+	render()
+})
+canvas.addEventListener('mousedown', (e) => {
+	console.log(e.offsetX, e.offsetY)
+})
+canvas.addEventListener('wheel', (e) => {
+	console.log(e)
+	e.preventDefault()
+})
+
+function render() {
+	ctx.beginPath()
+	//ctx.lineWidth = 0.5
+	//ctx.moveTo(0.5, 0.0)
+	ctx.lineTo(100, 100.0)
+	ctx.stroke()
+	ctx.font = "14px monospace"
+	ctx.fillText("23", 20, 20)
+}
+</script>

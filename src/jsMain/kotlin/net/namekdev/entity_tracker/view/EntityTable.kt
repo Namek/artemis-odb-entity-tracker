@@ -2,21 +2,46 @@ package net.namekdev.entity_tracker.view
 
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.utils.*
+import org.w3c.dom.CanvasRenderingContext2D
+import org.w3c.dom.HTMLCanvasElement
 import snabbdom.Hooks
 import snabbdom.VNodeData
 import snabbdom.h
 import snabbdom.j
+import snabbdom.modules.Props
 
 class EntityTable(
     val entities: () -> ECSModel,
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
 ) {
-    val render_ = renderTo(entities().entityComponents) { r, entityComponents ->
-        val hooks: Hooks = j()
-        h("div", VNodeData(hook = hooks))
+    val render = renderTo(
+        entities().entityComponents,
+        entities().componentTypes,
+        entities().highlightedComponentTypes,
+        entities().entityFilterByComponentType
+    ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
+        val canvasHooks: Hooks = j()
+        canvasHooks.insert = {
+            console.log("create")
+
+            val canvasEl = it.elm!! as HTMLCanvasElement
+            val ctx = canvasEl.getContext("2d")!! as CanvasRenderingContext2D
+            ctx.beginPath()
+            ctx.lineWidth = 0.5
+            ctx.moveTo(0.0, 0.0)
+            ctx.lineTo(100.0, 100.0)
+            ctx.stroke()
+        }
+
+        val containerProps: Props = j("width" to 400, "height" to "50vh")
+
+        Unstyled(html = {
+            h("div", VNodeData(key = "the-table", props = containerProps),
+                h("canvas", VNodeData(hook = canvasHooks)))
+        })
     }
 
-    val render = renderTo(
+    val render_ = renderTo(
         entities().entityComponents,
         entities().componentTypes,
         entities().highlightedComponentTypes,
@@ -118,8 +143,7 @@ class EntityTable(
                 if (components[cmpIndex])
                     column(
                         attrs(
-                            widthFill,
-                            on(click = { onComponentClicked(entityId, cmpIndex) })
+                            widthFill//, on(click = { onComponentClicked(entityId, cmpIndex) })
                         ),
                         el("div", attrs(centerX), text("x"))
                     )
