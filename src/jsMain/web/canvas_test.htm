@@ -2,6 +2,7 @@
 
 <div id="container">
 </div>
+<button onclick="removeEntites(10)">remove 10 entities</button>
 
 <script>
 // ultra simple auto-reload!
@@ -113,6 +114,8 @@ const canvas = createHiDPICanvas(containerSize.width, containerSize.height)
 container.appendChild(canvas)
 const ctx = canvas.getContext("2d")
 
+const r = 1/PIXEL_RATIO
+var canvasWidth = canvas.width*r, canvasHeight = canvas.height*r
 
 function getContainerSize() {
 	const compStyles = window.getComputedStyle(container);
@@ -128,6 +131,8 @@ function refreshCanvasSize(canvas) {
 	canvas.style.width = size.width + "px"
 	canvas.style.height = size.height + "px"
 	canvas.getContext("2d").setTransform(PIXEL_RATIO, 0, 0, PIXEL_RATIO, 0, 0);
+	canvasWidth = canvas.width*r
+	canvasHeight = canvas.height*r
 }
 setTimeout(() => {
 	//refreshCanvasSize(canvas)
@@ -135,8 +140,11 @@ setTimeout(() => {
 })
 
 window.addEventListener('resize', () => {
-	refreshCanvasSize(canvas) 
-	render()
+	
+	window.requestAnimationFrame(() => {
+		refreshCanvasSize(canvas)
+		render()
+	})
 })
 
 function c(num) {
@@ -148,8 +156,6 @@ function c(num) {
 }
 
 
-const r = 1/PIXEL_RATIO
-const canvasWidth = canvas.width*r, canvasHeight = canvas.height*r
 
 const rowsGap = 7, colsGap = 10
 const minScrollHeight = 20, scrollWidth = 15, crossSize = 8
@@ -157,15 +163,24 @@ const rowYPadding = 3, rowHeight = crossSize + rowYPadding
 const scrollContainerPadding = 2
 
 var componentTypesCount = 8
-var entityComponents = [...Array(50).keys()]
+var entityComponents = [...Array(500).keys()]
 	.map(i => ({ entityId: i, components: "1" + c(componentTypesCount-1) }))
+	
+function removeEntites(num) {
+	for (let i = 0; i < num; ++i)
+		entityComponents.pop()
+		
+	window.requestAnimationFrame(render)
+}
 
 var scroll = {
 	pos: 0, // percent [0..1]
 	shouldRender: false,
 	top: 0, left: 0, right: 0, bottom: 0,
 	containerTop: 0, containerLeft: 0, containerWidth: 0, containerHeight: 0,
-	dragOffsetY: 0, dragOffsetX: 0
+	dragOffsetY: 0, dragOffsetX: 0,
+	
+	firstEntityIndex: 0
 }
 var isDraggingScroll = false
 
@@ -199,6 +214,11 @@ window.addEventListener('mousemove', (e) => {
 		// TODO use scroll.dragOffsetY
 		scroll.pos = Math.min(1, Math.max(0, (y - scroll.containerTop) / scroll.containerHeight))
 		window.requestAnimationFrame(render)
+		
+		const entityCount = entityComponents.length
+		const visibleRowsCount = Math.ceil(canvasHeight / (rowHeight+rowsGap))
+		const pos = (entityCount - visibleRowsCount) * scroll.pos
+		scroll.firstEntityIndex = Math.floor(pos)
 	}
 })
 canvas.addEventListener('wheel', (e) => {
@@ -216,7 +236,7 @@ function render() {
 	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
 	const entityCount = entityComponents.length
-	let visibleRowsCount = Math.floor(canvasHeight / (rowHeight+rowsGap))
+	let visibleRowsCount = Math.ceil(canvasHeight / (rowHeight+rowsGap))
 	const maxScrollHeight = canvasHeight// visibleRowsCount * rowHeight + (visibleRowsCount-1)*rowsGap
 	scroll.shouldRender = visibleRowsCount < entityCount
 	scroll.containerHeight = maxScrollHeight
@@ -253,14 +273,15 @@ function render() {
 	
 	const startX = scrollWidth + colsGap
 	const pos = (entityCount - visibleRowsCount) * scroll.pos
-	let firstEntityIndex = Math.floor(pos)
+	let firstEntityIndex = scroll.isDraggingScroll ? Math.floor(pos) : scroll.firstEntityIndex
 	
 	// TODO this is broken because it doesn't always go in matching direction (it shakes close to the top)
-	let y = pos % 1
+	let y = scroll.isDraggingScroll ? 0 : pos % 1
 	if (y > 0 && firstEntityIndex + visibleRowsCount < entityComponents.length) {
 		visibleRowsCount += 1
 	}
-	y = -y * (rowHeight+rowsGap)
+	if (!scroll.isDraggingScroll)
+		y = -y * (rowHeight+rowsGap)
 	
 	for (let ei = 0; ei < visibleRowsCount; ++ei) {
 		const entity = entityComponents[firstEntityIndex + ei]
