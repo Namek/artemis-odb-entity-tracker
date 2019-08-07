@@ -281,7 +281,7 @@ function render() {
 	y = -(firstEntityIndexWithTranslation % 1) * (rowHeight+rowsGap)
 	
 	
-	for (let ei = 0; ei < visibleRowsCount; ++ei) {
+	for (let ei = 0, eiEnd = Math.min(visibleRowsCount, entityCount); ei < eiEnd; ++ei) {
 		const entity = entityComponents[firstEntityIndex + ei]
 		let x = startX
 		
