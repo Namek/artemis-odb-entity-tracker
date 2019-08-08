@@ -186,7 +186,7 @@ const scroll = {
 	shouldRender: false,
 	top: 0, left: 0, right: 0, bottom: 0,
 	containerTop: 0, containerLeft: 0, containerWidth: 0, containerHeight: 0,
-	isDragged: false, dragOffsetY: 0, dragOffsetX: 0,
+	isDragged: false, dragOffsetY: 0,
 	isFocused: false
 }
 const hover = {
@@ -198,8 +198,7 @@ canvas.addEventListener('mousedown', (e) => {
 	const x = e.offsetX, y = e.offsetY
 	
 	if (scroll.shouldRender) {
-		if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {	
-			scroll.dragOffsetX = x - scroll.left
+		if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
 			scroll.dragOffsetY = y - scroll.top
 			scroll.isDragged = true
 		}
@@ -223,6 +222,21 @@ canvas.addEventListener('mouseleave', (e) => {
 	hover.lastMousePosY = -1
 })
 canvas.addEventListener('click', (e) => {
+	const x = e.offsetX, y = e.offsetY
+	
+	const scrollAreaButNotScrollEl = x > scroll.left && x < scroll.right && !(y > scroll.top && y < scroll.bottom)
+	if (scrollAreaButNotScrollEl) {
+		scroll.dragOffsetY = scroll.height / 2
+		
+		const localY = e.clientY - canvas.getBoundingClientRect().top
+		
+		setScrollPos(
+			(localY - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
+		)
+		
+		requestAnimationFrame(render)
+	}
+
 	// TODO click entity component
 })
 window.addEventListener('mouseup', (e) => {
