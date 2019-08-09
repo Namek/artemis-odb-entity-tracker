@@ -340,7 +340,7 @@ function render() {
 		}
 	}
 	
-	for (let ei = 0, eiEnd = Math.min(visibleRowsCount, entityCount); ei < eiEnd; ++ei) {
+	for (let ei = 0, eiEnd = Math.min(visibleRowsCount, entityCount-firstEntityIndex); ei < eiEnd; ++ei) {
 		const entity = entityComponents[firstEntityIndex + ei]
 		let x = startX
 
