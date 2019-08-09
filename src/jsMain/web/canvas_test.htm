@@ -177,8 +177,6 @@ function removeEntites(num, fromTop) {
 
 	// maintain same index position if possible
 	const visibleRowsCountFractioned = canvasHeight / rowHeight
-	
-	// TODO still moves... omg
 	const oldPosForNewEntityCount = scroll.firstEntityIndexWithTranslation / (entityComponents.length  - visibleRowsCountFractioned)
 	setScrollPos(oldPosForNewEntityCount)
 }
@@ -263,7 +261,7 @@ function setScrollPos(pos) {
 	const entityCount = entityComponents.length
 	const visibleRowsCountFractioned = canvasHeight / rowHeight
 
-	scroll.firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) - visibleRowsCountFractioned % 1) * scroll.pos
+	scroll.firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
 	
 	window.requestAnimationFrame(render)
 }
@@ -311,7 +309,7 @@ function render() {
 	let firstEntityIndexWithTranslation = 0
 	
 	if (scroll.isDragged) {
-		firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) - visibleRowsCountFractioned % 1) * scroll.pos
+		firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
 	}
 	else {
 		firstEntityIndexWithTranslation = scroll.firstEntityIndexWithTranslation	
