@@ -159,11 +159,11 @@ function c(num) {
 	return text
 }
 
+const l = console.log
 
-
-const rowsGap = 7, colsGap = 10
+const colsGap = 10
 const minScrollHeight = 20, scrollWidth = 15, crossSize = 8
-const rowYPadding = 3, rowHeight = crossSize + rowYPadding
+const rowYPadding = 4, rowHeight = crossSize + 2*rowYPadding
 const scrollContainerPadding = 2
 const hoverMargin = 3
 
@@ -176,7 +176,7 @@ function removeEntites(num, fromTop) {
 		entityComponents[fromTop ? 'shift' : 'pop']()
 
 	// maintain same index position if possible
-	const visibleRowsCountFractioned = (canvasHeight+rowsGap) / (rowHeight+rowsGap)
+	const visibleRowsCountFractioned = canvasHeight / rowHeight
 	
 	// TODO still moves... omg
 	const oldPosForNewEntityCount = scroll.firstEntityIndexWithTranslation / (entityComponents.length  - visibleRowsCountFractioned)
@@ -256,15 +256,14 @@ window.addEventListener('mousemove', (e) => {
 	}
 })
 canvas.addEventListener('wheel', (e) => {
-	setScrollPos(scroll.pos + Math.sign(e.deltaY) * 200 / (entityComponents.length * (rowHeight+rowsGap)))
+	setScrollPos(scroll.pos + Math.sign(e.deltaY) * 200 / (entityComponents.length * rowHeight))
 })
 function setScrollPos(pos) {
 	scroll.pos = Math.min(1, Math.max(0, pos))
 	const entityCount = entityComponents.length
-	const visibleRowsCountFractioned = (canvasHeight) / (rowHeight+rowsGap) // the denominator seems bad. that many `rowsGap` is too much
-	
-	// TODO well in some cases last element is still cut or invisible...
-	scroll.firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) + visibleRowsCountFractioned % 1 - 1) * scroll.pos
+	const visibleRowsCountFractioned = canvasHeight / rowHeight
+
+	scroll.firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) - visibleRowsCountFractioned % 1) * scroll.pos
 	
 	window.requestAnimationFrame(render)
 }
@@ -273,7 +272,7 @@ function render() {
 	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
 	const entityCount = entityComponents.length
-	const visibleRowsCountFractioned = (canvasHeight+rowsGap) / (rowHeight+rowsGap)
+	const visibleRowsCountFractioned = canvasHeight / rowHeight
 	const visibleRowsCount = Math.ceil(visibleRowsCountFractioned)
 	const maxScrollHeight = canvasHeight
 	scroll.shouldRender = visibleRowsCountFractioned < entityCount
@@ -312,7 +311,7 @@ function render() {
 	let firstEntityIndexWithTranslation = 0
 	
 	if (scroll.isDragged) {
-		firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) + visibleRowsCountFractioned % 1 - 1) * scroll.pos
+		firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) - visibleRowsCountFractioned % 1) * scroll.pos
 	}
 	else {
 		firstEntityIndexWithTranslation = scroll.firstEntityIndexWithTranslation	
@@ -323,7 +322,7 @@ function render() {
 	const idColWidth = 70*r
 	const rowWidth = idColWidth + componentTypesCount * (crossSize+colsGap)
 	
-	y = -(firstEntityIndexWithTranslation % 1) * (rowHeight+rowsGap)
+	y = -(firstEntityIndexWithTranslation % 1) * rowHeight
 	
 	
 	let hoveringCol = -1
@@ -331,7 +330,7 @@ function render() {
 	// background for hovered column
 	if (hover.lastMousePosX > 0)
 	for (let x = startX + idColWidth, colIndex = 0; x < startX+rowWidth; x += crossSize + colsGap, colIndex += 1) {
-		if (hover.lastMousePosX >= x - hoverMargin && hover.lastMousePosX <= x + crossSize + hoverMargin) {
+		if (hover.lastMousePosX >= x - hoverMargin && hover.lastMousePosX < x + crossSize + hoverMargin) {
 			const oldFillStyle = ctx.fillStyle
 			ctx.fillStyle = "#f9f9f9"
 			ctx.fillRect(x - hoverMargin, 0, crossSize + 2*hoverMargin, canvasHeight)
@@ -346,19 +345,20 @@ function render() {
 		let x = startX
 
 		// background for hovered row
-		isRenderingRowHover = hover.lastMousePosY >= y - hoverMargin
-			&& hover.lastMousePosY <= y + rowHeight + hoverMargin
+		isRenderingRowHover = hover.lastMousePosY >= y
+			&& hover.lastMousePosY < y + rowHeight
 			&& hover.lastMousePosX > startX
 		if (isRenderingRowHover) {
 			const oldFillStyle = ctx.fillStyle
 			ctx.fillStyle = "#f3f3f3"
-			ctx.fillRect(x - hoverMargin/2, y - hoverMargin/2 - 1.5, rowWidth + hoverMargin, rowHeight + hoverMargin)
+			ctx.fillRect(x, y, rowWidth, rowHeight)
 			ctx.fillStyle = oldFillStyle
 		}
 
 		// entity id
 		ctx.fillText((entity.entityId + "").padStart(5, " "), x, y + rowHeight - rowYPadding)
 		x += idColWidth
+		y += rowYPadding
 		
 		// component set
 		for (let cmpIndex = 0; cmpIndex < componentTypesCount; ++cmpIndex, x += crossSize + colsGap) {
@@ -380,7 +380,7 @@ function render() {
 			}
 		}
 		
-		y += rowHeight + rowsGap
+		y += rowHeight - rowYPadding
 	}
 }
 </script>
