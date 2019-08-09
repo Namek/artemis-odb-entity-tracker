@@ -101,45 +101,35 @@ var PIXEL_RATIO = (function () {
     return dpr / bsr;
 })();
 
-createHiDPICanvas = function(w, h, ratio) {
-    if (!ratio) { ratio = PIXEL_RATIO; }
-    var can = document.createElement("canvas");
-    can.width = w * ratio;
-    can.height = h * ratio;
-    can.style.width = w + "px";
-    can.style.height = h + "px";
-    can.getContext("2d").setTransform(ratio, 0, 0, ratio, 0, 0);
-    return can;
-}
-
 const container = document.getElementById("container")
 const containerSize = getContainerSize()
-const canvas = createHiDPICanvas(containerSize.width, containerSize.height)
+const canvas = document.createElement("canvas")
 container.appendChild(canvas)
 const ctx = canvas.getContext("2d")
 
 const r = 1/PIXEL_RATIO
-var canvasWidth = canvas.width*r, canvasHeight = canvas.height*r
+var canvasWidth = -1, canvasHeight = -1
+
+refreshCanvasSize(canvas)
 
 function getContainerSize() {
 	const compStyles = window.getComputedStyle(container);
 	return {
-		width: Math.round(compStyles.width.substr(0, compStyles.width.length - 2)),
-		height: Math.round(compStyles.height.substr(0, compStyles.height.length - 2))
+		width: (compStyles.width.substr(0, compStyles.width.length - 2)),
+		height: (compStyles.height.substr(0, compStyles.height.length - 2))
 	}
 }
 function refreshCanvasSize(canvas) {
 	const size = getContainerSize()
 	canvas.width = size.width * PIXEL_RATIO
 	canvas.height = size.height * PIXEL_RATIO
-	canvas.style.width = size.width + "px"
-	canvas.style.height = size.height + "px"
+	canvas.style.width = (canvas.width / PIXEL_RATIO) + "px"
+	canvas.style.height = (canvas.height / PIXEL_RATIO) + "px"
 	canvas.getContext("2d").setTransform(PIXEL_RATIO, 0, 0, PIXEL_RATIO, 0, 0);
 	canvasWidth = canvas.width*r
 	canvasHeight = canvas.height*r
 }
 setTimeout(() => {
-	//refreshCanvasSize(canvas)
 	render()
 })
 
