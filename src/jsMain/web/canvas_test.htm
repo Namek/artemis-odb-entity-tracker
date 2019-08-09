@@ -2,6 +2,7 @@
 
 <div id="container">
 </div>
+<br>
 <button onclick="removeEntites(10)">remove 10 entities</button>
 <button onclick="removeEntites(100)">remove 100 entities</button>
 <button onclick="removeEntites(480)">remove 480 entities</button>
@@ -176,6 +177,8 @@ function removeEntites(num, fromTop) {
 
 	// maintain same index position if possible
 	const visibleRowsCountFractioned = (canvasHeight+rowsGap) / (rowHeight+rowsGap)
+	
+	// TODO still moves... omg
 	const oldPosForNewEntityCount = scroll.firstEntityIndexWithTranslation / (entityComponents.length  - visibleRowsCountFractioned)
 	setScrollPos(oldPosForNewEntityCount)
 }
@@ -192,7 +195,7 @@ const scroll = {
 const hover = {
 	lastMousePosX: 0, lastMousePosY: 0
 }
-setScrollPos(0)
+setScrollPos(1)
 
 canvas.addEventListener('mousedown', (e) => {
 	const x = e.offsetX, y = e.offsetY
@@ -236,7 +239,7 @@ canvas.addEventListener('click', (e) => {
 		
 		requestAnimationFrame(render)
 	}
-
+	
 	// TODO click entity component
 })
 window.addEventListener('mouseup', (e) => {
@@ -258,7 +261,9 @@ canvas.addEventListener('wheel', (e) => {
 function setScrollPos(pos) {
 	scroll.pos = Math.min(1, Math.max(0, pos))
 	const entityCount = entityComponents.length
-	const visibleRowsCountFractioned = (canvasHeight+rowsGap) / (rowHeight+rowsGap)
+	const visibleRowsCountFractioned = (canvasHeight) / (rowHeight+rowsGap) // the denominator seems bad. that many `rowsGap` is too much
+	
+	// TODO well in some cases last element is still cut or invisible...
 	scroll.firstEntityIndexWithTranslation = (entityCount - Math.floor(visibleRowsCountFractioned) + visibleRowsCountFractioned % 1 - 1) * scroll.pos
 	
 	window.requestAnimationFrame(render)
@@ -343,6 +348,7 @@ function render() {
 		// background for hovered row
 		isRenderingRowHover = hover.lastMousePosY >= y - hoverMargin
 			&& hover.lastMousePosY <= y + rowHeight + hoverMargin
+			&& hover.lastMousePosX > startX
 		if (isRenderingRowHover) {
 			const oldFillStyle = ctx.fillStyle
 			ctx.fillStyle = "#f3f3f3"
