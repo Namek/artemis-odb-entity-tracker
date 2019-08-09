@@ -214,21 +214,25 @@ canvas.addEventListener('mouseleave', (e) => {
 })
 canvas.addEventListener('click', (e) => {
 	const x = e.offsetX, y = e.offsetY
+	let shouldRequestRender = false
 	
 	const scrollAreaButNotScrollEl = x > scroll.left && x < scroll.right && !(y > scroll.top && y < scroll.bottom)
 	if (scrollAreaButNotScrollEl) {
 		scroll.dragOffsetY = scroll.height / 2
 		
-		const localY = e.clientY - canvas.getBoundingClientRect().top
-		
 		setScrollPos(
-			(localY - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
+			(y - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
 		)
 		
-		requestAnimationFrame(render)
+		shouldRequestRender = true
 	}
 	
-	// TODO click entity component
+	// detect clicking on entity component
+	hover.justClicked = true
+	shouldRequestRender = true
+	
+	if (shouldRequestRender)
+		requestAnimationFrame(render)
 })
 window.addEventListener('mouseup', (e) => {
 	scroll.isDragged = false
@@ -355,8 +359,17 @@ function render() {
 					const oldFillStyle = ctx.fillStyle
 					const size = crossSize + hoverMargin*2
 					ctx.fillStyle = "#ccc"
+					
+					if (hover.justClicked) {
+						ctx.fillStyle = "steelblue"
+						onComponentClicked(firstEntityIndex+ei, cmpIndex)
+						setTimeout(() => requestAnimationFrame(render), 100)
+					}
+					
 					ctx.fillRect(x - hoverMargin, y - hoverMargin, size, size)
 					ctx.fillStyle = oldFillStyle
+					
+					
 				}
 			
 				ctx.beginPath()
@@ -370,5 +383,10 @@ function render() {
 		
 		y += rowHeight - rowYPadding
 	}
+	
+	hover.justClicked = false
 }
+
+// event to be listened for!
+const onComponentClicked = l
 </script>
