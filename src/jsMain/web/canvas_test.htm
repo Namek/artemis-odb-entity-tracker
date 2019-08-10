@@ -130,14 +130,14 @@ function refreshCanvasSize(canvas) {
 	canvasHeight = canvas.height*r
 }
 setTimeout(() => {
-	render()
+	redrawCanvas()
 })
 
 window.addEventListener('resize', () => {
 	
 	window.requestAnimationFrame(() => {
 		refreshCanvasSize(canvas)
-		render()
+		redrawCanvas()
 	})
 })
 
@@ -175,13 +175,14 @@ const scroll = {
 	pos: 0, // percent [0..1]
 	firstEntityIndexWithTranslation: 0,
 	shouldRender: false,
-	top: 0, left: 0, right: 0, bottom: 0,
+	top: 0, left: 0, right: 0, bottom: 0, height: 0,
 	containerTop: 0, containerLeft: 0, containerWidth: 0, containerHeight: 0,
 	isDragged: false, dragOffsetY: 0,
 	isFocused: false
 }
 const hover = {
-	lastMousePosX: 0, lastMousePosY: 0
+	lastMousePosX: 0, lastMousePosY: 0,
+	justClicked: False
 }
 setScrollPos(1)
 
@@ -205,7 +206,7 @@ canvas.addEventListener('mousemove', (e) => {
 	if (hover.lastMousePosX != x || hover.lastMousePosY != y) {
 		hover.lastMousePosX = x
 		hover.lastMousePosY = y
-		requestAnimationFrame(render)
+		requestAnimationFrame(redrawCanvas)
 	}
 })
 canvas.addEventListener('mouseleave', (e) => {
@@ -214,7 +215,7 @@ canvas.addEventListener('mouseleave', (e) => {
 })
 canvas.addEventListener('click', (e) => {
 	const x = e.offsetX, y = e.offsetY
-	let shouldRequestRender = false
+	let shouldRequestredrawCanvas = false
 	
 	const scrollAreaButNotScrollEl = x > scroll.left && x < scroll.right && !(y > scroll.top && y < scroll.bottom)
 	if (scrollAreaButNotScrollEl) {
@@ -224,15 +225,15 @@ canvas.addEventListener('click', (e) => {
 			(y - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
 		)
 		
-		shouldRequestRender = true
+		shouldRequestredrawCanvas = true
 	}
 	
 	// detect clicking on entity component
 	hover.justClicked = true
-	shouldRequestRender = true
+	shouldRequestredrawCanvas = true
 	
-	if (shouldRequestRender)
-		requestAnimationFrame(render)
+	if (shouldRequestredrawCanvas)
+		requestAnimationFrame(redrawCanvas)
 })
 window.addEventListener('mouseup', (e) => {
 	scroll.isDragged = false
@@ -257,10 +258,10 @@ function setScrollPos(pos) {
 
 	scroll.firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
 	
-	window.requestAnimationFrame(render)
+	window.requestAnimationFrame(redrawCanvas)
 }
 
-function render() {
+function redrawCanvas() {
 	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
 	const entityCount = entityComponents.length
@@ -314,12 +315,11 @@ function render() {
 	const idColWidth = 70*r
 	const rowWidth = idColWidth + componentTypesCount * (crossSize+colsGap)
 	
-	y = -(firstEntityIndexWithTranslation % 1) * rowHeight
+	let y = -(firstEntityIndexWithTranslation % 1) * rowHeight
 	
-	
-	let hoveringCol = -1
 	
 	// background for hovered column
+	let hoveringCol = -1
 	if (hover.lastMousePosX > 0)
 	for (let x = startX + idColWidth, colIndex = 0; x < startX+rowWidth; x += crossSize + colsGap, colIndex += 1) {
 		if (hover.lastMousePosX >= x - hoverMargin && hover.lastMousePosX < x + crossSize + hoverMargin) {
@@ -363,13 +363,11 @@ function render() {
 					if (hover.justClicked) {
 						ctx.fillStyle = "steelblue"
 						onComponentClicked(firstEntityIndex+ei, cmpIndex)
-						setTimeout(() => requestAnimationFrame(render), 100)
+						setTimeout(() => requestAnimationFrame(redrawCanvas), 100)
 					}
 					
 					ctx.fillRect(x - hoverMargin, y - hoverMargin, size, size)
 					ctx.fillStyle = oldFillStyle
-					
-					
 				}
 			
 				ctx.beginPath()
