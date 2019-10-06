@@ -12,6 +12,7 @@ import snabbdom.*
 import snabbdom.modules.Props
 import kotlin.browser.document
 import kotlin.browser.window
+import kotlin.js.Date
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -231,7 +232,10 @@ class EntityTable(
     }
 
     private fun requestRedrawCanvas() {
-        window.requestAnimationFrame { redrawCanvas() }
+        window.requestAnimationFrame {
+            redrawCanvas.invalidate()
+            redrawCanvas()
+        }
     }
 
     private fun setScrollPos(pos: Double) {
@@ -248,7 +252,7 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        console.asDynamic().time("EntityTable")
+        var t = window.performance.now()
         ctx.clearRect(0.0, 0.0, canvasWidth, canvasHeight)
 
         val componentTypesCount = componentTypes.size
@@ -380,9 +384,9 @@ class EntityTable(
             
             y += rowHeight - rowYPadding
         }
-        
+
+        console.log(window.performance.now() - t)
         hover.justClicked = false
-        console.asDynamic().timeEnd("EntityTable")
     }
 
 
