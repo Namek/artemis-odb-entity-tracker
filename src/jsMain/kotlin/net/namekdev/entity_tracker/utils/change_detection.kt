@@ -11,6 +11,12 @@ fun <T, R> cachedMap(value: ValueContainer<T>, fn: (T) -> R): ValueMapper<T, R> 
 fun <T1, T2, R> cachedMap(value1: ValueContainer<T1>, value2: ValueContainer<T2>, mapFn: (T1, T2) -> R): ValueMapper2<T1, T2, R> =
     ValueMapper2(value1, value2, mapFn)
 
+fun <T1, T2, T3, R> cachedMap(value1: ValueContainer<T1>, value2: ValueContainer<T2>, value3: ValueContainer<T3>, mapFn: (T1, T2, T3) -> R): ValueMapper3<T1, T2, T3, R> =
+    ValueMapper3(value1, value2, value3, mapFn)
+
+fun <T1, T2, T3, T4, R> cachedMap(value1: ValueContainer<T1>, value2: ValueContainer<T2>, value3: ValueContainer<T3>, value4: ValueContainer<T4>, mapFn: (T1, T2, T3, T4) -> R): ValueMapper4<T1, T2, T3, T4, R> =
+    ValueMapper4(value1, value2, value3, value4, mapFn)
+
 
 fun <T, R> ValueContainer<T>.renderTo(fn: (RenderSession, T) -> R): RenderableValueMapper<T, R> =
     RenderableValueMapper(this, fn)
@@ -137,6 +143,35 @@ class ValueMapper2<T1, T2, R>(
     operator fun invoke(): R {
         if (needsRemap())
             cachedResult = mapFn(valueContainer1.value, valueContainer2.value)
+
+        return cachedResult!!
+    }
+}
+
+class ValueMapper3<T1, T2, T3, R>(
+    private val valueContainer1: ValueContainer<T1>,
+    private val valueContainer2: ValueContainer<T2>,
+    private val valueContainer3: ValueContainer<T3>,
+    val mapFn: (T1, T2, T3) -> R
+) : BaseValueMapper<R>(valueContainer1, valueContainer2, valueContainer3) {
+    operator fun invoke(): R {
+        if (needsRemap())
+            cachedResult = mapFn(valueContainer1.value, valueContainer2.value, valueContainer3.value)
+
+        return cachedResult!!
+    }
+}
+
+class ValueMapper4<T1, T2, T3, T4, R>(
+    private val valueContainer1: ValueContainer<T1>,
+    private val valueContainer2: ValueContainer<T2>,
+    private val valueContainer3: ValueContainer<T3>,
+    private val valueContainer4: ValueContainer<T4>,
+    val mapFn: (T1, T2, T3, T4) -> R
+) : BaseValueMapper<R>(valueContainer1, valueContainer2, valueContainer3, valueContainer4) {
+    operator fun invoke(): R {
+        if (needsRemap())
+            cachedResult = mapFn(valueContainer1.value, valueContainer2.value, valueContainer3.value, valueContainer4.value)
 
         return cachedResult!!
     }

@@ -8,10 +8,7 @@ import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.WheelEvent
-import snabbdom.Hooks
-import snabbdom.VNodeData
-import snabbdom.h
-import snabbdom.j
+import snabbdom.*
 import snabbdom.modules.Props
 import kotlin.browser.document
 import kotlin.browser.window
@@ -52,6 +49,8 @@ class Hover(
     var justClicked: Boolean = false
 )
 
+var entityTableId: Int = -1
+
 class EntityTable(
     val entities: () -> ECSModel,
     onComponentClicked: (entityId: Int, cmpIndex: Int) -> Unit
@@ -76,19 +75,24 @@ class EntityTable(
     val hover = Hover()
 
     init {
+        entityTableId += 1
+
         val ctx = (document.createElement("canvas") as HTMLCanvasElement)
             .getContext("2d").asDynamic()
 
-        val dpr = window.devicePixelRatio ?: 1
-        val bsr = ctx.webkitBackingStorePixelRatio ?:
+        val dpr = window.devicePixelRatio ?: 1.0
+        val bsr: Double = (ctx.webkitBackingStorePixelRatio ?:
               ctx.mozBackingStorePixelRatio ?:
               ctx.msBackingStorePixelRatio ?:
               ctx.oBackingStorePixelRatio ?:
-              ctx.backingStorePixelRatio ?: 1
+              ctx.backingStorePixelRatio ?: 1.0)
 
         PIXEL_RATIO = dpr / bsr
         r = 1/PIXEL_RATIO
     }
+
+    private val entityCount: Int
+        get() = entities().entityComponents.value.size
 
     fun refreshCanvasSize(canvas: HTMLCanvasElement) {
         val size = getContainerSize(canvas.parentNode as HTMLElement)
@@ -97,11 +101,123 @@ class EntityTable(
         canvas.style.width = (canvas.width / PIXEL_RATIO).toString() + "px"
         canvas.style.height = (canvas.height / PIXEL_RATIO).toString() + "px"
         val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
-        ctx.setTransform(PIXEL_RATIO.toDouble(), 0.0, 0.0, PIXEL_RATIO.toDouble(), 0.0, 0.0)
+        ctx.setTransform(PIXEL_RATIO, 0.0, 0.0, PIXEL_RATIO, 0.0, 0.0)
         canvasWidth = canvas.width*r
         canvasHeight = canvas.height*r
     }
 
+    private val createCanvas = ThunkFn.args1 {
+        val containerProps: Props = j("width" to "auto", "height" to "50vh")
+        val hooks: Hooks = j()
+
+        hooks.insert = {
+            canvas = (it.elm!! as HTMLElement).firstChild as HTMLCanvasElement
+            ctx = canvas.getContext("2d")!! as CanvasRenderingContext2D
+
+            window.addEventListener("resize", ::onWindowResize)
+            canvas.addEventListener("mousedown", ::onCanvasMouseDown)
+            window.addEventListener("mouseup", ::onWindowMouseUp)
+            canvas.addEventListener("mousemove", ::onCanvasMouseMove)
+            window.addEventListener("mousemove", ::onWindowMouseMove)
+            canvas.addEventListener("mouseleave", ::onCanvasMouseLeave)
+            canvas.addEventListener("click", ::onCanvasClick)
+            canvas.addEventListener("wheel", ::onCanvasWheel)
+
+            window.setTimeout({ refreshCanvasSize(canvas)}, 0)
+        }
+        hooks.destroy = {
+            window.removeEventListener("resize", ::onWindowResize)
+            canvas.removeEventListener("mousedown", ::onCanvasMouseDown)
+            window.removeEventListener("mouseup", ::onWindowMouseUp)
+            canvas.removeEventListener("mousemove", ::onCanvasMouseMove)
+            window.removeEventListener("mousemove", ::onWindowMouseMove)
+            canvas.removeEventListener("mouseleave", ::onCanvasMouseLeave)
+            canvas.removeEventListener("click", ::onCanvasClick)
+            canvas.removeEventListener("wheel", ::onCanvasWheel)
+        }
+
+        h("div", VNodeData(props = containerProps, hook = hooks),
+            h("canvas"))
+    }
+
+    private fun onWindowResize(evt: Event) {
+        window.requestAnimationFrame {
+            refreshCanvasSize(canvas)
+            redrawCanvas()
+        }
+    }
+
+    private fun onCanvasMouseDown(e: Event) {
+        val x = (e as MouseEvent).offsetX
+        val y = e.offsetY
+
+        if (scroll.shouldRender) {
+            if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
+                scroll.dragOffsetY = y - scroll.top
+                scroll.isDragged = true
+            }
+        }
+    }
+    private fun onCanvasMouseMove(e: Event) {
+        val x = (e as MouseEvent).offsetX
+        val y = e.offsetY
+
+        if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
+            scroll.isFocused = true
+        }
+
+        if (hover.lastMousePosX != x || hover.lastMousePosY != y) {
+            hover.lastMousePosX = x
+            hover.lastMousePosY = y
+            requestRedrawCanvas()
+        }
+    }
+
+    private fun onCanvasMouseLeave(e: Event) {
+        hover.lastMousePosX = -1.0
+        hover.lastMousePosY = -1.0
+    }
+
+    private fun onCanvasClick(e: Event) {
+        val x = (e as MouseEvent).offsetX
+        val y = e.offsetY
+
+        val scrollAreaButNotScrollEl = x > scroll.left && x < scroll.right && !(y > scroll.top && y < scroll.bottom)
+        if (scrollAreaButNotScrollEl) {
+            scroll.dragOffsetY = scroll.height / 2
+
+            setScrollPos(
+                (y - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
+            )
+        }
+
+        // detect clicking on entity component
+        hover.justClicked = true
+
+        window.requestAnimationFrame { redrawCanvas() }
+    }
+
+    private fun onWindowMouseUp(e: Event) {
+        scroll.isDragged = false
+    }
+
+    private fun onWindowMouseMove(e: Event) {
+        if (scroll.isDragged) {
+            e.preventDefault()
+            val localY = (e as MouseEvent).clientY - canvas.getBoundingClientRect().top
+
+            setScrollPos(
+                (localY - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
+            )
+
+            console.log("mouse y $localY")
+        }
+    }
+
+    private fun onCanvasWheel(e: Event) {
+        val diff: Double = sign((e as WheelEvent).deltaY)* 200.0 / (entityCount * rowHeight)
+        setScrollPos(scroll.pos + diff)
+    }
 
     val render = renderTo(
         entities().entityComponents,
@@ -109,113 +225,33 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        val canvasHooks: Hooks = j()
-        canvasHooks.insert = {
-            console.log("create")
-
-            canvas = it.elm!! as HTMLCanvasElement
-            ctx = canvas.getContext("2d")!! as CanvasRenderingContext2D
-
-            window.addEventListener("resize", { evt ->
-                window.requestAnimationFrame {
-                    refreshCanvasSize(canvas)
-                    redrawCanvas()
-                }
-            })
-
-            canvas.addEventListener("mousedown", { e: Event ->
-                val x = (e as MouseEvent).offsetX
-                val y = e.offsetY
-
-                if (scroll.shouldRender) {
-                    if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
-                        scroll.dragOffsetY = y - scroll.top
-                        scroll.isDragged = true
-                    }
-                }
-            })
-            canvas.addEventListener("mousemove", { e: Event ->
-                val x = (e as MouseEvent).offsetX
-                val y = e.offsetY
-
-                if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
-                    scroll.isFocused = true
-                }
-
-                if (hover.lastMousePosX != x || hover.lastMousePosY != y) {
-                    hover.lastMousePosX = x
-                    hover.lastMousePosY = y
-                    window.requestAnimationFrame { redrawCanvas() }
-                }
-            })
-            canvas.addEventListener("mouseleave", { _ ->
-                hover.lastMousePosX = -1.0
-                hover.lastMousePosY = -1.0
-            })
-            canvas.addEventListener("click", { e: Event ->
-                val x = (e as MouseEvent).offsetX
-                val y = e.offsetY
-
-                val scrollAreaButNotScrollEl = x > scroll.left && x < scroll.right && !(y > scroll.top && y < scroll.bottom)
-                if (scrollAreaButNotScrollEl) {
-                    scroll.dragOffsetY = scroll.height / 2
-
-                    setScrollPos(
-                        (y - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
-                    )
-                }
-
-                // detect clicking on entity component
-                hover.justClicked = true
-
-                window.requestAnimationFrame { redrawCanvas() }
-            })
-            window.addEventListener("mouseup", { e: Event ->
-                scroll.isDragged = false
-            })
-            window.addEventListener("mousemove", { e: Event ->
-                if (scroll.isDragged) {
-                    e.preventDefault()
-                    val localY = (e as MouseEvent).clientY - canvas.getBoundingClientRect().top
-
-                    setScrollPos(
-                        (localY - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
-                    )
-                }
-            })
-            canvas.addEventListener("wheel", { e: Event ->
-                val diff: Double = sign((e as WheelEvent).deltaY)* 200.0 / (entityComponents.size * rowHeight)
-                setScrollPos(scroll.pos + diff)
-            })
-
-            Unit
-        }
-        canvasHooks.destroy = {
-//            window.removeEventListener()
-            // TODO unregister all window/document events
-        }
-
-        val containerProps: Props = j("width" to 400, "height" to "50vh")
-
         Unstyled(html = {
-            h("div", VNodeData(key = "the-table", props = containerProps),
-                h("canvas", VNodeData(hook = canvasHooks)))
+            thunk("div.entity-table-container", "entity-table-container", createCanvas, arrayOf(entityTableId))
         })
     }
 
-    fun setScrollPos(pos: Double) {
-        scroll.pos = kotlin.math.min(1.0, kotlin.math.max(0.0, pos))
-        val entityCount = entityComponents.size
-        val visibleRowsCountFractioned = canvasHeight / rowHeight
-
-        scroll.firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
-
-        window.requestAnimationFrame{ redrawCanvas() }
+    private fun requestRedrawCanvas() {
+        window.requestAnimationFrame { redrawCanvas() }
     }
 
-    fun redrawCanvas() {
-        ctx.clearRect(0.0, 0.0, canvasWidth, canvasHeight);
-    
+    private fun setScrollPos(pos: Double) {
+        scroll.pos = kotlin.math.min(1.0, kotlin.math.max(0.0, pos))
+        val visibleRowsCountFractioned = canvasHeight / rowHeight
+        scroll.firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
+
+        requestRedrawCanvas()
+    }
+
+    val redrawCanvas = cachedMap(
+        entities().entityComponents,
+        entities().componentTypes,
+        entities().highlightedComponentTypes,
+        entities().entityFilterByComponentType
+    ) { entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
+        console.asDynamic().time("EntityTable")
+        ctx.clearRect(0.0, 0.0, canvasWidth, canvasHeight)
+
+        val componentTypesCount = componentTypes.size
         val entityCount: Int = entityComponents.size
         val visibleRowsCountFractioned = canvasHeight / rowHeight
         val visibleRowsCount = ceil(visibleRowsCountFractioned).toInt()
@@ -278,7 +314,7 @@ class EntityTable(
                 if (hover.lastMousePosX >= x - hoverMargin && hover.lastMousePosX < x + crossSize + hoverMargin) {
                     val oldFillStyle = ctx.fillStyle
                     ctx.fillStyle = "#f9f9f9"
-                    ctx.fillRect(x - hoverMargin, 0, crossSize + 2 * hoverMargin, canvasHeight)
+                    ctx.fillRect(x - hoverMargin, 0.0, crossSize + 2 * hoverMargin, canvasHeight)
                     ctx.fillStyle = oldFillStyle
                     hoveringCol = colIndex
                     break
@@ -291,7 +327,9 @@ class EntityTable(
 
         val eiEnd = kotlin.math.min(visibleRowsCount, entityCount - firstEntityIndex)
         for (ei in 0 until eiEnd) {
-            val entity = entityComponents[firstEntityIndex + ei]
+            // TODO id is not always just an id, we should iterate over existing IDs of the `entityComponents` collection
+            val entityId = firstEntityIndex + ei
+            val entity = entityComponents[entityId] ?: continue
             var x = startX
     
             // background for hovered row
@@ -306,13 +344,13 @@ class EntityTable(
             }
     
             // entity id
-            ctx.fillText((entity.entityId + "").padStart(5, " "), x, y + rowHeight - rowYPadding)
+            ctx.fillText(entityId.toString().padStart(5, ' '), x, y + rowHeight - rowYPadding)
             x += idColWidth
             y += rowYPadding
             
             // component set
             for (cmpIndex in 0 until componentTypesCount) {
-                if (entity.components[cmpIndex] == 1) {
+                if (entity[cmpIndex]) {
                     if (isRenderingRowHover && hoveringCol == cmpIndex) {
                         val oldFillStyle = ctx.fillStyle
                         val size = crossSize + hoverMargin*2
@@ -321,7 +359,8 @@ class EntityTable(
                         if (hover.justClicked) {
                             ctx.fillStyle = "steelblue"
                             onComponentClicked(firstEntityIndex+ei, cmpIndex)
-                            window.setTimeout({ window.requestAnimationFrame{ redrawCanvas() } }, 100)
+
+                            window.setTimeout({ requestRedrawCanvas() }, 100)
                         }
                         
                         ctx.fillRect(x - hoverMargin, y - hoverMargin, size, size)
@@ -343,11 +382,9 @@ class EntityTable(
         }
         
         hover.justClicked = false
+        console.asDynamic().timeEnd("EntityTable")
     }
 
-    fun onComponentClicked(entityIndex: Int, cmpIndex: Int) {
-        // TODO
-    }
 
     val render_ = renderTo(
         entities().entityComponents,

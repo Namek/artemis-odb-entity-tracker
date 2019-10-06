@@ -94,7 +94,7 @@ tasks {
 
         doLast {
             copy {
-                from(compileKotlinJs.destinationDir)
+                from(File(compileKotlinJs.destinationDir, "/kotlin.*"))
                 configurations["jsRuntimeClasspath"].forEach {
                     from(zipTree(it.absolutePath).matching { include("*.js") })
                 }

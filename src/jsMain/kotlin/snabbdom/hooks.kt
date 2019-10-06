@@ -13,13 +13,13 @@ interface Hooks {
     var post: PostHook?
 }
 
-typealias PreHook = () -> dynamic
-typealias InitHook = (vNode: VNode) -> dynamic
-typealias CreateHook = (emptyVNode: VNode, vNode: VNode) -> dynamic
-typealias InsertHook = (vNode: VNode) -> dynamic
-typealias PrePatchHook = (oldVNode: VNode, vNode: VNode) -> dynamic
-typealias UpdateHook = (oldVNode: VNode, vNode: VNode) -> dynamic
-typealias PostPatchHook = (oldVNode: VNode, vNode: VNode) -> dynamic
-typealias DestroyHook = (vNode: VNode) -> dynamic
-typealias RemoveHook = (vNode: VNode, removeCallback: () -> Unit) -> dynamic
-typealias PostHook = () -> dynamic
+typealias PreHook = () -> Unit
+typealias InitHook = (vNode: VNode) -> Unit
+typealias CreateHook = (emptyVNode: VNode, vNode: VNode) -> Unit
+typealias InsertHook = (vNode: VNode) -> Unit
+typealias PrePatchHook = (oldVNode: VNode, vNode: VNode) -> Unit
+typealias UpdateHook = (oldVNode: VNode, vNode: VNode) -> Unit
+typealias PostPatchHook = (oldVNode: VNode, vNode: VNode) -> Unit
+typealias DestroyHook = (vNode: VNode) -> Unit
+typealias RemoveHook = (vNode: VNode, removeCallback: () -> Unit) -> Unit
+typealias PostHook = () -> Unit
