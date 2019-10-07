@@ -12,7 +12,6 @@ import snabbdom.*
 import snabbdom.modules.Props
 import kotlin.browser.document
 import kotlin.browser.window
-import kotlin.js.Date
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -63,6 +62,7 @@ class EntityTable(
     lateinit var ctx: CanvasRenderingContext2D
     var canvasWidth: Double = 0.0
     var canvasHeight: Double = 0.0
+    var needsRedraw = false
 
     val colsGap = 10.0
     val minScrollHeight = 20.0
@@ -90,6 +90,11 @@ class EntityTable(
 
         PIXEL_RATIO = dpr / bsr
         r = 1/PIXEL_RATIO
+
+        entities().entityComponents.updateListeners.add(::requestRedrawCanvas)
+        entities().componentTypes.updateListeners.add(::requestRedrawCanvas)
+        entities().highlightedComponentTypes.updateListeners.add(::requestRedrawCanvas)
+        entities().entityFilterByComponentType.updateListeners.add(::requestRedrawCanvas)
     }
 
     private val entityCount: Int
@@ -142,10 +147,8 @@ class EntityTable(
     }
 
     private fun onWindowResize(evt: Event) {
-        window.requestAnimationFrame {
-            refreshCanvasSize(canvas)
-            redrawCanvas()
-        }
+        refreshCanvasSize(canvas)
+        requestRedrawCanvas()
     }
 
     private fun onCanvasMouseDown(e: Event) {
@@ -156,6 +159,7 @@ class EntityTable(
             if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
                 scroll.dragOffsetY = y - scroll.top
                 scroll.isDragged = true
+                requestRedrawCanvas()
             }
         }
     }
@@ -165,6 +169,7 @@ class EntityTable(
 
         if (x > scroll.left && x < scroll.right && y > scroll.top && y < scroll.bottom) {
             scroll.isFocused = true
+            requestRedrawCanvas()
         }
 
         if (hover.lastMousePosX != x || hover.lastMousePosY != y) {
@@ -177,6 +182,7 @@ class EntityTable(
     private fun onCanvasMouseLeave(e: Event) {
         hover.lastMousePosX = -1.0
         hover.lastMousePosY = -1.0
+        requestRedrawCanvas()
     }
 
     private fun onCanvasClick(e: Event) {
@@ -195,11 +201,12 @@ class EntityTable(
         // detect clicking on entity component
         hover.justClicked = true
 
-        window.requestAnimationFrame { redrawCanvas() }
+        requestRedrawCanvas()
     }
 
     private fun onWindowMouseUp(e: Event) {
         scroll.isDragged = false
+        requestRedrawCanvas()
     }
 
     private fun onWindowMouseMove(e: Event) {
@@ -210,8 +217,6 @@ class EntityTable(
             setScrollPos(
                 (localY - scroll.containerTop - scroll.dragOffsetY) / (scroll.containerHeight - scroll.height)
             )
-
-            console.log("mouse y $localY")
         }
     }
 
@@ -232,9 +237,10 @@ class EntityTable(
     }
 
     private fun requestRedrawCanvas() {
-        window.requestAnimationFrame {
-            redrawCanvas.invalidate()
-            redrawCanvas()
+        redrawCanvas.invalidate()
+        if (!needsRedraw) {
+            needsRedraw = true
+            window.requestAnimationFrame { redrawCanvas() }
         }
     }
 
@@ -252,7 +258,6 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        var t = window.performance.now()
         ctx.clearRect(0.0, 0.0, canvasWidth, canvasHeight)
 
         val componentTypesCount = componentTypes.size
@@ -385,8 +390,8 @@ class EntityTable(
             y += rowHeight - rowYPadding
         }
 
-        console.log(window.performance.now() - t)
         hover.justClicked = false
+        needsRedraw = false
     }
 
 
