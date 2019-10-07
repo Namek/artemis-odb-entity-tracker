@@ -3,6 +3,8 @@ package net.namekdev.entity_tracker.utils
 import org.w3c.dom.Element
 import org.w3c.dom.get
 import kotlin.browser.document
+import kotlin.math.abs
+import kotlin.math.log10
 
 
 inline fun <T, R> Iterable<T>.mapToArray(transform: (T) -> R): Array<R> {
@@ -47,4 +49,9 @@ inline fun <reified T: Enum<T>> T.next(): T {
     val values = enumValues<T>()
     val nextOrdinal = (ordinal + 1) % values.size
     return values[nextOrdinal]
+}
+
+fun Int.countDigits() = when(this) {
+    0 -> 1
+    else -> log10(abs(toDouble())).toInt() + 1
 }

@@ -309,7 +309,7 @@ class EntityTable(
         
         val firstEntityIndex = floor(firstEntityIndexWithTranslation).toInt()
         val startX = scrollWidth + colsGap
-        val idColWidth = 70*r
+        val idColWidth = (entityCount - 1).countDigits() * 22.5*r
         val rowWidth: Double = idColWidth + componentTypesCount * (crossSize+colsGap)
         
         var y: Double = -(firstEntityIndexWithTranslation % 1) * rowHeight
