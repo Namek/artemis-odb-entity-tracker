@@ -90,11 +90,6 @@ class EntityTable(
 
         PIXEL_RATIO = dpr / bsr
         r = 1/PIXEL_RATIO
-
-        entities().entityComponents.updateListeners.add(::requestRedrawCanvas)
-        entities().componentTypes.updateListeners.add(::requestRedrawCanvas)
-        entities().highlightedComponentTypes.updateListeners.add(::requestRedrawCanvas)
-        entities().entityFilterByComponentType.updateListeners.add(::requestRedrawCanvas)
     }
 
     private val entityCount: Int
@@ -130,6 +125,11 @@ class EntityTable(
             canvas.addEventListener("wheel", ::onCanvasWheel)
 
             window.setTimeout({ refreshCanvasSize(canvas)}, 0)
+
+            entities().entityComponents.updateListeners.add(::requestRedrawCanvas)
+            entities().componentTypes.updateListeners.add(::requestRedrawCanvas)
+            entities().highlightedComponentTypes.updateListeners.add(::requestRedrawCanvas)
+            entities().entityFilterByComponentType.updateListeners.add(::requestRedrawCanvas)
         }
         hooks.destroy = {
             window.removeEventListener("resize", ::onWindowResize)
@@ -140,6 +140,11 @@ class EntityTable(
             canvas.removeEventListener("mouseleave", ::onCanvasMouseLeave)
             canvas.removeEventListener("click", ::onCanvasClick)
             canvas.removeEventListener("wheel", ::onCanvasWheel)
+
+            entities().entityComponents.updateListeners.remove(::requestRedrawCanvas)
+            entities().componentTypes.updateListeners.remove(::requestRedrawCanvas)
+            entities().highlightedComponentTypes.updateListeners.remove(::requestRedrawCanvas)
+            entities().entityFilterByComponentType.updateListeners.remove(::requestRedrawCanvas)
         }
 
         h("div", VNodeData(props = containerProps, hook = hooks),
@@ -231,9 +236,59 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        Unstyled(html = {
-            thunk("div.entity-table-container", "entity-table-container", createCanvas, arrayOf(entityTableId))
-        })
+        val idCol = column(gridHeaderColumnStyle_common,
+            row(gridHeaderColumnStyle_id, text("id")),
+            el(attrs(height(px(underHeaderColumnsHeight))),
+                textEdit("", InputType.Integer, false, width = 34,
+                    onChange = { _, _ ->
+                        // TODO apply the id filter
+                    },
+                    onEscape = {
+                        // TODO clear the id filter
+                    }))
+        )
+
+        val componentCols = componentTypes.mapToArray {
+            val cmpTypeIndex = it.index
+            val highlightedAs = highlightedComponentTypes[cmpTypeIndex]
+            val filter = entityFilterByComponentType[cmpTypeIndex]
+
+            val filterOrIconForHighlightedAspectPartType =
+                when (highlightedAs) {
+                    null -> {
+                        val label = when (filter) {
+                            null -> el(attrs(fontColor(hexToColor(0xeeeeee))), text("_"))
+                            ComponentTypeFilter.Include -> text("+")
+                            ComponentTypeFilter.Exclude -> text("-")
+                        }
+                        button(label) {
+                            entities().toggleComponentTypeFilter(cmpTypeIndex)
+                        }
+                    }
+                    AspectPartType.All -> text("A")
+                    AspectPartType.One -> text("1")
+                    AspectPartType.Exclude -> text("!")
+                }
+
+            var columnStyle = gridHeaderColumnStyle_component
+            if (highlightedAs != null)
+                columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
+
+            column(gridHeaderColumnStyle_common,
+                column(attrs(alignBottom, centerX),
+                    row(columnStyle, text(it.name)),
+                    el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
+                        filterOrIconForHighlightedAspectPartType))
+            )
+        }
+
+        val header = row(idCol, *componentCols)
+
+        column(
+            header,
+            Unstyled(html = {
+                thunk("div.entity-table-container", "entity-table-container", createCanvas, arrayOf(entityTableId))
+            }))
     }
 
     private fun requestRedrawCanvas() {
@@ -401,7 +456,6 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        console.asDynamic().time("EntityTable")
         val idCol = column(gridHeaderColumnStyle_common,
             row(gridHeaderColumnStyle_id, text("id")),
             el(attrs(height(px(underHeaderColumnsHeight))),
@@ -456,8 +510,6 @@ class EntityTable(
 
         val result = column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
             el("div", gridStyle(), allRows))
-
-        console.asDynamic().timeEnd("EntityTable")
 
         result
     }.named("EntityTable.render")
@@ -529,11 +581,11 @@ class EntityTable(
         private val gridRowClassName = "gr-row"
 
         private val gridHeaderColumnStyle_common = attrs(
-            // header should be not scrollable, rather on top of the table content
-            backgroundColor(hexToColor(0xFFFFFF)),
-            style("position", "sticky"),
-            style("top", "-1px"), // fixes blurry effect of "sticky", Web Chrome engine
-            style("z-index", "10")
+//            // header should be not scrollable, rather on top of the table content
+//            backgroundColor(hexToColor(0xFFFFFF)),
+//            style("position", "sticky"),
+//            style("top", "-1px"), // fixes blurry effect of "sticky", Web Chrome engine
+//            style("z-index", "10")
         )
 
         private val idColRightPadding = 12
