@@ -64,14 +64,6 @@ class EntityTable(
     var canvasHeight: Double = 0.0
     var needsRedraw = false
 
-    val colsGap = 10.0
-    val minScrollHeight = 20.0
-    val scrollWidth = 15.0
-    val crossSize = 8.0
-    val rowYPadding = 4.0
-    val rowHeight = crossSize + 2*rowYPadding
-    val scrollContainerPadding = 2.0
-    val hoverMargin = 3.0
     val scroll = Scroll()
     val hover = Hover()
 
@@ -97,6 +89,7 @@ class EntityTable(
 
     fun refreshCanvasSize(canvas: HTMLCanvasElement) {
         val size = getContainerSize(canvas.parentNode as HTMLElement)
+
         canvas.width = floor(size.width * PIXEL_RATIO).roundToInt()
         canvas.height = floor(size.height * PIXEL_RATIO).roundToInt()
         canvas.style.width = (canvas.width / PIXEL_RATIO).toString() + "px"
@@ -108,7 +101,6 @@ class EntityTable(
     }
 
     private val createCanvas = ThunkFn.args1 {
-        val containerProps: Props = j("width" to "auto", "height" to "50vh")
         val hooks: Hooks = j()
 
         hooks.insert = {
@@ -124,7 +116,9 @@ class EntityTable(
             canvas.addEventListener("click", ::onCanvasClick)
             canvas.addEventListener("wheel", ::onCanvasWheel)
 
-            window.setTimeout({ refreshCanvasSize(canvas)}, 0)
+            // The timeout could be 0 for Firefox but the Chrome browser relayouts elements in some other way.
+            // With Chrome 0 timeout would result in element being too big (height: 300 vs 251 px).
+            window.setTimeout({ refreshCanvasSize(canvas)}, 100)
 
             entities().entityComponents.updateListeners.add(::requestRedrawCanvas)
             entities().componentTypes.updateListeners.add(::requestRedrawCanvas)
@@ -146,6 +140,8 @@ class EntityTable(
             entities().highlightedComponentTypes.updateListeners.remove(::requestRedrawCanvas)
             entities().entityFilterByComponentType.updateListeners.remove(::requestRedrawCanvas)
         }
+
+        val containerProps: Props = j("width" to "auto")
 
         h("div", VNodeData(props = containerProps, hook = hooks),
             h("canvas"))
@@ -284,16 +280,16 @@ class EntityTable(
 
         val header = row(idCol, *componentCols)
 
-        column(
+        column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
             header,
             Unstyled(html = {
-                thunk("div.entity-table-container", "entity-table-container", createCanvas, arrayOf(entityTableId))
+                thunk("div.${canvasContainerName}", "entity-table-container", createCanvas, arrayOf(entityTableId))
             }))
     }
 
     private fun requestRedrawCanvas() {
-        redrawCanvas.invalidate()
         if (!needsRedraw) {
+            redrawCanvas.invalidate()
             needsRedraw = true
             window.requestAnimationFrame { redrawCanvas() }
         }
@@ -364,7 +360,7 @@ class EntityTable(
         
         val firstEntityIndex = floor(firstEntityIndexWithTranslation).toInt()
         val startX = scrollWidth + colsGap
-        val idColWidth = (entityCount - 1).countDigits() * 22.5*r
+        val idColWidth = idColWidth * r
         val rowWidth: Double = idColWidth + componentTypesCount * (crossSize+colsGap)
         
         var y: Double = -(firstEntityIndexWithTranslation % 1) * rowHeight
@@ -450,135 +446,19 @@ class EntityTable(
     }
 
 
-    val render_ = renderTo(
-        entities().entityComponents,
-        entities().componentTypes,
-        entities().highlightedComponentTypes,
-        entities().entityFilterByComponentType
-    ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        val idCol = column(gridHeaderColumnStyle_common,
-            row(gridHeaderColumnStyle_id, text("id")),
-            el(attrs(height(px(underHeaderColumnsHeight))),
-                textEdit("", InputType.Integer, false, width = 34,
-                    onChange = { _, _ ->
-                        // TODO apply the id filter
-                    },
-                    onEscape = {
-                        // TODO clear the id filter
-                    }))
-        )
-
-        val componentCols = componentTypes.mapToArray {
-            val cmpTypeIndex = it.index
-            val highlightedAs = highlightedComponentTypes[cmpTypeIndex]
-            val filter = entityFilterByComponentType[cmpTypeIndex]
-
-            val filterOrIconForHighlightedAspectPartType =
-                when (highlightedAs) {
-                    null -> {
-                        val label = when (filter) {
-                            null -> el(attrs(fontColor(hexToColor(0xeeeeee))), text("_"))
-                            ComponentTypeFilter.Include -> text("+")
-                            ComponentTypeFilter.Exclude -> text("-")
-                        }
-                        button(label) {
-                            entities().toggleComponentTypeFilter(cmpTypeIndex)
-                        }
-                    }
-                    AspectPartType.All -> text("A")
-                    AspectPartType.One -> text("1")
-                    AspectPartType.Exclude -> text("!")
-                }
-
-            var columnStyle = gridHeaderColumnStyle_component
-            if (highlightedAs != null)
-                columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
-
-            column(gridHeaderColumnStyle_common,
-                column(attrs(alignBottom, centerX),
-                    row(columnStyle, text(it.name)),
-                    el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
-                        filterOrIconForHighlightedAspectPartType))
-            )
-        }
-
-        tmpAllRows.clear()
-        val header = row(attrs(gridRowStyle), idCol, *componentCols)
-        tmpAllRows.add(header)
-
-        val allRows = viewEntitiesDataRows(r)
-
-        val result = column(attrs(Attribute.StyleClass(Flag.height, Single("h-50vh", "height", "50vh"))),
-            el("div", gridStyle(), allRows))
-
-        result
-    }.named("EntityTable.render")
-
-    private val tmpAllRows = arrayListOf<RNode>()
-    private val tmpComponentColsByEntityRow = arrayListOf(arrayListOf<RNode>())
-
-    val viewEntitiesDataRows = renderTo(
-        entities().componentTypes,
-        entities().entityComponents,
-        entities().entityFilterByComponentType
-    ) { r, componentTypes, entityComponents, filters ->
-        var tmpIndex = -1
-        tmpComponentColsByEntityRow.ensureCapacity(entityComponents.size)
-
-        entityComponents.filterMapTo(tmpAllRows) { (entityId, components) ->
-            for ((filteredCmpIndex, filterType) in filters) {
-                val hasComponent = components[filteredCmpIndex]
-
-                if (filterType == ComponentTypeFilter.Include && !hasComponent ||
-                    filterType == ComponentTypeFilter.Exclude && hasComponent)
-                    return@filterMapTo null
-            }
-
-
-            tmpIndex += 1
-            var tmpCols = tmpComponentColsByEntityRow.getOrNull(tmpIndex)
-            if (tmpCols == null) {
-                tmpCols = ArrayList(componentTypes.size+1)
-                tmpComponentColsByEntityRow.add(tmpCols)
-            }
-            else tmpCols.clear()
-
-            tmpCols.add(el(attrs(alignRight, paddingRight(idColRightPadding)), text(entityId.toString())))
-
-            val entityComponentRow = componentTypes.indices.mapTo(tmpCols) { cmpIndex ->
-                if (components[cmpIndex])
-                    column(
-                        attrs(
-                            widthFill//, on(click = { onComponentClicked(entityId, cmpIndex) })
-                        ),
-                        el("div", attrs(centerX), text("x"))
-                    )
-
-                else text("")
-            }
-
-            row(entityId.toString(), attrs(gridRowStyle),
-                entityComponentRow)
-        }
-    }.named("viewEntitiesDataRows")
-
-
-    private val gridStyle = entities().componentTypes.cachedMap { componentTypes ->
-        val columnCount = 1 + componentTypes.size
-
-        attrs(
-            Attribute.Class(0, tableGridClassName),
-            padding(1, 10, 1, 3),
-            style("display", "grid !important"),
-            style("grid-template-columns", "repeat($columnCount, minmax(35px, auto))"),
-            Attribute.StyleClass(Flag.height, Single("maxh-50vh", "max-height", "50vh")),
-            style("overflow-y", "scroll")
-        )
-    }
-
     companion object {
-        private val tableGridClassName = "grid-table"
-        private val gridRowClassName = "gr-row"
+        // canvas properties
+        val idColWidth = 5 * 22.5
+        val colsGap = 10.0
+        val minScrollHeight = 20.0
+        val scrollWidth = 15.0
+        val crossSize = 8.0
+        val rowYPadding = 4.0
+        val rowHeight = crossSize + 2*rowYPadding
+        val scrollContainerPadding = 2.0
+        val hoverMargin = 3.0
+
+
 
         private val gridHeaderColumnStyle_common = attrs(
 //            // header should be not scrollable, rather on top of the table content
@@ -588,17 +468,17 @@ class EntityTable(
 //            style("z-index", "10")
         )
 
-        private val idColRightPadding = 12
         private val underHeaderColumnsHeight = 24
 
         private val gridHeaderColumnStyle_id = attrs(
             alignBottom,
             alignRight,
-            padding(0, idColRightPadding, 4, 0)
+            padding(0, 0, 4, scrollWidth.toInt())
         )
 
         private val gridHeaderColumnStyle_component = attrs(
             centerX,
+            width(px((crossSize + colsGap).toInt())),
 
             // rotate text 90 degrees to squeeze all columns horizontally
             style("writing-mode", "vertical-lr"),
@@ -607,16 +487,12 @@ class EntityTable(
             paddingTop(6)
         )
 
-        private val gridRowStyle = Attribute.StyleClass(0, Single(gridRowClassName, "display", "contents !important"))
+        private val canvasContainerName = "entity-table-container"
 
         // stylesheet that was hard to write using global stylesheet merging mechanism
         val additionalStyleSheet = """
-            .${tableGridClassName} .${gridRowClassName}:not(:first-child):hover > * {
-              background-color: #eee;
-            }
-            
-            .${tableGridClassName} .${gridRowClassName}:not(:first-child) > div:hover  {
-              background-color: #ccc !important;
+            .${canvasContainerName} {
+              flex-grow: 1;
             }
         """.trimIndent()
     }
