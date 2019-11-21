@@ -2,9 +2,7 @@ package net.namekdev.entity_tracker.view
 
 import net.namekdev.entity_tracker.ui.*
 import net.namekdev.entity_tracker.utils.*
-import org.w3c.dom.CanvasRenderingContext2D
-import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.HTMLElement
+import org.w3c.dom.*
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.WheelEvent
@@ -232,17 +230,16 @@ class EntityTable(
         entities().highlightedComponentTypes,
         entities().entityFilterByComponentType
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
-        val idCol = column(gridHeaderColumnStyle_common,
-            row(gridHeaderColumnStyle_id, text("id")),
+        val idCol = column(gridHeaderColumnStyle_id,
+            text("id"),
             el(attrs(height(px(underHeaderColumnsHeight))),
-                textEdit("", InputType.Integer, false, width = 34,
+                textEdit("", InputType.Integer, false, width = idColWidth,
                     onChange = { _, _ ->
                         // TODO apply the id filter
                     },
                     onEscape = {
                         // TODO clear the id filter
-                    }))
-        )
+                    })))
 
         val componentCols = componentTypes.mapToArray {
             val cmpTypeIndex = it.index
@@ -270,12 +267,10 @@ class EntityTable(
             if (highlightedAs != null)
                 columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
 
-            column(gridHeaderColumnStyle_common,
-                column(attrs(alignBottom, centerX),
-                    row(columnStyle, text(it.name)),
-                    el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
-                        filterOrIconForHighlightedAspectPartType))
-            )
+            column(attrs(alignBottom, centerX),
+                row(columnStyle, text(it.name)),
+                el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
+                    filterOrIconForHighlightedAspectPartType))
         }
 
         val header = row(idCol, *componentCols)
@@ -360,7 +355,6 @@ class EntityTable(
         
         val firstEntityIndex = floor(firstEntityIndexWithTranslation).toInt()
         val startX = scrollWidth + colsGap
-        val idColWidth = idColWidth * r
         val rowWidth: Double = idColWidth + componentTypesCount * (crossSize+colsGap)
         
         var y: Double = -(firstEntityIndexWithTranslation % 1) * rowHeight
@@ -404,8 +398,9 @@ class EntityTable(
             }
     
             // entity id
-            ctx.fillText(entityId.toString().padStart(5, ' '), x, y + rowHeight - rowYPadding)
-            x += idColWidth
+            ctx.textAlign = CanvasTextAlign.RIGHT
+            ctx.fillText(entityId.toString(), x + idColWidth, y + rowHeight - rowYPadding)
+            x += idColWidth + colsGap // TODO fix `colsgap` for onmousemove
             y += rowYPadding
             
             // component set
@@ -448,7 +443,7 @@ class EntityTable(
 
     companion object {
         // canvas properties
-        val idColWidth = 5 * 22.5
+        val idColWidth = 56.0
         val colsGap = 10.0
         val minScrollHeight = 20.0
         val scrollWidth = 15.0
@@ -458,15 +453,6 @@ class EntityTable(
         val scrollContainerPadding = 2.0
         val hoverMargin = 3.0
 
-
-
-        private val gridHeaderColumnStyle_common = attrs(
-//            // header should be not scrollable, rather on top of the table content
-//            backgroundColor(hexToColor(0xFFFFFF)),
-//            style("position", "sticky"),
-//            style("top", "-1px"), // fixes blurry effect of "sticky", Web Chrome engine
-//            style("z-index", "10")
-        )
 
         private val underHeaderColumnsHeight = 24
 

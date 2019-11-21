@@ -141,7 +141,7 @@ fun textEdit(
     onChange: ((InputValue?, String) -> Unit)? = null,
     onEnter: ((InputValue?) -> Unit)? = null,
     onEscape: (() -> Unit)? = null,
-    width: Int? = null
+    width: Double? = null
 ) : RNode
 {
     val nativeInputType = when (inputType) {
@@ -149,8 +149,8 @@ fun textEdit(
         else -> "number"
     }
     val width = width ?: when (inputType) {
-        InputType.Text -> 150
-        else -> 100
+        InputType.Text -> 150.0
+        else -> 100.0
     }
 
     val attrs: Attrs = j("type" to nativeInputType)
