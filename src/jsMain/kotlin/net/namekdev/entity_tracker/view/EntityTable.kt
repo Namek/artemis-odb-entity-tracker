@@ -232,8 +232,10 @@ class EntityTable(
     ) { r, entityComponents, componentTypes, highlightedComponentTypes, entityFilterByComponentType ->
         val idCol = column(gridHeaderColumnStyle_id,
             text("id"),
-            el(attrs(height(px(underHeaderColumnsHeight))),
-                textEdit("", InputType.Integer, false, width = idColWidth,
+            el(attrs(
+                height(px(underHeaderColumnsHeight)),
+                paddingRight((colsGap/2).toInt())),
+                textEdit("", InputType.Integer, false, width = idInputWidth,
                     onChange = { _, _ ->
                         // TODO apply the id filter
                     },
@@ -267,7 +269,10 @@ class EntityTable(
             if (highlightedAs != null)
                 columnStyle += attrs(backgroundColor(hexToColor(0xdddddd)))
 
-            column(attrs(alignBottom, centerX),
+            column(attrs(
+                alignBottom, centerX,
+                width(px((colsGap + crossSize).toInt())),
+                padding(0, (colsGap/2).toInt(), 0, (colsGap/2).toInt())),
                 row(columnStyle, text(it.name)),
                 el(attrs(centerX, height(px(underHeaderColumnsHeight)), paddingTop(4)),
                     filterOrIconForHighlightedAspectPartType))
@@ -355,6 +360,7 @@ class EntityTable(
         
         val firstEntityIndex = floor(firstEntityIndexWithTranslation).toInt()
         val startX = scrollWidth + colsGap
+        val idColWidth = idInputWidth
         val rowWidth: Double = idColWidth + componentTypesCount * (crossSize+colsGap)
         
         var y: Double = -(firstEntityIndexWithTranslation % 1) * rowHeight
@@ -443,7 +449,7 @@ class EntityTable(
 
     companion object {
         // canvas properties
-        val idColWidth = 56.0
+        val idInputWidth = 50.0
         val colsGap = 10.0
         val minScrollHeight = 20.0
         val scrollWidth = 15.0
@@ -459,18 +465,17 @@ class EntityTable(
         private val gridHeaderColumnStyle_id = attrs(
             alignBottom,
             alignRight,
-            padding(0, 0, 4, scrollWidth.toInt())
+            padding(0, 0, 4, (scrollWidth + colsGap).toInt())
         )
 
         private val gridHeaderColumnStyle_component = attrs(
             centerX,
-            width(px((crossSize + colsGap).toInt())),
+            width(px(crossSize.toInt())),
 
             // rotate text 90 degrees to squeeze all columns horizontally
             style("writing-mode", "vertical-lr"),
             style("transform", "rotate(-180deg)"),
-            style("font-family", "sans-serif"),
-            paddingTop(6)
+            style("font-family", "sans-serif")
         )
 
         private val canvasContainerName = "entity-table-container"
