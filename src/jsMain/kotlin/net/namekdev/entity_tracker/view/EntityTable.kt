@@ -368,7 +368,7 @@ class EntityTable(
         // background for hovered column
         var hoveringCol = -1
         if (hover.lastMousePosX > 0) {
-            var x = startX + idColWidth
+            var x = startX + idColWidth + colsGap
             var colIndex = 0
             while (x < startX + rowWidth) {
                 if (hover.lastMousePosX >= x - hoverMargin && hover.lastMousePosX < x + crossSize + hoverMargin) {
@@ -406,7 +406,7 @@ class EntityTable(
             // entity id
             ctx.textAlign = CanvasTextAlign.RIGHT
             ctx.fillText(entityId.toString(), x + idColWidth, y + rowHeight - rowYPadding)
-            x += idColWidth + colsGap // TODO fix `colsgap` for onmousemove
+            x += idColWidth + colsGap
             y += rowYPadding
             
             // component set
