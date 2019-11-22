@@ -570,4 +570,5 @@ object Classes {
     const val noTextSelection = "nts"
     const val cursorPointer = "cptr"
     const val cursorText = "ctxt"
+    const val noSpinners = "nsp"
 }

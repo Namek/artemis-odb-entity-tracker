@@ -141,7 +141,8 @@ fun textEdit(
     onChange: ((InputValue?, String) -> Unit)? = null,
     onEnter: ((InputValue?) -> Unit)? = null,
     onEscape: (() -> Unit)? = null,
-    width: Double? = null
+    width: Double? = null,
+    disableSpinners: Boolean = false
 ) : RNode
 {
     val nativeInputType = when (inputType) {
@@ -189,9 +190,15 @@ fun textEdit(
         }
     }
 
+    val classes: snabbdom.modules.Classes = j()
+
+    if (disableSpinners) {
+        classes[Classes.noSpinners] = true
+    }
+
     // TODO use <textarea> for Text
 
-    val vnodeData = VNodeData(attrs = attrs, on = on, props = props, style = style, hook = hooks)
+    val vnodeData = VNodeData(attrs = attrs, on = on, props = props, style = style, hook = hooks, `class` = classes)
     val inputEl = Unstyled { h("input", vnodeData) }
 
     return row(attrs(), inputEl)

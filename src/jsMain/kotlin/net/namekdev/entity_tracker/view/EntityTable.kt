@@ -235,7 +235,7 @@ class EntityTable(
             el(attrs(
                 height(px(underHeaderColumnsHeight)),
                 paddingRight((colsGap/2).toInt())),
-                textEdit("", InputType.Integer, false, width = idInputWidth,
+                textEdit("", InputType.Integer, false, width = idInputWidth, disableSpinners = true,
                     onChange = { _, _ ->
                         // TODO apply the id filter
                     },
@@ -449,7 +449,7 @@ class EntityTable(
 
     companion object {
         // canvas properties
-        val idInputWidth = 50.0
+        val idInputWidth = 45.0
         val colsGap = 10.0
         val minScrollHeight = 20.0
         val scrollWidth = 15.0

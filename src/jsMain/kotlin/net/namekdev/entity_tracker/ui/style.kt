@@ -269,6 +269,18 @@ val globalStylesheet =
     }
     """.trimIndent() +
 
+// Remove spinners from some number inputs
+    """
+    input[type="number"].${Classes.noSpinners}::-webkit-outer-spin-button,
+    input[type="number"].${Classes.noSpinners}::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"].${Classes.noSpinners} {
+        -moz-appearance: textfield;
+    }
+    """.trimIndent() +
+
 // note: those below ARE copied from elm-ui!
     """
     html,body {
