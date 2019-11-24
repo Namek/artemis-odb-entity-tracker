@@ -62,7 +62,9 @@ fun main(args: Array<String>) {
 
     world.process()
 
-    world.getEntity(3).deleteFromWorld()
+    for (i in 10..15)
+        world.getEntity(i).deleteFromWorld()
+
     world.process()
 
     var prevTime = System.nanoTime()

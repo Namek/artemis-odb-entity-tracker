@@ -298,7 +298,7 @@ class EntityTable(
     private fun setScrollPos(pos: Double) {
         scroll.pos = kotlin.math.min(1.0, kotlin.math.max(0.0, pos))
         val visibleRowsCountFractioned = (canvasHeight + rowYPadding) / rowHeight
-        scroll.firstEntityIndexWithTranslation = (entityCount - visibleRowsCountFractioned) * scroll.pos
+        scroll.firstEntityIndexWithTranslation = kotlin.math.max(0.0, (entityCount - visibleRowsCountFractioned) * scroll.pos)
 
         requestRedrawCanvas()
     }
@@ -313,20 +313,21 @@ class EntityTable(
 
         val componentTypesCount = componentTypes.size
         val entityCount: Int = entityComponents.size
-        val visibleRowsCountFractioned = (canvasHeight + rowYPadding) / rowHeight
-        val visibleRowsCount = ceil(visibleRowsCountFractioned).toInt()
+        val maxVisibleRowsCountFractioned = (canvasHeight + rowYPadding) / rowHeight
+        val maxVisibleRowsCount = ceil(maxVisibleRowsCountFractioned).toInt()
+        val visibleRowsCount = kotlin.math.min(maxVisibleRowsCount, entityCount)
         val maxScrollHeight = canvasHeight
-        scroll.shouldRender = visibleRowsCountFractioned < entityCount
+        scroll.shouldRender = maxVisibleRowsCountFractioned < entityCount
         scroll.containerHeight = maxScrollHeight
         scroll.containerWidth = scrollWidth.toDouble()
         scroll.containerLeft = 0.0
         scroll.containerTop = 0.0
-        scroll.height = minScrollHeight + (maxScrollHeight - minScrollHeight) * (visibleRowsCount / entityCount.toDouble())
+        scroll.height = minScrollHeight + (maxScrollHeight - minScrollHeight) * (maxVisibleRowsCount / entityCount.toDouble())
         scroll.top = scroll.containerTop + (maxScrollHeight - scroll.height) * scroll.pos
         scroll.left = scroll.containerLeft + scrollContainerPadding
         scroll.right = scroll.left + scrollWidth - scrollContainerPadding*2
         scroll.bottom = scroll.top + scroll.height
-        
+
         
         ctx.strokeStyle = "#ddd"
         //ctx.rect(0, 0, canvasWidth, canvasHeight)
@@ -352,7 +353,7 @@ class EntityTable(
         
         val firstEntityIndexWithTranslation: Double =
             if (scroll.isDragged) {
-                (entityCount - visibleRowsCountFractioned) * scroll.pos
+                kotlin.math.max(0.0, (entityCount - maxVisibleRowsCountFractioned) * scroll.pos)
             }
             else {
                 scroll.firstEntityIndexWithTranslation
@@ -385,10 +386,8 @@ class EntityTable(
             }
         }
 
-        val eiEnd = visibleRowsCount
-        for (ei in 0 until eiEnd) {
-            // TODO id is not always just an id, we should iterate over existing IDs of the `entityComponents` collection
-            val entityId = firstEntityIndex + ei
+        for (ei in 0 until visibleRowsCount) {
+            val entityId = entityComponents.keys[firstEntityIndex + ei]
             val entity = entityComponents[entityId] ?: continue
             var x = startX
     
@@ -419,7 +418,7 @@ class EntityTable(
                         
                         if (hover.justClicked) {
                             ctx.fillStyle = "steelblue"
-                            onComponentClicked(firstEntityIndex+ei, cmpIndex)
+                            onComponentClicked(entityId, cmpIndex)
 
                             window.setTimeout({ requestRedrawCanvas() }, 100)
                         }

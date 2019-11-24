@@ -29,7 +29,7 @@ enum class WorldViewLayout {
 }
 
 class ECSModel : IWorldUpdateListener<CommonBitVector> {
-    val entityComponents = ValueContainer(mutableMapOf<Int, CommonBitVector>()).named("ECSModel.entityComponents")
+    val entityComponents = ValueContainer(IdMap<CommonBitVector>()).named("ECSModel.entityComponents")
     val componentTypes = ValueContainer(mutableListOf<ComponentTypeInfo>()).named("ECSModel.componentTypes")
     val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
 
