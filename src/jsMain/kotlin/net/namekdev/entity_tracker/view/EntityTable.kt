@@ -253,8 +253,8 @@ class EntityTable(
                     null -> {
                         val label = when (filter) {
                             null -> el(attrs(fontColor(hexToColor(0xeeeeee))), text("_"))
-                            ComponentTypeFilter.Include -> text("+")
-                            ComponentTypeFilter.Exclude -> text("-")
+                            InclusionType.Include -> text("+")
+                            InclusionType.Exclude -> text("-")
                         }
                         button(label) {
                             entities().toggleComponentTypeFilter(cmpTypeIndex)
@@ -386,9 +386,16 @@ class EntityTable(
             }
         }
 
-        for (ei in 0 until visibleRowsCount) {
-            val entityId = entityComponents.keys[firstEntityIndex + ei]
-            val entity = entityComponents[entityId] ?: continue
+        var ei = firstEntityIndex
+        var renderedEntityCount = 0
+        while (renderedEntityCount < visibleRowsCount && ei < entityComponents.size) {
+            val entityId = entityComponents.keys[ei++]
+            val entity = entityComponents[entityId] ?: break
+
+            if (entityFilterByComponentType.matches(entity))
+                renderedEntityCount += 1
+            else continue
+
             var x = startX
     
             // background for hovered row

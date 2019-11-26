@@ -16,7 +16,7 @@ class WatchedEntity(var entityId: Int?, var componentIndex: Int, var valueTree: 
 enum class AspectPartType {
     All, One, Exclude
 }
-enum class ComponentTypeFilter {
+enum class InclusionType {
     Include, Exclude
 }
 enum class MatchType {
@@ -34,7 +34,7 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
     val allSystems = ValueContainer(mutableListOf<SystemInfo>()).named("ECSModel.allSystems")
 
     val highlightedComponentTypes = ValueContainer(mutableMapOf<Int, AspectPartType>())
-    val entityFilterByComponentType = ValueContainer(mutableMapOf<Int, ComponentTypeFilter>())
+    val entityFilterByComponentType = ValueContainer(ComponentTypeFilter())
     val worldViewLayout = ValueContainer<WorldViewLayout>(WorldViewLayout.Entities_Component__Systems)
 
 
@@ -142,12 +142,12 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
         entityFilterByComponentType.update { filters ->
             when (filters[componentTypeIndex]) {
                 null ->
-                    filters[componentTypeIndex] = ComponentTypeFilter.Include
+                    filters[componentTypeIndex] = InclusionType.Include
 
-                ComponentTypeFilter.Include ->
-                    filters[componentTypeIndex] = ComponentTypeFilter.Exclude
+                InclusionType.Include ->
+                    filters[componentTypeIndex] = InclusionType.Exclude
 
-                ComponentTypeFilter.Exclude ->
+                InclusionType.Exclude ->
                     filters.remove(componentTypeIndex)
             }
         }
@@ -167,15 +167,15 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
             for (i in types.toIntBag(tmpInts)) {
                 if (expect == null) {
                     expect = when (filters[i]) {
-                        ComponentTypeFilter.Include -> MatchType.Match
-                        ComponentTypeFilter.Exclude -> MatchType.AntiMatch
+                        InclusionType.Include -> MatchType.Match
+                        InclusionType.Exclude -> MatchType.AntiMatch
                         null -> MatchType.NoMatch
                     }
                 }
                 else {
                     val m = when (filters[i]) {
-                        ComponentTypeFilter.Include -> MatchType.Match
-                        ComponentTypeFilter.Exclude -> MatchType.AntiMatch
+                        InclusionType.Include -> MatchType.Match
+                        InclusionType.Exclude -> MatchType.AntiMatch
                         null -> MatchType.NoMatch
                     }
 
@@ -188,15 +188,15 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
         for (i in aspect.exclusionTypes!!.toIntBag(tmpInts)) {
             if (expect == null) {
                 expect = when (filters[i]) {
-                    ComponentTypeFilter.Include -> MatchType.AntiMatch
-                    ComponentTypeFilter.Exclude -> MatchType.Match
+                    InclusionType.Include -> MatchType.AntiMatch
+                    InclusionType.Exclude -> MatchType.Match
                     null -> MatchType.NoMatch
                 }
             }
             else {
                 val m = when (filters[i]) {
-                    ComponentTypeFilter.Include -> MatchType.AntiMatch
-                    ComponentTypeFilter.Exclude -> MatchType.Match
+                    InclusionType.Include -> MatchType.AntiMatch
+                    InclusionType.Exclude -> MatchType.Match
                     null -> MatchType.NoMatch
                 }
 
@@ -219,9 +219,9 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
                 for (i in types.toIntBag(tmpInts)) {
                     when (shouldSet) {
                         MatchType.Match ->
-                            filters.put(i, ComponentTypeFilter.Include)
+                            filters.put(i, InclusionType.Include)
                         MatchType.AntiMatch ->
-                            filters.put(i, ComponentTypeFilter.Exclude)
+                            filters.put(i, InclusionType.Exclude)
                         MatchType.NoMatch ->
                             filters.remove(i)
                     }
@@ -231,9 +231,9 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
             for (i in aspect.exclusionTypes!!.toIntBag(tmpInts)) {
                 when (shouldSet) {
                     MatchType.Match ->
-                        filters.put(i, ComponentTypeFilter.Exclude)
+                        filters.put(i, InclusionType.Exclude)
                     MatchType.AntiMatch ->
-                        filters.put(i, ComponentTypeFilter.Include)
+                        filters.put(i, InclusionType.Include)
                     MatchType.NoMatch ->
                         filters.remove(i)
                 }
@@ -249,5 +249,19 @@ class ECSModel : IWorldUpdateListener<CommonBitVector> {
             MatchType.AntiMatch -> MatchType.NoMatch
         }
         setFilterByAspect(aspect, newMatch)
+    }
+}
+
+class ComponentTypeFilter : LinkedHashMap<Int, InclusionType>() {
+    fun matches(entityComponents: CommonBitVector): Boolean {
+        for ((cmpIdx, v) in this) {
+            val hasCmp = entityComponents[cmpIdx]
+            if (hasCmp && v == InclusionType.Exclude)
+                return false
+            else if (!hasCmp && v == InclusionType.Include)
+                return false
+        }
+
+        return true
     }
 }
