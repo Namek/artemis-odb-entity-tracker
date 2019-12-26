@@ -1,3 +1,7 @@
+### PLEASE NOTE! This branch is deprecated!
+
+This branch holds an old prototype of the Entity Tracker which is a discontinued version. Instead, there is a WIP version on the *develop* branch. To read more about its current state see gh-pages website: http://namek.github.io/artemis-odb-entity-tracker/
+
 # Entity Tracker
 
 [![Build Status](https://travis-ci.org/Namek/artemis-odb-entity-tracker.svg?branch=master)](https://travis-ci.org/Namek/artemis-odb-entity-tracker)
