@@ -2,10 +2,13 @@
 body {
 	font-family: sans-serif;
 }
+img {
+	max-width: 100%;
+}
 figure img {
 	border: 1px solid black;
 	padding: 0.5em;
-	width: 50%;
+	max-height: 500px;
 }
 </style>
 
@@ -60,7 +63,7 @@ figure img {
 
 <figure>
 <a href="img/changing values.gif">
-	<img src="img/changing values.gif" width="50%">
+	<img src="img/changing values.gif">
 	<figcaption>Changing values of component fields</figcaption>
 </a>
 </figure>
@@ -89,13 +92,17 @@ figure img {
 
 <h3>The story of huge refactor</h3>
 
-<p>Originally, the interface was made with Java Swing. Swing was buggy, took lots of time on every small change in layout design and internals of Java Swing seemed to create lots of memory garbage. I was somewhat OK with performance only for a small projects. However, I totally didn't felt OK with the speed of development. I wished for declarative UI. So I did few things:</p>
+<p>Originally, the interface was made with Java Swing.</p>
+
+<img src="img/swing version.png">
+
+<p>Swing was buggy, took lots of time on every small change in layout design and the internals of the Java Swing seemed to create lots of memory garbage. I was somewhat OK with performance only for a small projects. However, I totally didn't felt OK with the speed of development. I wished for declarative UI. So I did few things:</p>
 
 <ul>
 <li>moved from Java to Kotlin</li>
 <li>refactored everything to kotlin-common which enabled me to build both JVM server and JavaScript client</li>
-<li>ported snabbdom (Virtual DOM library) and elm-ui to Kotlin and coupled them together
+<li>ported snabbdom (Virtual DOM library) and elm-ui to Kotlin and coupled them together.
 This was a tough decision since it's no more possible to run UI within a game process. On the other hand, it felt very convenient when I had to only restart the game during development and debugger was already there, waiting in the background. So now everything is sent over network which was just an option before.</li>
 </ul>
 
-Now the speed of development seems not much better since we have a almost-declarative UI in an <i>imperative</i> language. The biggest drawback though, is the Kotlin to JavaScript compilation, it's just pretty slow as for Kotlin 1.3.50.
+<p>Now the speed of development seems not much better since we have a almost-declarative UI in an <i>imperative</i> language. The biggest drawback though, is the Kotlin to JavaScript compilation, it's just pretty slow as for Kotlin 1.3.50.</p>
